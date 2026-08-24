@@ -2,14 +2,29 @@
 
 import Link from "next/link"
 import {
+  BadgeCheckIcon,
+  BellIcon,
+  ChevronsUpDownIcon,
+  CreditCardIcon,
   FolderIcon,
   GalleryVerticalEndIcon,
   LibraryBigIcon,
+  LogOutIcon,
   PlusIcon,
   SearchIcon,
+  SparklesIcon,
 } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
 import {
   Sidebar,
@@ -27,6 +42,13 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+
+const currentUser = {
+  name: "maxmurr",
+  email: "maxmurr.m@gmail.com",
+  avatar: "https://github.com/maxmurr.png",
+  initials: "MM",
+}
 
 const primaryNavigation = [
   { label: "New chat", href: "/chat", icon: PlusIcon },
@@ -117,23 +139,89 @@ export default function ChatPage() {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton
-                render={<a href="mailto:maxmurr.m@gmail.com" />}
-                size="lg"
-                tooltip="maxmurr"
-              >
-                <Avatar>
-                  <AvatarImage
-                    src="https://github.com/maxmurr.png"
-                    alt="@maxmurr"
-                  />
-                  <AvatarFallback>MM</AvatarFallback>
-                </Avatar>
-                <div className="grid min-w-0 flex-1 text-left">
-                  <div className="truncate font-medium">maxmurr</div>
-                  <div className="truncate text-xs">maxmurr.m@gmail.com</div>
-                </div>
-              </SidebarMenuButton>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <SidebarMenuButton
+                      className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
+                      size="lg"
+                    />
+                  }
+                >
+                  <Avatar>
+                    <AvatarImage
+                      src={currentUser.avatar}
+                      alt={currentUser.name}
+                    />
+                    <AvatarFallback>{currentUser.initials}</AvatarFallback>
+                  </Avatar>
+                  <div className="grid min-w-0 flex-1 text-left leading-4">
+                    <div className="truncate font-medium">
+                      {currentUser.name}
+                    </div>
+                    <div className="truncate text-xs">{currentUser.email}</div>
+                  </div>
+                  <ChevronsUpDownIcon className="ml-auto" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  className="min-w-56"
+                  side="bottom"
+                >
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="p-0 font-normal text-foreground">
+                      <div className="flex items-center gap-2 px-1 py-1.5 text-left">
+                        <Avatar>
+                          <AvatarImage
+                            src={currentUser.avatar}
+                            alt={currentUser.name}
+                          />
+                          <AvatarFallback>
+                            {currentUser.initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="grid min-w-0 flex-1 text-left text-sm leading-4">
+                          <div className="truncate font-medium">
+                            {currentUser.name}
+                          </div>
+                          <div className="truncate text-xs">
+                            {currentUser.email}
+                          </div>
+                        </div>
+                      </div>
+                    </DropdownMenuLabel>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem>
+                      <SparklesIcon />
+                      Upgrade to Pro
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem>
+                      <BadgeCheckIcon />
+                      Account
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <CreditCardIcon />
+                      Billing
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <BellIcon />
+                      Notifications
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem>
+                      <LogOutIcon />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
