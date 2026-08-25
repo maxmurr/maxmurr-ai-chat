@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import {
   EllipsisIcon,
   FolderPlusIcon,
+  MessageCircleIcon,
   PencilIcon,
   PinIcon,
   PinOffIcon,
@@ -126,6 +127,7 @@ export function ChatConversationItem({
           isActive={isActive}
           render={<div />}
         >
+          {isPinned && <MessageCircleIcon />}
           <input
             ref={renameInputRef}
             aria-label={`Rename ${conversationTitle}`}
@@ -161,6 +163,7 @@ export function ChatConversationItem({
           }
           title={conversationTitle}
         >
+          {isPinned && <MessageCircleIcon />}
           <span
             ref={titleViewportRef}
             className={cn(
