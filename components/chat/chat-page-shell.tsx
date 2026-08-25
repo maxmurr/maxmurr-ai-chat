@@ -3,6 +3,8 @@ import {
   ChatConversationTitle,
   ChatConversationTitleProvider,
 } from "@/components/chat/chat-conversation-title"
+import { ChatShareDialog } from "@/components/chat/chat-share-dialog"
+import { ChatThreadActions } from "@/components/chat/chat-thread-actions"
 import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
@@ -48,7 +50,13 @@ export function ChatPageShell({ activeConversation }: ChatPageShellProps) {
               className="data-vertical:h-4 data-vertical:self-auto"
               orientation="vertical"
             />
-            <ChatConversationTitle />
+            <ChatConversationTitle className="min-w-0 flex-1" />
+            {activeConversation && (
+              <div className="flex items-center gap-1">
+                <ChatShareDialog conversationId={activeConversation.id} />
+                <ChatThreadActions />
+              </div>
+            )}
           </header>
           <div className="min-h-0 flex-1" />
         </SidebarInset>

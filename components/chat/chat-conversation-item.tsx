@@ -12,6 +12,8 @@ import {
 } from "lucide-react"
 
 import { useChatConversationTitle } from "@/components/chat/chat-conversation-title"
+import { ChatShareDialogContent } from "@/components/chat/chat-share-dialog"
+import { Dialog } from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +50,7 @@ export function ChatConversationItem({
   onConversationTitleChange,
 }: ChatConversationItemProps) {
   const [isRenaming, setIsRenaming] = useState(false)
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
   const [isTitleOverflowing, setIsTitleOverflowing] = useState(false)
   const conversationLinkRef = useRef<HTMLAnchorElement>(null)
   const movingTitleRef = useRef<HTMLSpanElement>(null)
@@ -242,7 +245,7 @@ export function ChatConversationItem({
                 <FolderPlusIcon />
                 Add to project
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsShareDialogOpen(true)}>
                 <ShareIcon />
                 Share
               </DropdownMenuItem>
@@ -257,6 +260,10 @@ export function ChatConversationItem({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <ChatShareDialogContent conversationId={conversationId} />
+      </Dialog>
     </SidebarMenuItem>
   )
 }
