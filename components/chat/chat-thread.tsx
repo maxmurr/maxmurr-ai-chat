@@ -1,6 +1,7 @@
 "use client"
 
-import { useRef, useState, type FormEvent } from "react"
+import Image from "next/image"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import {
   ArrowUpIcon,
   BrainIcon,
@@ -9,9 +10,13 @@ import {
   CircleAlertIcon,
   CopyIcon,
   FileIcon,
+  FolderClosedIcon,
+  GlobeIcon,
   MicIcon,
+  PaperclipIcon,
   PlusIcon,
   RefreshCwIcon,
+  TelescopeIcon,
   XIcon,
 } from "lucide-react"
 
@@ -34,10 +39,15 @@ import {
 } from "@/components/ui/collapsible"
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
@@ -61,6 +71,7 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller"
+import { Switch } from "@/components/ui/switch"
 import {
   buildMockChatMessages,
   type MockChatMessage,
@@ -72,6 +83,16 @@ type ChatCopyStatus = {
   messageId: string
   result: "copied" | "error"
 } | null
+
+type ChatFilePickerShortcut = Pick<
+  KeyboardEvent,
+  "ctrlKey" | "key" | "metaKey"
+>
+
+/** Returns whether keyboard event opens chat composer file picker. */
+export function isChatFilePickerShortcut(event: ChatFilePickerShortcut) {
+  return event.key.toLowerCase() === "u" && (event.metaKey || event.ctrlKey)
+}
 
 function ChatTouchTarget() {
   return (
@@ -141,6 +162,10 @@ export function ChatThread({
   const [composerAnnouncement, setComposerAnnouncement] = useState("")
   const [copyStatus, setCopyStatus] = useState<ChatCopyStatus>(null)
   const [draft, setDraft] = useState("")
+  const [figmaConnected, setFigmaConnected] = useState(true)
+  const [googleDriveConnected, setGoogleDriveConnected] = useState(false)
+  const [researchModeEnabled, setResearchModeEnabled] = useState(false)
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false)
   const [messages, setMessages] = useState<MockChatMessage[]>(() =>
     buildMockChatMessages(initialConversationTitle)
   )
@@ -149,6 +174,21 @@ export function ChatThread({
   const { conversationTitle, setConversationTitle } =
     useChatConversationTitle()
   const canSend = draft.trim().length > 0 || attachments.length > 0
+
+  useEffect(() => {
+    function openChatFilePickerFromShortcut(event: KeyboardEvent) {
+      if (!isChatFilePickerShortcut(event)) {
+        return
+      }
+
+      event.preventDefault()
+      fileInputRef.current?.click()
+    }
+
+    document.addEventListener("keydown", openChatFilePickerFromShortcut)
+    return () =>
+      document.removeEventListener("keydown", openChatFilePickerFromShortcut)
+  }, [])
 
   function sendChatMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -459,17 +499,141 @@ export function ChatThread({
                 align="block-end"
                 className="gap-1 p-2 pt-0"
               >
-                <InputGroupButton
-                  aria-label="Add attachments and tools"
-                  className="relative -mr-1 shrink-0"
-                  onClick={() => fileInputRef.current?.click()}
-                  size="icon-sm"
-                  title="Add attachments and tools"
-                  type="button"
-                >
-                  <PlusIcon />
-                  <ChatTouchTarget />
-                </InputGroupButton>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <InputGroupButton
+                        aria-label="Add attachments and tools"
+                        className="relative -mr-1 shrink-0"
+                        size="icon-sm"
+                        title="Add attachments and tools"
+                        type="button"
+                      />
+                    }
+                  >
+                    <PlusIcon />
+                    <ChatTouchTarget />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    className="w-60"
+                    side="top"
+                  >
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <PaperclipIcon />
+                        Add files or photos
+                        <DropdownMenuShortcut>⌘U</DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Tools</DropdownMenuLabel>
+                      <DropdownMenuCheckboxItem
+                        checked={webSearchEnabled}
+                        onCheckedChange={(checked) =>
+                          setWebSearchEnabled(checked)
+                        }
+                        onSelect={(event) => event.preventDefault()}
+                      >
+                        <GlobeIcon />
+                        Web search
+                      </DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem
+                        checked={researchModeEnabled}
+                        onCheckedChange={(checked) =>
+                          setResearchModeEnabled(checked)
+                        }
+                        onSelect={(event) => event.preventDefault()}
+                      >
+                        <TelescopeIcon />
+                        Research mode
+                      </DropdownMenuCheckboxItem>
+                    </DropdownMenuGroup>
+
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Connectors</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          setComposerAnnouncement(
+                            "Connector setup is not connected in this UI demo."
+                          )
+                        }
+                      >
+                        <PlusIcon />
+                        Add connector
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          setComposerAnnouncement(
+                            "Connector management is not connected in this UI demo."
+                          )
+                        }
+                      >
+                        <FolderClosedIcon />
+                        Manage connectors
+                      </DropdownMenuItem>
+                      <DropdownMenuCheckboxItem
+                        checked={figmaConnected}
+                        className="justify-between pr-1.5 *:data-[slot=dropdown-menu-checkbox-item-indicator]:hidden"
+                        onCheckedChange={(checked) =>
+                          setFigmaConnected(checked)
+                        }
+                        onSelect={(event) => event.preventDefault()}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Image
+                            alt=""
+                            className="shrink-0"
+                            height={16}
+                            src="/figma.svg"
+                            width={16}
+                          />
+                          Figma
+                        </span>
+                        <Switch
+                          aria-hidden="true"
+                          checked={figmaConnected}
+                          className="pointer-events-none"
+                          size="sm"
+                          tabIndex={-1}
+                        />
+                      </DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem
+                        checked={googleDriveConnected}
+                        className="justify-between pr-1.5 *:data-[slot=dropdown-menu-checkbox-item-indicator]:hidden"
+                        onCheckedChange={(checked) =>
+                          setGoogleDriveConnected(checked)
+                        }
+                        onSelect={(event) => event.preventDefault()}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Image
+                            alt=""
+                            className="shrink-0"
+                            height={16}
+                            src="/google-drive.svg"
+                            width={16}
+                          />
+                          Google Drive
+                        </span>
+                        <Switch
+                          aria-hidden="true"
+                          checked={googleDriveConnected}
+                          className="pointer-events-none"
+                          size="sm"
+                          tabIndex={-1}
+                        />
+                      </DropdownMenuCheckboxItem>
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
                 <DropdownMenu>
                   <DropdownMenuTrigger
