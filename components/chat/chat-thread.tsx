@@ -19,6 +19,7 @@ import {
   PaperclipIcon,
   PlusIcon,
   RefreshCwIcon,
+  ShieldXIcon,
   TelescopeIcon,
   TriangleAlertIcon,
   XIcon,
@@ -38,6 +39,13 @@ import {
 } from "@/components/ui/attachment"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import {
   Collapsible,
   CollapsibleContent,
@@ -83,12 +91,55 @@ import {
   buildMockChatMessages,
   type MockChatMessage,
   type MockChatSource,
+  type MockChatTool,
   type MockChatWebSearch,
 } from "@/lib/mock-chat-conversations"
 import { cn } from "@/lib/utils"
 
 const CHAT_MODEL_OPTIONS = ["Grok Build 0.1", "UI Demo"] as const
 const CHAT_MARKDOWN_PLUGINS = { code } as const
+
+const CHAT_TOOL_STATE_METADATA = {
+  running: {
+    defaultOpen: true,
+    label: "running",
+    showLabel: false,
+    statusClassName: "text-muted-foreground",
+  },
+  completed: {
+    defaultOpen: false,
+    label: "completed",
+    showLabel: false,
+    statusClassName: "text-muted-foreground",
+  },
+  failed: {
+    defaultOpen: true,
+    label: "failed",
+    showLabel: true,
+    statusClassName: "text-destructive",
+  },
+  denied: {
+    defaultOpen: true,
+    label: "denied",
+    showLabel: true,
+    statusClassName: "text-warning",
+  },
+} as const satisfies Record<
+  MockChatTool["state"],
+  {
+    defaultOpen: boolean
+    label: string
+    showLabel: boolean
+    statusClassName: string
+  }
+>
+
+const CHAT_TOOL_STATE_ICONS = {
+  running: Spinner,
+  completed: CheckIcon,
+  failed: TriangleAlertIcon,
+  denied: ShieldXIcon,
+} as const
 
 type ChatCopyStatus = {
   messageId: string
@@ -252,6 +303,101 @@ function ChatMessageSources({
             </li>
           ))}
         </ul>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+function ChatMessageTool({ tool }: { tool: MockChatTool }) {
+  const [copyResult, setCopyResult] = useState<"copied" | "error" | null>(
+    null
+  )
+  const stateMetadata = CHAT_TOOL_STATE_METADATA[tool.state]
+  const StatusIcon = CHAT_TOOL_STATE_ICONS[tool.state]
+  const formattedPayload = JSON.stringify(tool.payload, null, 2)
+  const copyLabel =
+    copyResult === "copied"
+      ? `${tool.name} details copied`
+      : copyResult === "error"
+        ? `Could not copy ${tool.name} details`
+        : `Copy ${tool.name} ${stateMetadata.label} details`
+
+  async function copyChatToolDetails() {
+    try {
+      await navigator.clipboard.writeText(formattedPayload)
+      setCopyResult("copied")
+    } catch {
+      setCopyResult("error")
+    }
+  }
+
+  return (
+    <Collapsible
+      className="flex w-full min-w-0 flex-col gap-2"
+      defaultOpen={stateMetadata.defaultOpen}
+    >
+      <Marker
+        aria-busy={tool.state === "running" ? true : undefined}
+        className={cn(
+          "w-fit rounded-sm py-1 text-base select-none outline-none hover:opacity-80 focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm",
+          stateMetadata.statusClassName
+        )}
+        render={<CollapsibleTrigger />}
+      >
+        <MarkerIcon>
+          <StatusIcon />
+        </MarkerIcon>
+        <MarkerContent>
+          {tool.name}
+          <span className={cn(!stateMetadata.showLabel && "sr-only")}>
+            {` · ${stateMetadata.label}`}
+          </span>
+        </MarkerContent>
+        <MarkerIcon>
+          <ChevronDownIcon className="transition-transform group-aria-expanded/marker:rotate-180" />
+        </MarkerIcon>
+      </Marker>
+
+      <CollapsibleContent>
+        <Card className="w-fit max-w-full" size="sm">
+          <CardHeader className="border-b">
+            <CardTitle>
+              <code>{tool.name}</code>
+            </CardTitle>
+            <CardAction>
+              <Button
+                aria-label={copyLabel}
+                className="relative"
+                onClick={copyChatToolDetails}
+                size="icon-sm"
+                title={copyLabel}
+                type="button"
+                variant="ghost"
+              >
+                {copyResult === "copied" ? (
+                  <CheckIcon />
+                ) : copyResult === "error" ? (
+                  <CircleAlertIcon />
+                ) : (
+                  <CopyIcon />
+                )}
+                <ChatTouchTarget />
+              </Button>
+              <span className="sr-only" role="status">
+                {copyResult === "copied"
+                  ? `${tool.name} details copied.`
+                  : copyResult === "error"
+                    ? `Could not copy ${tool.name} details.`
+                    : ""}
+              </span>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="min-w-0">
+            <pre className="max-w-full overflow-x-auto whitespace-pre-wrap wrap-break-word tabular-nums text-base/7 sm:text-sm/6">
+              <code>{formattedPayload}</code>
+            </pre>
+          </CardContent>
+        </Card>
       </CollapsibleContent>
     </Collapsible>
   )
@@ -430,6 +576,14 @@ export function ChatThread({
                                     webSearches={message.webSearches}
                                   />
                                 )}
+
+                              {message.tools && message.tools.length > 0 && (
+                                <div className="flex w-full min-w-0 flex-col gap-4">
+                                  {message.tools.map((tool) => (
+                                    <ChatMessageTool key={tool.id} tool={tool} />
+                                  ))}
+                                </div>
+                              )}
 
                               {message.attachments &&
                                 message.attachments.length > 0 && (

@@ -18,6 +18,14 @@ export type MockChatWebSearch = {
   readonly status: "failed" | "searched" | "searching"
 }
 
+/** Describes one tool call rendered inside a local demo message. */
+export type MockChatTool = {
+  readonly id: string
+  readonly name: string
+  readonly payload: Readonly<Record<string, unknown>>
+  readonly state: "running" | "completed" | "failed" | "denied"
+}
+
 /** Describes one local demo message rendered inside a chat thread. */
 export type MockChatMessage = {
   readonly attachments?: readonly MockChatAttachment[]
@@ -26,6 +34,7 @@ export type MockChatMessage = {
   readonly reasoning?: string
   readonly role: "assistant" | "user"
   readonly sources?: readonly MockChatSource[]
+  readonly tools?: readonly MockChatTool[]
   readonly webSearches?: readonly MockChatWebSearch[]
 }
 
@@ -83,6 +92,65 @@ const STRIPE_BILLING_WEB_SEARCH_MESSAGES: readonly MockChatMessage[] = [
       {
         query: "Stripe Billing custom volume discounts",
         status: "failed",
+      },
+    ],
+  },
+]
+
+const CHECKOUT_FAILURE_TITLE = "Checkout 500s"
+
+const CHECKOUT_FAILURE_MESSAGES: readonly MockChatMessage[] = [
+  {
+    content: "Show me the tool states behind the checkout failures.",
+    id: "checkout-tool-state-request",
+    role: "user",
+  },
+  {
+    content:
+      "Cached lookup completed. Live billing timed out, and the privileged retry was denied because this demo has no approved billing scope.",
+    id: "checkout-tool-state-response",
+    reasoning:
+      "I compared the cached plan path, live billing lookup, timeout, and authorization result.",
+    role: "assistant",
+    tools: [
+      {
+        id: "lookup-plans-running",
+        name: "lookup_plans",
+        payload: {
+          product: "acme",
+          cycle: "monthly",
+        },
+        state: "running",
+      },
+      {
+        id: "lookup-plans-completed",
+        name: "lookup_plans",
+        payload: {
+          planId: "plan_acme_monthly",
+          price: 29,
+          currency: "USD",
+        },
+        state: "completed",
+      },
+      {
+        id: "lookup-plans-failed",
+        name: "lookup_plans",
+        payload: {
+          error: "billing.acme.internal timed out after 10s",
+        },
+        state: "failed",
+      },
+      {
+        id: "lookup-plans-denied",
+        name: "lookup_plans",
+        payload: {
+          deniedInput: {
+            product: "acme",
+            cycle: "monthly",
+          },
+          reason: "Reading live billing data needs an approved scope.",
+        },
+        state: "denied",
       },
     ],
   },
@@ -276,7 +344,7 @@ export const mockChatConversationGroups: readonly MockChatConversationGroup[] = 
     conversations: [
       {
         id: "35177dd9-3ed8-402b-8acd-f28ad7bc3f93",
-        title: "Checkout 500s",
+        title: CHECKOUT_FAILURE_TITLE,
       },
     ],
   },
@@ -326,6 +394,10 @@ export function buildMockChatMessages(
 
   if (conversationTitle === STRIPE_BILLING_WEB_SEARCH_TITLE) {
     return [...STRIPE_BILLING_WEB_SEARCH_MESSAGES]
+  }
+
+  if (conversationTitle === CHECKOUT_FAILURE_TITLE) {
+    return [...CHECKOUT_FAILURE_MESSAGES]
   }
 
   if (conversationTitle === PRICING_DESIGN_FEEDBACK_TITLE) {
