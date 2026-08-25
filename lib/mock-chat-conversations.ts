@@ -31,6 +31,8 @@ export type MockChatMessage = {
   readonly attachments?: readonly MockChatAttachment[]
   readonly content: string
   readonly id: string
+  readonly questionnaire?: true
+  /** Empty while reasoning is loading; omitted when message has no reasoning. */
   readonly reasoning?: string
   readonly role: "assistant" | "user"
   readonly sources?: readonly MockChatSource[]
@@ -153,6 +155,24 @@ const CHECKOUT_FAILURE_MESSAGES: readonly MockChatMessage[] = [
         state: "denied",
       },
     ],
+  },
+]
+
+const BILLING_RECOMMENDATION_TITLE = "Billing: build or buy"
+
+const BILLING_RECOMMENDATION_MESSAGES: readonly MockChatMessage[] = [
+  {
+    content:
+      "We need subscription billing for the new plans. Build it in-house or use Stripe Billing? I want a recommendation, not a list of pros and cons.",
+    id: "billing-recommendation-request",
+    role: "user",
+  },
+  {
+    content:
+      "Before I spend the research on this, four questions. Each one changes the answer, so guessing at them would waste both our time.",
+    id: "billing-recommendation-questionnaire",
+    questionnaire: true,
+    role: "assistant",
   },
 ]
 
@@ -369,7 +389,7 @@ export const mockChatConversationGroups: readonly MockChatConversationGroup[] = 
       },
       {
         id: "51dfd3da-c28d-4fd7-9d2d-3441744a2ae3",
-        title: "Billing: build or buy",
+        title: BILLING_RECOMMENDATION_TITLE,
       },
       {
         id: "7200d336-7e37-442d-aeb9-daab292cb921",
@@ -398,6 +418,10 @@ export function buildMockChatMessages(
 
   if (conversationTitle === CHECKOUT_FAILURE_TITLE) {
     return [...CHECKOUT_FAILURE_MESSAGES]
+  }
+
+  if (conversationTitle === BILLING_RECOMMENDATION_TITLE) {
+    return [...BILLING_RECOMMENDATION_MESSAGES]
   }
 
   if (conversationTitle === PRICING_DESIGN_FEEDBACK_TITLE) {

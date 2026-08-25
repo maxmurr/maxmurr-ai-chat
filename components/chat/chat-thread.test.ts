@@ -1,7 +1,10 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { isChatFilePickerShortcut } from "@/components/chat/chat-thread"
+import {
+  getBillingRecommendationQuestionnaireAnswers,
+  isChatFilePickerShortcut,
+} from "@/components/chat/chat-thread"
 
 test("chat file picker shortcut accepts Command or Control plus U", () => {
   assert.equal(
@@ -20,4 +23,20 @@ test("chat file picker shortcut accepts Command or Control plus U", () => {
     isChatFilePickerShortcut({ ctrlKey: false, key: "k", metaKey: true }),
     false
   )
+})
+
+test("billing questionnaire maps every answer variant to labels", () => {
+  const formData = new FormData()
+  formData.set("priority", "cost")
+  formData.append("pricingModels", "usage")
+  formData.append("pricingModels", "seat")
+  formData.set("timeline", "no-date")
+  formData.set("constraints", "Keep existing invoice IDs")
+
+  assert.deepEqual(getBillingRecommendationQuestionnaireAnswers(formData), {
+    constraints: "Keep existing invoice IDs",
+    pricingModels: ["Usage-based", "Per seat"],
+    priority: "Cost at scale",
+    timeline: "No fixed date",
+  })
 })

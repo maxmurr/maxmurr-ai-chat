@@ -28,6 +28,11 @@ import { Streamdown } from "streamdown"
 
 import { useChatConversationTitle } from "@/components/chat/chat-conversation-title"
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
+import {
   Attachment,
   AttachmentAction,
   AttachmentActions,
@@ -72,6 +77,23 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group"
 import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker"
+import {
+  Questionnaire,
+  QuestionnaireActions,
+  QuestionnaireChoice,
+  QuestionnaireChoiceDescription,
+  QuestionnaireChoices,
+  QuestionnaireDescription,
+  QuestionnaireError,
+  QuestionnaireInput,
+  QuestionnaireItem,
+  QuestionnaireNext,
+  QuestionnairePrevious,
+  QuestionnaireProgress,
+  QuestionnaireSkip,
+  QuestionnaireSubmit,
+  QuestionnaireTitle,
+} from "@/components/ui/questionnaire"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Message,
@@ -141,6 +163,98 @@ const CHAT_TOOL_STATE_ICONS = {
   denied: ShieldXIcon,
 } as const
 
+const BILLING_PRIORITY_CHOICES = [
+  {
+    description: "Charging customers this quarter beats owning the code.",
+    label: "Speed to launch",
+    value: "speed",
+  },
+  {
+    description: "Percentage fees become the largest line item.",
+    label: "Cost at scale",
+    value: "cost",
+  },
+  {
+    description: "Pricing changes often and cannot wait on a vendor.",
+    label: "Control over pricing logic",
+    value: "control",
+  },
+  {
+    description: "Revenue recognition and audit trails are the risk.",
+    label: "Compliance and audit",
+    value: "compliance",
+  },
+] as const
+
+const BILLING_PRICING_MODEL_CHOICES = [
+  { label: "Flat subscription", value: "flat" },
+  { label: "Usage-based", value: "usage" },
+  { label: "Per seat", value: "seat" },
+  { label: "Seats with usage overage", value: "seat-overage" },
+] as const
+
+const BILLING_TIMELINE_CHOICES = [
+  { label: "This quarter", value: "quarter" },
+  { label: "Within six months", value: "six-months" },
+  { label: "No fixed date", value: "no-date" },
+] as const
+
+const BILLING_RECOMMENDATION_QUESTIONNAIRE_ITEMS = [
+  {
+    choices: BILLING_PRIORITY_CHOICES,
+    name: "priority",
+    required: true,
+  },
+  {
+    choices: BILLING_PRICING_MODEL_CHOICES,
+    name: "pricingModels",
+    required: true,
+  },
+  {
+    choices: BILLING_TIMELINE_CHOICES,
+    name: "timeline",
+    required: true,
+  },
+  { name: "constraints" },
+] as const
+
+type BillingRecommendationQuestionnaireAnswers = {
+  constraints: string
+  pricingModels: string[]
+  priority: string
+  timeline: string
+}
+
+/** Converts billing questionnaire form values into display labels. */
+export function getBillingRecommendationQuestionnaireAnswers(
+  formData: FormData
+): BillingRecommendationQuestionnaireAnswers {
+  const priority = BILLING_PRIORITY_CHOICES.find(
+    ({ value }) => value === formData.get("priority")
+  )?.label
+  const pricingModels = formData
+    .getAll("pricingModels")
+    .flatMap((pricingModelValue) => {
+      const label = BILLING_PRICING_MODEL_CHOICES.find(
+        ({ value }) => value === pricingModelValue
+      )?.label
+
+      return label ? [label] : []
+    })
+  const timeline = BILLING_TIMELINE_CHOICES.find(
+    ({ value }) => value === formData.get("timeline")
+  )?.label
+  const constraints = String(formData.get("constraints") ?? "").trim()
+
+  return {
+    constraints: constraints || "None",
+    pricingModels:
+      pricingModels.length > 0 ? pricingModels : ["Not answered"],
+    priority: priority ?? "Not answered",
+    timeline: timeline ?? "Not answered",
+  }
+}
+
 type ChatCopyStatus = {
   messageId: string
   result: "copied" | "error"
@@ -178,27 +292,37 @@ function ChatMessageMarkdown({ children }: { children: string }) {
 }
 
 function ChatMessageReasoning({ reasoning }: { reasoning: string }) {
+  const isLoading = reasoning.length === 0
+
   return (
     <Collapsible defaultOpen>
       <Marker
+        aria-busy={isLoading}
         className="transition-colors hover:text-foreground"
         render={<CollapsibleTrigger />}
       >
         <MarkerIcon>
-          <BrainIcon />
+          {isLoading ? <Spinner /> : <BrainIcon />}
         </MarkerIcon>
-        <MarkerContent>Reasoning</MarkerContent>
+        <MarkerContent
+          className={cn(isLoading && "shimmer")}
+          role={isLoading ? "status" : undefined}
+        >
+          {isLoading ? "Reasoning..." : "Reasoning"}
+        </MarkerContent>
         <MarkerIcon>
           <ChevronDownIcon className="transition-transform group-aria-expanded/marker:rotate-180" />
         </MarkerIcon>
       </Marker>
-      <CollapsibleContent>
-        <Bubble className="mt-2" variant="muted">
-          <BubbleContent className="text-muted-foreground">
-            <ChatMessageMarkdown>{reasoning}</ChatMessageMarkdown>
-          </BubbleContent>
-        </Bubble>
-      </CollapsibleContent>
+      {!isLoading && (
+        <CollapsibleContent>
+          <Bubble className="mt-2" variant="muted">
+            <BubbleContent className="text-muted-foreground">
+              <ChatMessageMarkdown>{reasoning}</ChatMessageMarkdown>
+            </BubbleContent>
+          </Bubble>
+        </CollapsibleContent>
+      )}
     </Collapsible>
   )
 }
@@ -347,7 +471,9 @@ function ChatMessageTool({ tool }: { tool: MockChatTool }) {
         <MarkerIcon>
           <StatusIcon />
         </MarkerIcon>
-        <MarkerContent>
+        <MarkerContent
+          className={cn(tool.state === "running" && "shimmer")}
+        >
           {tool.name}
           <span className={cn(!stateMetadata.showLabel && "sr-only")}>
             {` · ${stateMetadata.label}`}
@@ -400,6 +526,214 @@ function ChatMessageTool({ tool }: { tool: MockChatTool }) {
         </Card>
       </CollapsibleContent>
     </Collapsible>
+  )
+}
+
+function BillingRecommendationReasoning() {
+  return (
+    <Collapsible>
+      <Marker
+        className="w-fit rounded-sm py-1 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm"
+        render={<CollapsibleTrigger />}
+      >
+        <MarkerIcon>
+          <BrainIcon />
+        </MarkerIcon>
+        <MarkerContent>Reasoning</MarkerContent>
+        <MarkerIcon>
+          <ChevronDownIcon className="transition-transform group-aria-expanded/marker:rotate-180" />
+        </MarkerIcon>
+      </Marker>
+      <CollapsibleContent>
+        <p className="text-pretty text-base/7 text-muted-foreground sm:text-sm/6">
+          Gathering decision constraints before comparing build versus buy.
+        </p>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+function BillingRecommendationQuestionnaireActions() {
+  return (
+    <QuestionnaireActions>
+      <QuestionnairePrevious />
+      <QuestionnaireSkip />
+      <QuestionnaireNext />
+      <QuestionnaireSubmit>Start research</QuestionnaireSubmit>
+    </QuestionnaireActions>
+  )
+}
+
+function BillingRecommendationQuestionnaire() {
+  const [answers, setAnswers] =
+    useState<BillingRecommendationQuestionnaireAnswers | null>(null)
+
+  if (answers) {
+    return (
+      <div className="flex w-fit max-w-full flex-col gap-3">
+        <Alert className="w-fit max-w-full gap-y-3 rounded-xl bg-background p-4">
+          <CheckIcon className="stroke-muted-foreground" />
+          <AlertTitle className="text-muted-foreground">
+            Answers sent
+          </AlertTitle>
+          <AlertDescription className="col-span-full">
+            <dl className="flex flex-col gap-1">
+              <div className="flex min-w-0 gap-2">
+                <dt>Priority</dt>
+                <dd className="min-w-0 text-foreground">{answers.priority}</dd>
+              </div>
+              <div className="flex min-w-0 gap-2">
+                <dt>Pricing models</dt>
+                <dd className="min-w-0 text-foreground">
+                  {answers.pricingModels.join(", ")}
+                </dd>
+              </div>
+              <div className="flex min-w-0 gap-2">
+                <dt>Timeline</dt>
+                <dd className="min-w-0 text-foreground">{answers.timeline}</dd>
+              </div>
+              <div className="flex min-w-0 gap-2">
+                <dt>Constraints</dt>
+                <dd className="min-w-0 text-foreground">
+                  {answers.constraints}
+                </dd>
+              </div>
+            </dl>
+          </AlertDescription>
+        </Alert>
+
+        <Collapsible>
+          <Marker
+            className="w-fit rounded-sm py-1 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm"
+            render={<CollapsibleTrigger />}
+          >
+            <MarkerIcon>
+              <BrainIcon />
+            </MarkerIcon>
+            <MarkerContent>Reasoning</MarkerContent>
+            <MarkerIcon>
+              <ChevronDownIcon className="transition-transform group-aria-expanded/marker:rotate-180" />
+            </MarkerIcon>
+          </Marker>
+          <CollapsibleContent>
+            <p className="text-pretty text-base/7 text-muted-foreground sm:text-sm/6">
+              Comparing ownership cost against Stripe Billing coverage.
+            </p>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Collapsible>
+          <Marker
+            aria-busy="true"
+            className="w-fit rounded-sm py-1 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm"
+            render={<CollapsibleTrigger />}
+          >
+            <MarkerIcon>
+              <Spinner />
+            </MarkerIcon>
+            <MarkerContent className="shimmer" role="status">
+              Checking Stripe Billing coverage
+            </MarkerContent>
+            <MarkerIcon>
+              <ChevronDownIcon className="transition-transform group-aria-expanded/marker:rotate-180" />
+            </MarkerIcon>
+          </Marker>
+          <CollapsibleContent>
+            <p className="text-pretty text-base/7 text-muted-foreground sm:text-sm/6">
+              Reviewing supported pricing models and billing controls.
+            </p>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+    )
+  }
+
+  return (
+    <Questionnaire
+      className="w-fit max-w-full rounded-xl border p-4 sm:p-6"
+      defaultItem="priority"
+      items={BILLING_RECOMMENDATION_QUESTIONNAIRE_ITEMS}
+      onSubmit={(event) => {
+        event.preventDefault()
+        setAnswers(
+          getBillingRecommendationQuestionnaireAnswers(
+            new FormData(event.currentTarget)
+          )
+        )
+      }}
+      shortcuts="numbers"
+    >
+      <QuestionnaireProgress />
+
+      <QuestionnaireItem name="priority" required>
+        <QuestionnaireTitle>
+          What matters most in this decision?
+        </QuestionnaireTitle>
+        <QuestionnaireDescription>
+          Pick the one you would defend in a review.
+        </QuestionnaireDescription>
+        <QuestionnaireChoices>
+          {BILLING_PRIORITY_CHOICES.map(
+            ({ description, label, value }) => (
+              <QuestionnaireChoice key={value} value={value}>
+                <span className="font-medium">{label}</span>
+                <QuestionnaireChoiceDescription>
+                  {description}
+                </QuestionnaireChoiceDescription>
+              </QuestionnaireChoice>
+            )
+          )}
+        </QuestionnaireChoices>
+        <QuestionnaireError />
+      </QuestionnaireItem>
+
+      <QuestionnaireItem multiple name="pricingModels" required>
+        <QuestionnaireTitle>
+          Which pricing models do you need?
+        </QuestionnaireTitle>
+        <QuestionnaireDescription>
+          Select every one the new plans use.
+        </QuestionnaireDescription>
+        <QuestionnaireChoices>
+          {BILLING_PRICING_MODEL_CHOICES.map(({ label, value }) => (
+            <QuestionnaireChoice key={value} value={value}>
+              {label}
+            </QuestionnaireChoice>
+          ))}
+        </QuestionnaireChoices>
+        <QuestionnaireError />
+      </QuestionnaireItem>
+
+      <QuestionnaireItem name="timeline" required>
+        <QuestionnaireTitle>When does this have to be live?</QuestionnaireTitle>
+        <QuestionnaireDescription>
+          Choose the closest planning window.
+        </QuestionnaireDescription>
+        <QuestionnaireChoices>
+          {BILLING_TIMELINE_CHOICES.map(({ label, value }) => (
+            <QuestionnaireChoice key={value} value={value}>
+              {label}
+            </QuestionnaireChoice>
+          ))}
+        </QuestionnaireChoices>
+        <QuestionnaireError />
+      </QuestionnaireItem>
+
+      <QuestionnaireItem name="constraints">
+        <QuestionnaireTitle>
+          Anything I should treat as a hard constraint?
+        </QuestionnaireTitle>
+        <QuestionnaireDescription>
+          Optional. Skip it if nothing comes to mind.
+        </QuestionnaireDescription>
+        <QuestionnaireInput
+          aria-label="Hard constraint"
+          placeholder="Type a constraint…"
+        />
+      </QuestionnaireItem>
+
+      <BillingRecommendationQuestionnaireActions />
+    </Questionnaire>
   )
 }
 
@@ -564,7 +898,7 @@ export function ChatThread({
                         >
                           <Message align={isAssistant ? "start" : "end"}>
                             <MessageContent>
-                              {message.reasoning && (
+                              {message.reasoning !== undefined && (
                                 <ChatMessageReasoning
                                   reasoning={message.reasoning}
                                 />
@@ -624,6 +958,10 @@ export function ChatThread({
                                   </AttachmentGroup>
                                 )}
 
+                              {message.questionnaire && (
+                                <BillingRecommendationReasoning />
+                              )}
+
                               <Bubble
                                 align={isAssistant ? "start" : "end"}
                                 variant={isAssistant ? "ghost" : "default"}
@@ -634,6 +972,10 @@ export function ChatThread({
                                   </ChatMessageMarkdown>
                                 </BubbleContent>
                               </Bubble>
+
+                              {message.questionnaire && (
+                                <BillingRecommendationQuestionnaire />
+                              )}
 
                               {message.sources &&
                                 message.sources.length > 0 && (
