@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils"
 
 type ChatConversationItemProps = {
   className?: string
+  conversationId: string
   conversationTitle: string
   isActive: boolean
   isPinned: boolean
@@ -39,6 +40,7 @@ type ChatConversationItemProps = {
 /** Renders one renameable conversation link and its action menu. */
 export function ChatConversationItem({
   className,
+  conversationId,
   conversationTitle,
   isActive,
   isPinned,
@@ -158,7 +160,7 @@ export function ChatConversationItem({
             <Link
               ref={conversationLinkRef}
               aria-current={isActive ? "page" : undefined}
-              href="/chat"
+              href={`/chat/${conversationId}`}
             />
           }
           title={conversationTitle}

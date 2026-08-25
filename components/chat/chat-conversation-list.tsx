@@ -14,27 +14,32 @@ import { cn } from "@/lib/utils"
 
 const PINNED_GROUP_LABEL = "Pinned"
 
+/** Identifies one conversation independently from its renameable title. */
+export type ChatConversationSummary = {
+  id: string
+  title: string
+}
+
 /** Describes one server-provided conversation section. */
 export type ChatConversationGroup = {
   label: string
-  conversations: readonly string[]
+  conversations: readonly ChatConversationSummary[]
 }
 
 type ChatConversationListEntry = {
   homeGroupLabel: string
   id: string
-  isActive: boolean
   isPinned: boolean
   title: string
 }
 
 /** Renders conversation groups and moves chats between their home and pinned sections. */
 export function ChatConversationList({
-  activeConversation,
+  activeConversationId,
   className,
   conversationGroups,
 }: {
-  activeConversation: string
+  activeConversationId?: string
   className?: string
   conversationGroups: ReadonlyArray<ChatConversationGroup>
 }) {
@@ -45,16 +50,15 @@ export function ChatConversationList({
       conversationGroups.find(({ label }) => label !== PINNED_GROUP_LABEL)
         ?.label ?? PINNED_GROUP_LABEL
 
-    return conversationGroups.flatMap((group, groupIndex) =>
-      group.conversations.map((title, conversationIndex) => ({
+    return conversationGroups.flatMap((group) =>
+      group.conversations.map((conversation) => ({
         homeGroupLabel:
           group.label === PINNED_GROUP_LABEL
             ? fallbackHomeGroupLabel
             : group.label,
-        id: `${groupIndex}:${conversationIndex}`,
-        isActive: title === activeConversation,
+        id: conversation.id,
         isPinned: group.label === PINNED_GROUP_LABEL,
-        title,
+        title: conversation.title,
       }))
     )
   })
@@ -102,8 +106,9 @@ export function ChatConversationList({
               <SidebarMenu>
                 {groupedConversations.map((conversation) => (
                   <ChatConversationItem
+                    conversationId={conversation.id}
                     conversationTitle={conversation.title}
-                    isActive={conversation.isActive}
+                    isActive={conversation.id === activeConversationId}
                     isPinned={conversation.isPinned}
                     key={conversation.id}
                     onConversationPinChange={(isPinned) =>

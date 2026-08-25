@@ -31,7 +31,7 @@ const primaryNavigation = [
 ]
 
 type ChatAppSidebarProps = {
-  activeConversation: string
+  activeConversationId?: string
   className?: string
   conversationGroups: ReadonlyArray<ChatConversationGroup>
   currentUser: {
@@ -65,7 +65,7 @@ function ChatPrimaryNavigation({ className }: { className?: string }) {
 
 /** Composes server-rendered chat navigation around focused client controls. */
 export function ChatAppSidebar({
-  activeConversation,
+  activeConversationId,
   className,
   conversationGroups,
   currentUser,
@@ -80,7 +80,7 @@ export function ChatAppSidebar({
       </SidebarHeader>
 
       <ChatConversationList
-        activeConversation={activeConversation}
+        activeConversationId={activeConversationId}
         conversationGroups={conversationGroups}
       />
 
