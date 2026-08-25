@@ -5,6 +5,13 @@ export type MockChatAttachment = {
   readonly previewImageSrc?: string
 }
 
+/** Describes one source cited by a local demo message. */
+export type MockChatSource = {
+  readonly href?: string
+  readonly label: string
+  readonly title: string
+}
+
 /** Describes one local demo message rendered inside a chat thread. */
 export type MockChatMessage = {
   readonly attachments?: readonly MockChatAttachment[]
@@ -12,6 +19,7 @@ export type MockChatMessage = {
   readonly id: string
   readonly reasoning?: string
   readonly role: "assistant" | "user"
+  readonly sources?: readonly MockChatSource[]
 }
 
 type MockChatConversation = {
@@ -184,6 +192,22 @@ const PRICING_DESIGN_FEEDBACK_MESSAGES: readonly MockChatMessage[] = [
       "Written up, including the analytics and contrast results so whoever picks this up has the reasoning and not just the conclusions.",
     id: "pricing-review-documents",
     role: "assistant",
+    sources: [
+      {
+        href: "https://stripe.com/billing",
+        label: "stripe.com",
+        title: "Billing overview",
+      },
+      {
+        href: "https://www.paddle.com/blog/why-usage-based-pricing",
+        label: "paddle.com",
+        title: "Usage-based pricing, explained",
+      },
+      {
+        label: "pricing-research.pdf",
+        title: "Q3 pricing research",
+      },
+    ],
   },
 ]
 

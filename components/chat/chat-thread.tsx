@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react"
 import { code } from "@streamdown/code"
 import {
   ArrowUpIcon,
+  BookOpenIcon,
   BrainIcon,
   CheckIcon,
   ChevronDownIcon,
@@ -13,6 +14,7 @@ import {
   FileTextIcon,
   FolderClosedIcon,
   GlobeIcon,
+  LinkIcon,
   MicIcon,
   PaperclipIcon,
   PlusIcon,
@@ -78,6 +80,7 @@ import { Switch } from "@/components/ui/switch"
 import {
   buildMockChatMessages,
   type MockChatMessage,
+  type MockChatSource,
 } from "@/lib/mock-chat-conversations"
 
 const CHAT_MODEL_OPTIONS = ["Grok Build 0.1", "UI Demo"] as const
@@ -140,6 +143,64 @@ function ChatMessageReasoning({ reasoning }: { reasoning: string }) {
             <ChatMessageMarkdown>{reasoning}</ChatMessageMarkdown>
           </BubbleContent>
         </Bubble>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+function ChatMessageSources({
+  sources,
+}: {
+  sources: readonly MockChatSource[]
+}) {
+  return (
+    <Collapsible className="flex flex-col gap-1">
+      <Marker
+        className="w-fit rounded-sm py-1 text-base select-none outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm"
+        render={<CollapsibleTrigger />}
+      >
+        <MarkerIcon>
+          <BookOpenIcon />
+        </MarkerIcon>
+        <MarkerContent className="tabular-nums">
+          {sources.length} sources
+        </MarkerContent>
+        <MarkerIcon>
+          <ChevronDownIcon className="transition-transform group-aria-expanded/marker:rotate-180" />
+        </MarkerIcon>
+      </Marker>
+
+      <CollapsibleContent>
+        <ul className="flex flex-col gap-1" role="list">
+          {sources.map((source) => (
+            <li
+              className="flex min-w-0 items-start gap-2 text-base/6 text-muted-foreground sm:text-sm/5"
+              key={source.href ?? source.label}
+            >
+              {source.href ? (
+                <LinkIcon className="size-5 shrink-0 sm:size-4" />
+              ) : (
+                <FileTextIcon className="size-5 shrink-0 sm:size-4" />
+              )}
+              {source.href ? (
+                <a
+                  className="min-w-0 rounded-sm text-foreground underline decoration-foreground/40 underline-offset-3 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                  href={source.href}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {source.title}{" "}
+                  <span className="text-muted-foreground">{source.label}</span>
+                </a>
+              ) : (
+                <p className="min-w-0 text-pretty">
+                  <span className="text-foreground">{source.title}</span>{" "}
+                  {source.label}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
       </CollapsibleContent>
     </Collapsible>
   )
@@ -361,6 +422,13 @@ export function ChatThread({
                                   </ChatMessageMarkdown>
                                 </BubbleContent>
                               </Bubble>
+
+                              {message.sources &&
+                                message.sources.length > 0 && (
+                                  <ChatMessageSources
+                                    sources={message.sources}
+                                  />
+                                )}
 
                               <MessageFooter
                                 className={
