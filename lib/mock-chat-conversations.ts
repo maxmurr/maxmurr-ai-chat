@@ -12,6 +12,12 @@ export type MockChatSource = {
   readonly title: string
 }
 
+/** Describes one web search event rendered inside a local demo message. */
+export type MockChatWebSearch = {
+  readonly query: string
+  readonly status: "failed" | "searched" | "searching"
+}
+
 /** Describes one local demo message rendered inside a chat thread. */
 export type MockChatMessage = {
   readonly attachments?: readonly MockChatAttachment[]
@@ -20,6 +26,7 @@ export type MockChatMessage = {
   readonly reasoning?: string
   readonly role: "assistant" | "user"
   readonly sources?: readonly MockChatSource[]
+  readonly webSearches?: readonly MockChatWebSearch[]
 }
 
 type MockChatConversation = {
@@ -34,6 +41,52 @@ const MOCK_CHAT_RESPONSE = [
   "This thread is scripted with `@shadcn/helpers/ai-sdk`, so nothing is being sent to a model.",
   "Set `AI_GATEWAY_API_KEY` and the same request reaches a real model instead. Nothing in the UI changes.",
 ].join("\n\n")
+
+const STRIPE_BILLING_WEB_SEARCH_TITLE = "Stripe Billing pricing"
+const STRIPE_BILLING_WEB_SEARCH_QUERY =
+  "current Stripe Billing pricing and fees"
+
+const STRIPE_BILLING_WEB_SEARCH_MESSAGES: readonly MockChatMessage[] = [
+  {
+    content: "What are Stripe Billing’s current pricing and fees?",
+    id: "stripe-billing-pricing-request",
+    role: "user",
+  },
+  {
+    content: [
+      "Stripe Billing’s pay-as-you-go plan lists **0.7% of Billing volume**. Payment processing fees are separate and vary by market.",
+      "Custom pricing is available for businesses with large payment volume or unusual billing models.",
+    ].join("\n\n"),
+    id: "stripe-billing-pricing-response",
+    role: "assistant",
+    sources: [
+      {
+        href: "https://stripe.com/billing/pricing",
+        label: "stripe.com",
+        title: "Billing pricing",
+      },
+      {
+        href: "https://stripe.com/pricing",
+        label: "stripe.com",
+        title: "Payments pricing",
+      },
+    ],
+    webSearches: [
+      {
+        query: STRIPE_BILLING_WEB_SEARCH_QUERY,
+        status: "searching",
+      },
+      {
+        query: STRIPE_BILLING_WEB_SEARCH_QUERY,
+        status: "searched",
+      },
+      {
+        query: "Stripe Billing custom volume discounts",
+        status: "failed",
+      },
+    ],
+  },
+]
 
 const PRICING_DESIGN_FEEDBACK_TITLE = "Pricing page design feedback"
 
@@ -231,6 +284,10 @@ export const mockChatConversationGroups: readonly MockChatConversationGroup[] = 
     label: "Today",
     conversations: [
       {
+        id: "2a0964dd-5ca6-4c91-8134-7dc28406457f",
+        title: STRIPE_BILLING_WEB_SEARCH_TITLE,
+      },
+      {
         id: "8255b62d-cc10-410f-9c83-67e95852fb34",
         title: PRICING_DESIGN_FEEDBACK_TITLE,
       },
@@ -265,6 +322,10 @@ export function buildMockChatMessages(
 ): MockChatMessage[] {
   if (!conversationTitle) {
     return []
+  }
+
+  if (conversationTitle === STRIPE_BILLING_WEB_SEARCH_TITLE) {
+    return [...STRIPE_BILLING_WEB_SEARCH_MESSAGES]
   }
 
   if (conversationTitle === PRICING_DESIGN_FEEDBACK_TITLE) {

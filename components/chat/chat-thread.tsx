@@ -20,6 +20,7 @@ import {
   PlusIcon,
   RefreshCwIcon,
   TelescopeIcon,
+  TriangleAlertIcon,
   XIcon,
 } from "lucide-react"
 import { Streamdown } from "streamdown"
@@ -63,6 +64,7 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group"
 import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Message,
   MessageContent,
@@ -81,7 +83,9 @@ import {
   buildMockChatMessages,
   type MockChatMessage,
   type MockChatSource,
+  type MockChatWebSearch,
 } from "@/lib/mock-chat-conversations"
+import { cn } from "@/lib/utils"
 
 const CHAT_MODEL_OPTIONS = ["Grok Build 0.1", "UI Demo"] as const
 const CHAT_MARKDOWN_PLUGINS = { code } as const
@@ -145,6 +149,53 @@ function ChatMessageReasoning({ reasoning }: { reasoning: string }) {
         </Bubble>
       </CollapsibleContent>
     </Collapsible>
+  )
+}
+
+function ChatMessageWebSearches({
+  webSearches,
+}: {
+  webSearches: readonly MockChatWebSearch[]
+}) {
+  return (
+    <ul
+      aria-label="Web search activity"
+      aria-live="polite"
+      className="flex flex-col gap-3 py-1"
+      role="list"
+    >
+      {webSearches.map((webSearch) => {
+        const isSearching = webSearch.status === "searching"
+        const label =
+          webSearch.status === "failed"
+            ? "Web search failed"
+            : `${isSearching ? "Searching" : "Searched"} the web for ${webSearch.query}`
+
+        return (
+          <li key={`${webSearch.status}-${webSearch.query}`}>
+            <Marker
+              aria-busy={isSearching ? true : undefined}
+              className="w-fit text-base sm:text-sm"
+            >
+              <MarkerIcon>
+                {isSearching ? (
+                  <Spinner />
+                ) : webSearch.status === "searched" ? (
+                  <GlobeIcon />
+                ) : (
+                  <TriangleAlertIcon />
+                )}
+              </MarkerIcon>
+              <MarkerContent
+                className={cn("text-pretty", isSearching && "shimmer")}
+              >
+                {label}
+              </MarkerContent>
+            </Marker>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -372,6 +423,13 @@ export function ChatThread({
                                   reasoning={message.reasoning}
                                 />
                               )}
+
+                              {message.webSearches &&
+                                message.webSearches.length > 0 && (
+                                  <ChatMessageWebSearches
+                                    webSearches={message.webSearches}
+                                  />
+                                )}
 
                               {message.attachments &&
                                 message.attachments.length > 0 && (
