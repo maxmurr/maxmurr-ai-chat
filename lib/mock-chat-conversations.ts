@@ -1,7 +1,25 @@
+/** Describes one local demo message rendered inside a chat thread. */
+export type MockChatMessage = {
+  readonly attachments?: readonly string[]
+  readonly content: readonly string[]
+  readonly id: string
+  readonly presentation?: "demo-intro"
+  readonly reasoning?: string
+  readonly role: "assistant" | "user"
+}
+
 type MockChatConversation = {
   readonly id: string
   readonly title: string
 }
+
+const MOCK_CHAT_REASONING =
+  "No model behind this one, it’s a UI demo. Still worth running the full stream lifecycle so the interface behaves the way it would in production."
+
+const MOCK_CHAT_RESPONSE = [
+  "This thread is scripted with @shadcn/helpers/ai-sdk, so nothing is being sent to a model.",
+  "Set AI_GATEWAY_API_KEY and the same request reaches a real model instead. Nothing in the UI changes.",
+] as const
 
 type MockChatConversationGroup = {
   readonly conversations: readonly MockChatConversation[]
@@ -46,3 +64,27 @@ export const mockChatConversationGroups: readonly MockChatConversationGroup[] = 
 export const mockChatConversations = mockChatConversationGroups.flatMap(
   ({ conversations }) => conversations
 )
+
+/** Creates seeded demo messages for existing chats and none for new chats. */
+export function buildMockChatMessages(
+  conversationTitle?: string
+): MockChatMessage[] {
+  if (!conversationTitle) {
+    return []
+  }
+
+  return [
+    {
+      content: [conversationTitle],
+      id: "initial-user-message",
+      role: "user",
+    },
+    {
+      content: MOCK_CHAT_RESPONSE,
+      id: "initial-assistant-message",
+      presentation: "demo-intro",
+      reasoning: MOCK_CHAT_REASONING,
+      role: "assistant",
+    },
+  ]
+}

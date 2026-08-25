@@ -4,6 +4,7 @@ import {
   ChatConversationTitleProvider,
 } from "@/components/chat/chat-conversation-title"
 import { ChatShareDialog } from "@/components/chat/chat-share-dialog"
+import { ChatThread } from "@/components/chat/chat-thread"
 import { ChatThreadActions } from "@/components/chat/chat-thread-actions"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -58,7 +59,10 @@ export function ChatPageShell({ activeConversation }: ChatPageShellProps) {
               </div>
             )}
           </header>
-          <div className="min-h-0 flex-1" />
+          <ChatThread
+            key={activeConversation?.id ?? "new-chat"}
+            initialConversationTitle={activeConversation?.title}
+          />
         </SidebarInset>
       </SidebarProvider>
     </ChatConversationTitleProvider>
