@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { useEffect, useRef, useState, type FormEvent } from "react"
+import { code } from "@streamdown/code"
 import {
   ArrowUpIcon,
   BrainIcon,
@@ -9,7 +10,7 @@ import {
   ChevronDownIcon,
   CircleAlertIcon,
   CopyIcon,
-  FileIcon,
+  FileTextIcon,
   FolderClosedIcon,
   GlobeIcon,
   MicIcon,
@@ -19,6 +20,7 @@ import {
   TelescopeIcon,
   XIcon,
 } from "lucide-react"
+import { Streamdown } from "streamdown"
 
 import { useChatConversationTitle } from "@/components/chat/chat-conversation-title"
 import {
@@ -26,6 +28,7 @@ import {
   AttachmentAction,
   AttachmentActions,
   AttachmentContent,
+  AttachmentDescription,
   AttachmentGroup,
   AttachmentMedia,
   AttachmentTitle,
@@ -78,6 +81,7 @@ import {
 } from "@/lib/mock-chat-conversations"
 
 const CHAT_MODEL_OPTIONS = ["Grok Build 0.1", "UI Demo"] as const
+const CHAT_MARKDOWN_PLUGINS = { code } as const
 
 type ChatCopyStatus = {
   messageId: string
@@ -103,25 +107,15 @@ function ChatTouchTarget() {
   )
 }
 
-function ChatDemoIntroduction() {
+function ChatMessageMarkdown({ children }: { children: string }) {
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-pretty max-sm:text-base">
-        This thread is scripted with{" "}
-        <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
-          @shadcn/helpers/ai-sdk
-        </code>
-        , so nothing is being sent to a model.
-      </p>
-      <p className="text-pretty max-sm:text-base">
-        Set{" "}
-        <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
-          AI_GATEWAY_API_KEY
-        </code>{" "}
-        and the same request reaches a real model instead. Nothing in the UI
-        changes.
-      </p>
-    </div>
+    <Streamdown
+      className="text-pretty max-sm:text-base"
+      lineNumbers={false}
+      plugins={CHAT_MARKDOWN_PLUGINS}
+    >
+      {children}
+    </Streamdown>
   )
 }
 
@@ -142,8 +136,8 @@ function ChatMessageReasoning({ reasoning }: { reasoning: string }) {
       </Marker>
       <CollapsibleContent>
         <Bubble className="mt-2" variant="muted">
-          <BubbleContent className="whitespace-pre-wrap text-muted-foreground">
-            {reasoning}
+          <BubbleContent className="text-muted-foreground">
+            <ChatMessageMarkdown>{reasoning}</ChatMessageMarkdown>
           </BubbleContent>
         </Bubble>
       </CollapsibleContent>
@@ -199,16 +193,21 @@ export function ChatThread({
       return
     }
 
-    const attachmentNames = attachments.map(({ name }) => name)
+    const nextMessageAttachments = attachments.map(({ name, type }) => ({
+      filename: name,
+      mediaType: type || "application/octet-stream",
+    }))
     const nextMessage: MockChatMessage = {
-      attachments: attachmentNames,
-      content: [messageText || "Attached files."],
+      attachments: nextMessageAttachments,
+      content: messageText || "Attached files.",
       id: crypto.randomUUID(),
       role: "user",
     }
 
     if (messages.length === 0) {
-      setConversationTitle(messageText || attachmentNames[0])
+      setConversationTitle(
+        messageText || nextMessageAttachments[0]?.filename || "New chat"
+      )
     }
 
     setMessages((currentMessages) => [...currentMessages, nextMessage])
@@ -219,7 +218,7 @@ export function ChatThread({
 
   async function copyChatMessage(message: MockChatMessage) {
     try {
-      await navigator.clipboard.writeText(message.content.join("\n\n"))
+      await navigator.clipboard.writeText(message.content)
       setCopyStatus({ messageId: message.id, result: "copied" })
     } catch {
       setCopyStatus({ messageId: message.id, result: "error" })
@@ -232,11 +231,8 @@ export function ChatThread({
         message.id === messageId && message.role === "assistant"
           ? {
               ...message,
-              content: [
-                "Response refreshed locally. No model is connected.",
-                "Connect an AI SDK route to retry against a real model.",
-              ],
-              presentation: undefined,
+              content:
+                "Response refreshed locally. No model is connected.\n\nConnect an AI SDK route to retry against a real model.",
               reasoning:
                 "No model is connected, so this retry used the local demo response.",
             }
@@ -316,45 +312,55 @@ export function ChatThread({
                                 />
                               )}
 
-                              <Bubble
-                                align={isAssistant ? "start" : "end"}
-                                variant={isAssistant ? "ghost" : "default"}
-                              >
-                                <BubbleContent>
-                                  {message.presentation === "demo-intro" ? (
-                                    <ChatDemoIntroduction />
-                                  ) : (
-                                    <div className="flex flex-col gap-4">
-                                      {message.content.map((paragraph) => (
-                                        <p
-                                          className="text-pretty max-sm:text-base"
-                                          key={paragraph}
-                                        >
-                                          {paragraph}
-                                        </p>
-                                      ))}
-                                    </div>
-                                  )}
-                                </BubbleContent>
-                              </Bubble>
-
                               {message.attachments &&
                                 message.attachments.length > 0 && (
                                   <AttachmentGroup>
-                                    {message.attachments.map((filename) => (
-                                      <Attachment key={filename} size="xs">
-                                        <AttachmentMedia>
-                                          <FileIcon />
+                                    {message.attachments.map((attachment) => (
+                                      <Attachment
+                                        className="min-w-60"
+                                        key={attachment.filename}
+                                      >
+                                        <AttachmentMedia
+                                          variant={
+                                            attachment.previewImageSrc
+                                              ? "image"
+                                              : "icon"
+                                          }
+                                        >
+                                          {attachment.previewImageSrc ? (
+                                            <Image
+                                              alt=""
+                                              height={40}
+                                              src={attachment.previewImageSrc}
+                                              width={40}
+                                            />
+                                          ) : (
+                                            <FileTextIcon />
+                                          )}
                                         </AttachmentMedia>
                                         <AttachmentContent>
                                           <AttachmentTitle>
-                                            {filename}
+                                            {attachment.filename}
                                           </AttachmentTitle>
+                                          <AttachmentDescription>
+                                            {attachment.mediaType}
+                                          </AttachmentDescription>
                                         </AttachmentContent>
                                       </Attachment>
                                     ))}
                                   </AttachmentGroup>
                                 )}
+
+                              <Bubble
+                                align={isAssistant ? "start" : "end"}
+                                variant={isAssistant ? "ghost" : "default"}
+                              >
+                                <BubbleContent>
+                                  <ChatMessageMarkdown>
+                                    {message.content}
+                                  </ChatMessageMarkdown>
+                                </BubbleContent>
+                              </Bubble>
 
                               <MessageFooter
                                 className={
@@ -443,7 +449,7 @@ export function ChatThread({
                         size="xs"
                       >
                         <AttachmentMedia>
-                          <FileIcon />
+                          <FileTextIcon />
                         </AttachmentMedia>
                         <AttachmentContent>
                           <AttachmentTitle>{file.name}</AttachmentTitle>
