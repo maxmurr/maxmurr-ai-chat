@@ -6,16 +6,15 @@ import {
   SearchIcon,
 } from "lucide-react"
 
-import { ChatConversationItem } from "@/components/chat/chat-conversation-item"
+import {
+  ChatConversationList,
+  type ChatConversationGroup,
+} from "@/components/chat/chat-conversation-list"
 import { ChatUserMenu } from "@/components/chat/chat-user-menu"
 import { ChatWorkspaceSwitcher } from "@/components/chat/chat-workspace-switcher"
 import {
   Sidebar,
-  SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -34,10 +33,7 @@ const primaryNavigation = [
 type ChatAppSidebarProps = {
   activeConversation: string
   className?: string
-  conversationGroups: ReadonlyArray<{
-    label: string
-    conversations: readonly string[]
-  }>
+  conversationGroups: ReadonlyArray<ChatConversationGroup>
   currentUser: {
     avatar: string
     email: string
@@ -64,39 +60,6 @@ function ChatPrimaryNavigation({ className }: { className?: string }) {
         </SidebarMenuItem>
       ))}
     </SidebarMenu>
-  )
-}
-
-function ChatConversationList({
-  activeConversation,
-  className,
-  conversationGroups,
-}: Pick<
-  ChatAppSidebarProps,
-  "activeConversation" | "className" | "conversationGroups"
->) {
-  return (
-    <SidebarContent className={cn(className)}>
-      {conversationGroups.map((group) => (
-        <SidebarGroup
-          className="group-data-[collapsible=icon]:hidden"
-          key={group.label}
-        >
-          <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {group.conversations.map((conversation) => (
-                <ChatConversationItem
-                  conversationTitle={conversation}
-                  isActive={conversation === activeConversation}
-                  key={conversation}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      ))}
-    </SidebarContent>
   )
 }
 
