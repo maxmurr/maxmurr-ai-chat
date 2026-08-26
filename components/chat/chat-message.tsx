@@ -56,7 +56,7 @@ import {
   type ChatDisplayReasoning,
   type ChatDisplaySource,
   type ChatDisplayTool,
-} from "@/lib/chat-ui-messages"
+} from "@/src/interface-adapters/presenters/chat-message.presenter"
 import { cn } from "@/lib/utils"
 
 const CHAT_MARKDOWN_PLUGINS = { code } as const

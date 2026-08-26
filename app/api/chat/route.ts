@@ -1,104 +1,41 @@
-import { handleChatStream, smoothStream } from "@mastra/ai-sdk"
-import { createUIMessageStreamResponse, type UIMessage } from "ai"
-import { z } from "zod"
-
-import { mastra } from "@/mastra"
-
-const chatMessagePartSchema = z
-  .object({
-    text: z.string().max(100_000).optional(),
-    type: z.string().trim().min(1).max(100),
-  })
-  .catchall(z.unknown())
-  .refine(
-    ({ text, type }) =>
-      (type !== "text" && type !== "reasoning") || text !== undefined,
-    { message: "Text content is required." }
-  )
-
-const chatApiRequestSchema = z.object({
-  messages: z
-    .array(
-      z
-        .object({
-          id: z.string().min(1).max(200),
-          parts: z.array(chatMessagePartSchema).min(1).max(100),
-          role: z.enum(["system", "user", "assistant"]),
-        })
-        .catchall(z.unknown())
-    )
-    .min(1)
-    .max(100),
-  trigger: z.enum(["submit-message", "regenerate-message"]).optional(),
-})
-
-type ChatApiRequest = {
-  messages: UIMessage[]
-  trigger?: "submit-message" | "regenerate-message"
-}
-
-/** Validates untrusted AI SDK chat request bodies before model execution. */
-export function parseChatApiRequest(input: unknown): ChatApiRequest | null {
-  const result = chatApiRequestSchema.safeParse(input)
-
-  if (!result.success) {
-    return null
-  }
-
-  return {
-    messages: result.data.messages as unknown as UIMessage[],
-    ...(result.data.trigger ? { trigger: result.data.trigger } : {}),
-  }
-}
+import { resolveApplicationDependency } from "@/di/application-container"
+import { applicationInjectionTokens } from "@/di/application-container.registry"
+import {
+  ChatUnavailableError,
+  InvalidChatRequestError,
+} from "@/src/entities/errors/chat-errors"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
 
-/** Streams validated chat messages through registered Mastra assistant. */
+function invalidChatRequestResponse() {
+  return Response.json({ error: "Invalid chat request." }, { status: 400 })
+}
+
+/** Streams validated chat messages through configured chat controller. */
 export async function POST(request: Request) {
   let body: unknown
 
   try {
     body = await request.json()
   } catch {
-    return Response.json({ error: "Invalid chat request." }, { status: 400 })
-  }
-
-  const params = parseChatApiRequest(body)
-
-  if (!params) {
-    return Response.json({ error: "Invalid chat request." }, { status: 400 })
+    return invalidChatRequestResponse()
   }
 
   try {
-    const stream = await handleChatStream({
-      agentId: "chat-assistant",
-      experimentalTransform: smoothStream({
-        delayInMs: 20,
-        chunking: 'word',
-      }),
-      mastra,
-      onError: (error) => {
-        console.error(
-          "Chat stream failed.",
-          error instanceof Error ? error.message : "Unknown error"
-        )
-        return "Chat response failed."
-      },
-      params: {
-        ...params,
-        abortSignal: request.signal,
-      },
-      sendReasoning: true,
-      sendSources: true,
-      version: "v7",
-    })
-
-    return createUIMessageStreamResponse({ stream })
+    const streamChatController = resolveApplicationDependency(
+      applicationInjectionTokens.streamChatController
+    )
+    return await streamChatController(body, request.signal)
   } catch (error) {
+    if (error instanceof InvalidChatRequestError) {
+      return invalidChatRequestResponse()
+    }
+
+    const cause = error instanceof ChatUnavailableError ? error.cause : error
     console.error(
       "Chat route setup failed.",
-      error instanceof Error ? error.message : "Unknown error"
+      cause instanceof Error ? cause.message : "Unknown error"
     )
     return Response.json({ error: "Chat is unavailable." }, { status: 500 })
   }

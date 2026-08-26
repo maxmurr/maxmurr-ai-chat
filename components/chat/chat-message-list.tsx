@@ -23,7 +23,7 @@ import {
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller"
 import { Spinner } from "@/components/ui/spinner"
-import type { ChatDisplayMessage } from "@/lib/chat-ui-messages"
+import type { ChatDisplayMessage } from "@/src/interface-adapters/presenters/chat-message.presenter"
 import { cn } from "@/lib/utils"
 
 const CHAT_SUGGESTIONS = [

@@ -4,7 +4,7 @@ import { test } from "node:test"
 import {
   convertChatUiMessageToDisplayMessage,
   type ChatUIMessage,
-} from "@/lib/chat-ui-messages"
+} from "@/src/interface-adapters/presenters/chat-message.presenter"
 
 test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", () => {
   const message: ChatUIMessage = {
