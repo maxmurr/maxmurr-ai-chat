@@ -21,7 +21,6 @@ import {
   PaperclipIcon,
   PlusIcon,
   RefreshCwIcon,
-  ShieldXIcon,
   TelescopeIcon,
   TriangleAlertIcon,
   XIcon,
@@ -77,23 +76,6 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group"
 import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker"
-import {
-  Questionnaire,
-  QuestionnaireActions,
-  QuestionnaireChoice,
-  QuestionnaireChoiceDescription,
-  QuestionnaireChoices,
-  QuestionnaireDescription,
-  QuestionnaireError,
-  QuestionnaireInput,
-  QuestionnaireItem,
-  QuestionnaireNext,
-  QuestionnairePrevious,
-  QuestionnaireProgress,
-  QuestionnaireSkip,
-  QuestionnaireSubmit,
-  QuestionnaireTitle,
-} from "@/components/ui/questionnaire"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Message,
@@ -110,16 +92,12 @@ import {
 } from "@/components/ui/message-scroller"
 import { Switch } from "@/components/ui/switch"
 import {
-  buildInitialChatUiMessages,
   convertChatUiMessageToDisplayMessage,
+  type ChatDisplayMessage,
+  type ChatDisplaySource,
+  type ChatDisplayTool,
   type ChatUIMessage,
 } from "@/lib/chat-ui-messages"
-import {
-  type MockChatMessage,
-  type MockChatSource,
-  type MockChatTool,
-  type MockChatWebSearch,
-} from "@/lib/mock-chat-conversations"
 import { cn } from "@/lib/utils"
 
 const CHAT_MODEL_LABEL = "Qwen 3.8 Max"
@@ -147,14 +125,8 @@ const CHAT_TOOL_STATE_METADATA = {
     showLabel: true,
     statusClassName: "text-destructive",
   },
-  denied: {
-    defaultOpen: true,
-    label: "denied",
-    showLabel: true,
-    statusClassName: "text-warning",
-  },
 } as const satisfies Record<
-  MockChatTool["state"],
+  ChatDisplayTool["state"],
   {
     defaultOpen: boolean
     label: string
@@ -167,100 +139,7 @@ const CHAT_TOOL_STATE_ICONS = {
   running: Spinner,
   completed: CheckIcon,
   failed: TriangleAlertIcon,
-  denied: ShieldXIcon,
 } as const
-
-const BILLING_PRIORITY_CHOICES = [
-  {
-    description: "Charging customers this quarter beats owning the code.",
-    label: "Speed to launch",
-    value: "speed",
-  },
-  {
-    description: "Percentage fees become the largest line item.",
-    label: "Cost at scale",
-    value: "cost",
-  },
-  {
-    description: "Pricing changes often and cannot wait on a vendor.",
-    label: "Control over pricing logic",
-    value: "control",
-  },
-  {
-    description: "Revenue recognition and audit trails are the risk.",
-    label: "Compliance and audit",
-    value: "compliance",
-  },
-] as const
-
-const BILLING_PRICING_MODEL_CHOICES = [
-  { label: "Flat subscription", value: "flat" },
-  { label: "Usage-based", value: "usage" },
-  { label: "Per seat", value: "seat" },
-  { label: "Seats with usage overage", value: "seat-overage" },
-] as const
-
-const BILLING_TIMELINE_CHOICES = [
-  { label: "This quarter", value: "quarter" },
-  { label: "Within six months", value: "six-months" },
-  { label: "No fixed date", value: "no-date" },
-] as const
-
-const BILLING_RECOMMENDATION_QUESTIONNAIRE_ITEMS = [
-  {
-    choices: BILLING_PRIORITY_CHOICES,
-    name: "priority",
-    required: true,
-  },
-  {
-    choices: BILLING_PRICING_MODEL_CHOICES,
-    name: "pricingModels",
-    required: true,
-  },
-  {
-    choices: BILLING_TIMELINE_CHOICES,
-    name: "timeline",
-    required: true,
-  },
-  { name: "constraints" },
-] as const
-
-type BillingRecommendationQuestionnaireAnswers = {
-  constraints: string
-  pricingModels: string[]
-  priority: string
-  timeline: string
-}
-
-/** Converts billing questionnaire form values into display labels. */
-export function getBillingRecommendationQuestionnaireAnswers(
-  formData: FormData
-): BillingRecommendationQuestionnaireAnswers {
-  const priority = BILLING_PRIORITY_CHOICES.find(
-    ({ value }) => value === formData.get("priority")
-  )?.label
-  const pricingModels = formData
-    .getAll("pricingModels")
-    .flatMap((pricingModelValue) => {
-      const label = BILLING_PRICING_MODEL_CHOICES.find(
-        ({ value }) => value === pricingModelValue
-      )?.label
-
-      return label ? [label] : []
-    })
-  const timeline = BILLING_TIMELINE_CHOICES.find(
-    ({ value }) => value === formData.get("timeline")
-  )?.label
-  const constraints = String(formData.get("constraints") ?? "").trim()
-
-  return {
-    constraints: constraints || "None",
-    pricingModels:
-      pricingModels.length > 0 ? pricingModels : ["Not answered"],
-    priority: priority ?? "Not answered",
-    timeline: timeline ?? "Not answered",
-  }
-}
 
 type ChatCopyStatus = {
   messageId: string
@@ -348,57 +227,10 @@ function ChatMessageReasoning({
   )
 }
 
-function ChatMessageWebSearches({
-  webSearches,
-}: {
-  webSearches: readonly MockChatWebSearch[]
-}) {
-  return (
-    <ul
-      aria-label="Web search activity"
-      aria-live="polite"
-      className="flex flex-col gap-3 py-1"
-      role="list"
-    >
-      {webSearches.map((webSearch) => {
-        const isSearching = webSearch.status === "searching"
-        const label =
-          webSearch.status === "failed"
-            ? "Web search failed"
-            : `${isSearching ? "Searching" : "Searched"} the web for ${webSearch.query}`
-
-        return (
-          <li key={`${webSearch.status}-${webSearch.query}`}>
-            <Marker
-              aria-busy={isSearching ? true : undefined}
-              className="w-fit text-base sm:text-sm"
-            >
-              <MarkerIcon>
-                {isSearching ? (
-                  <Spinner />
-                ) : webSearch.status === "searched" ? (
-                  <GlobeIcon />
-                ) : (
-                  <TriangleAlertIcon />
-                )}
-              </MarkerIcon>
-              <MarkerContent
-                className={cn("text-pretty", isSearching && "shimmer")}
-              >
-                {label}
-              </MarkerContent>
-            </Marker>
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
-
 function ChatMessageSources({
   sources,
 }: {
-  sources: readonly MockChatSource[]
+  sources: readonly ChatDisplaySource[]
 }) {
   return (
     <Collapsible className="flex flex-col gap-1">
@@ -453,7 +285,7 @@ function ChatMessageSources({
   )
 }
 
-function ChatMessageTool({ tool }: { tool: MockChatTool }) {
+function ChatMessageTool({ tool }: { tool: ChatDisplayTool }) {
   const [copyResult, setCopyResult] = useState<"copied" | "error" | null>(
     null
   )
@@ -550,201 +382,16 @@ function ChatMessageTool({ tool }: { tool: MockChatTool }) {
   )
 }
 
-function BillingRecommendationQuestionnaireActions() {
+/** Scopes optimized AI SDK chat state to current conversation. */
+export function ChatThread() {
   return (
-    <QuestionnaireActions>
-      <QuestionnairePrevious />
-      <QuestionnaireSkip />
-      <QuestionnaireNext />
-      <QuestionnaireSubmit>Start research</QuestionnaireSubmit>
-    </QuestionnaireActions>
-  )
-}
-
-function BillingRecommendationQuestionnaire() {
-  const [answers, setAnswers] =
-    useState<BillingRecommendationQuestionnaireAnswers | null>(null)
-
-  if (answers) {
-    return (
-      <div className="flex w-fit max-w-full flex-col gap-3">
-        <Alert className="w-fit max-w-full gap-y-3 rounded-xl bg-background p-4">
-          <CheckIcon className="stroke-muted-foreground" />
-          <AlertTitle className="text-muted-foreground">
-            Answers sent
-          </AlertTitle>
-          <AlertDescription className="col-span-full">
-            <dl className="flex flex-col gap-1">
-              <div className="flex min-w-0 gap-2">
-                <dt>Priority</dt>
-                <dd className="min-w-0 text-foreground">{answers.priority}</dd>
-              </div>
-              <div className="flex min-w-0 gap-2">
-                <dt>Pricing models</dt>
-                <dd className="min-w-0 text-foreground">
-                  {answers.pricingModels.join(", ")}
-                </dd>
-              </div>
-              <div className="flex min-w-0 gap-2">
-                <dt>Timeline</dt>
-                <dd className="min-w-0 text-foreground">{answers.timeline}</dd>
-              </div>
-              <div className="flex min-w-0 gap-2">
-                <dt>Constraints</dt>
-                <dd className="min-w-0 text-foreground">
-                  {answers.constraints}
-                </dd>
-              </div>
-            </dl>
-          </AlertDescription>
-        </Alert>
-
-        <ChatMessageReasoning
-          reasoning="Comparing ownership cost against Stripe Billing coverage."
-        />
-
-        <Collapsible>
-          <Marker
-            aria-busy="true"
-            className="w-fit rounded-sm py-1 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm"
-            render={<CollapsibleTrigger />}
-          >
-            <MarkerIcon>
-              <Spinner />
-            </MarkerIcon>
-            <MarkerContent className="shimmer" role="status">
-              Checking Stripe Billing coverage
-            </MarkerContent>
-            <MarkerIcon>
-              <ChevronDownIcon className="transition-transform group-aria-expanded/marker:rotate-180" />
-            </MarkerIcon>
-          </Marker>
-          <CollapsibleContent>
-            <p className="text-base/7 text-pretty text-muted-foreground sm:text-sm/6">
-              Reviewing supported pricing models and billing controls.
-            </p>
-          </CollapsibleContent>
-        </Collapsible>
-      </div>
-    )
-  }
-
-  return (
-    <Questionnaire
-      className="w-fit max-w-full rounded-xl border p-4 sm:p-6"
-      defaultItem="priority"
-      items={BILLING_RECOMMENDATION_QUESTIONNAIRE_ITEMS}
-      onSubmit={(event) => {
-        event.preventDefault()
-        setAnswers(
-          getBillingRecommendationQuestionnaireAnswers(
-            new FormData(event.currentTarget)
-          )
-        )
-      }}
-      shortcuts="numbers"
-    >
-      <QuestionnaireProgress />
-
-      <QuestionnaireItem name="priority" required>
-        <QuestionnaireTitle>
-          What matters most in this decision?
-        </QuestionnaireTitle>
-        <QuestionnaireDescription>
-          Pick the one you would defend in a review.
-        </QuestionnaireDescription>
-        <QuestionnaireChoices>
-          {BILLING_PRIORITY_CHOICES.map(
-            ({ description, label, value }) => (
-              <QuestionnaireChoice key={value} value={value}>
-                <span className="font-medium">{label}</span>
-                <QuestionnaireChoiceDescription>
-                  {description}
-                </QuestionnaireChoiceDescription>
-              </QuestionnaireChoice>
-            )
-          )}
-        </QuestionnaireChoices>
-        <QuestionnaireError />
-      </QuestionnaireItem>
-
-      <QuestionnaireItem multiple name="pricingModels" required>
-        <QuestionnaireTitle>
-          Which pricing models do you need?
-        </QuestionnaireTitle>
-        <QuestionnaireDescription>
-          Select every one the new plans use.
-        </QuestionnaireDescription>
-        <QuestionnaireChoices>
-          {BILLING_PRICING_MODEL_CHOICES.map(({ label, value }) => (
-            <QuestionnaireChoice key={value} value={value}>
-              {label}
-            </QuestionnaireChoice>
-          ))}
-        </QuestionnaireChoices>
-        <QuestionnaireError />
-      </QuestionnaireItem>
-
-      <QuestionnaireItem name="timeline" required>
-        <QuestionnaireTitle>When does this have to be live?</QuestionnaireTitle>
-        <QuestionnaireDescription>
-          Choose the closest planning window.
-        </QuestionnaireDescription>
-        <QuestionnaireChoices>
-          {BILLING_TIMELINE_CHOICES.map(({ label, value }) => (
-            <QuestionnaireChoice key={value} value={value}>
-              {label}
-            </QuestionnaireChoice>
-          ))}
-        </QuestionnaireChoices>
-        <QuestionnaireError />
-      </QuestionnaireItem>
-
-      <QuestionnaireItem name="constraints">
-        <QuestionnaireTitle>
-          Anything I should treat as a hard constraint?
-        </QuestionnaireTitle>
-        <QuestionnaireDescription>
-          Optional. Skip it if nothing comes to mind.
-        </QuestionnaireDescription>
-        <QuestionnaireInput
-          aria-label="Hard constraint"
-          placeholder="Type a constraint…"
-        />
-      </QuestionnaireItem>
-
-      <BillingRecommendationQuestionnaireActions />
-    </Questionnaire>
-  )
-}
-
-/** Scopes optimized AI SDK chat state to one conversation. */
-export function ChatThread({
-  conversationId,
-  initialConversationTitle,
-}: {
-  conversationId?: string
-  initialConversationTitle?: string
-}) {
-  const initialMessages = buildInitialChatUiMessages(initialConversationTitle)
-
-  return (
-    <Provider<ChatUIMessage> initialMessages={initialMessages}>
-      <ChatThreadContent
-        chatId={conversationId}
-        initialMessages={initialMessages}
-      />
+    <Provider<ChatUIMessage>>
+      <ChatThreadContent />
     </Provider>
   )
 }
 
-function ChatThreadContent({
-  chatId,
-  initialMessages,
-}: {
-  chatId?: string
-  initialMessages: ChatUIMessage[]
-}) {
+function ChatThreadContent() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [attachments, setAttachments] = useState<File[]>([])
   const [composerAnnouncement, setComposerAnnouncement] = useState("")
@@ -762,11 +409,7 @@ function ChatThreadContent({
     sendMessage,
     status,
     stop,
-  } = useChat<ChatUIMessage>({
-    ...(chatId ? { id: chatId } : {}),
-    messages: initialMessages,
-    transport: CHAT_TRANSPORT,
-  })
+  } = useChat<ChatUIMessage>({ transport: CHAT_TRANSPORT })
   const messages = chatMessages.flatMap((message) => {
     const displayMessage = convertChatUiMessageToDisplayMessage(message)
     return displayMessage ? [displayMessage] : []
@@ -824,7 +467,7 @@ function ChatThreadContent({
     }).catch(() => setComposerAnnouncement("Could not send message."))
   }
 
-  async function copyChatMessage(message: MockChatMessage) {
+  async function copyChatMessage(message: ChatDisplayMessage) {
     try {
       await navigator.clipboard.writeText(message.content)
       setCopyStatus({ messageId: message.id, result: "copied" })
@@ -922,13 +565,6 @@ function ChatThreadContent({
                                 />
                               )}
 
-                              {message.webSearches &&
-                                message.webSearches.length > 0 && (
-                                  <ChatMessageWebSearches
-                                    webSearches={message.webSearches}
-                                  />
-                                )}
-
                               {message.tools && message.tools.length > 0 && (
                                 <div className="flex w-full min-w-0 flex-col gap-4">
                                   {message.tools.map((tool) => (
@@ -945,23 +581,8 @@ function ChatThreadContent({
                                         className="min-w-60"
                                         key={attachment.filename}
                                       >
-                                        <AttachmentMedia
-                                          variant={
-                                            attachment.previewImageSrc
-                                              ? "image"
-                                              : "icon"
-                                          }
-                                        >
-                                          {attachment.previewImageSrc ? (
-                                            <Image
-                                              alt=""
-                                              height={40}
-                                              src={attachment.previewImageSrc}
-                                              width={40}
-                                            />
-                                          ) : (
-                                            <FileTextIcon />
-                                          )}
+                                        <AttachmentMedia>
+                                          <FileTextIcon />
                                         </AttachmentMedia>
                                         <AttachmentContent>
                                           <AttachmentTitle>
@@ -989,10 +610,6 @@ function ChatThreadContent({
                                     </ChatMessageMarkdown>
                                   </BubbleContent>
                                 </Bubble>
-                              )}
-
-                              {message.questionnaire && (
-                                <BillingRecommendationQuestionnaire />
                               )}
 
                               {message.sources &&

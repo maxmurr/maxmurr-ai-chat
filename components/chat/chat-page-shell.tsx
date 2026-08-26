@@ -3,16 +3,13 @@ import {
   ChatConversationTitle,
   ChatConversationTitleProvider,
 } from "@/components/chat/chat-conversation-title"
-import { ChatShareDialog } from "@/components/chat/chat-share-dialog"
 import { ChatThread } from "@/components/chat/chat-thread"
-import { ChatThreadActions } from "@/components/chat/chat-thread-actions"
 import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { mockChatConversationGroups } from "@/lib/mock-chat-conversations"
 
 const currentUser = {
   name: "maxmurr",
@@ -21,28 +18,12 @@ const currentUser = {
   initials: "MM",
 }
 
-type ChatPageShellProps = {
-  activeConversation?: {
-    id: string
-    title: string
-  }
-}
-
-/** Renders shared shell for new and existing mock chat pages. */
-export function ChatPageShell({ activeConversation }: ChatPageShellProps) {
-  const conversationTitle = activeConversation?.title ?? "New chat"
-
+/** Renders chat shell around current live conversation. */
+export function ChatPageShell() {
   return (
-    <ChatConversationTitleProvider
-      key={activeConversation?.id ?? "new-chat"}
-      initialTitle={conversationTitle}
-    >
+    <ChatConversationTitleProvider initialTitle="New chat">
       <SidebarProvider className="isolate h-svh">
-        <ChatAppSidebar
-          activeConversationId={activeConversation?.id}
-          conversationGroups={mockChatConversationGroups}
-          currentUser={currentUser}
-        />
+        <ChatAppSidebar currentUser={currentUser} />
 
         <SidebarInset className="min-w-0 overflow-hidden">
           <header className="flex h-14 shrink-0 items-center gap-2 px-3">
@@ -52,18 +33,8 @@ export function ChatPageShell({ activeConversation }: ChatPageShellProps) {
               orientation="vertical"
             />
             <ChatConversationTitle className="min-w-0 flex-1" />
-            {activeConversation && (
-              <div className="flex shrink-0 items-center gap-1">
-                <ChatShareDialog conversationId={activeConversation.id} />
-                <ChatThreadActions />
-              </div>
-            )}
           </header>
-          <ChatThread
-            key={activeConversation?.id ?? "new-chat"}
-            conversationId={activeConversation?.id}
-            initialConversationTitle={activeConversation?.title}
-          />
+          <ChatThread />
         </SidebarInset>
       </SidebarProvider>
     </ChatConversationTitleProvider>

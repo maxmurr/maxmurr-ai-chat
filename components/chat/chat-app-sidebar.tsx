@@ -6,14 +6,11 @@ import {
   SearchIcon,
 } from "lucide-react"
 
-import {
-  ChatConversationList,
-  type ChatConversationGroup,
-} from "@/components/chat/chat-conversation-list"
 import { ChatUserMenu } from "@/components/chat/chat-user-menu"
 import { ChatWorkspaceSwitcher } from "@/components/chat/chat-workspace-switcher"
 import {
   Sidebar,
+  SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
@@ -31,9 +28,7 @@ const primaryNavigation = [
 ]
 
 type ChatAppSidebarProps = {
-  activeConversationId?: string
   className?: string
-  conversationGroups: ReadonlyArray<ChatConversationGroup>
   currentUser: {
     avatar: string
     email: string
@@ -65,9 +60,7 @@ function ChatPrimaryNavigation({ className }: { className?: string }) {
 
 /** Composes server-rendered chat navigation around focused client controls. */
 export function ChatAppSidebar({
-  activeConversationId,
   className,
-  conversationGroups,
   currentUser,
 }: ChatAppSidebarProps) {
   return (
@@ -79,10 +72,7 @@ export function ChatAppSidebar({
         <ChatPrimaryNavigation />
       </SidebarHeader>
 
-      <ChatConversationList
-        activeConversationId={activeConversationId}
-        conversationGroups={conversationGroups}
-      />
+      <SidebarContent />
 
       <SidebarFooter>
         <SidebarMenu>

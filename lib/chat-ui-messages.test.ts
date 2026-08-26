@@ -2,25 +2,9 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
-  buildInitialChatUiMessages,
   convertChatUiMessageToDisplayMessage,
   type ChatUIMessage,
 } from "@/lib/chat-ui-messages"
-
-test("seeded chat history keeps rich display metadata", () => {
-  const [message] = buildInitialChatUiMessages("Billing: build or buy")
-
-  assert.deepEqual(message.parts, [
-    {
-      type: "text",
-      text: "We need subscription billing for the new plans. Build it in-house or use Stripe Billing? I want a recommendation, not a list of pros and cons.",
-    },
-  ])
-  assert.deepEqual(
-    convertChatUiMessageToDisplayMessage(message),
-    message.metadata?.seededDisplayMessage
-  )
-})
 
 test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", () => {
   const message: ChatUIMessage = {

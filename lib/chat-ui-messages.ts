@@ -4,34 +4,45 @@ import {
   type UIMessage,
 } from "ai"
 
-import {
-  buildMockChatMessages,
-  type MockChatAttachment,
-  type MockChatMessage,
-  type MockChatSource,
-  type MockChatTool,
-} from "@/lib/mock-chat-conversations"
+/** Describes one file shown with a chat message. */
+export type ChatDisplayAttachment = {
+  readonly filename: string
+  readonly mediaType: string
+}
 
-/** Client metadata retained for seeded messages and local attachment labels. */
+/** Describes one source cited by a chat message. */
+export type ChatDisplaySource = {
+  readonly href?: string
+  readonly label: string
+  readonly title: string
+}
+
+/** Describes one tool call shown with a chat message. */
+export type ChatDisplayTool = {
+  readonly id: string
+  readonly name: string
+  readonly payload: Readonly<Record<string, unknown>>
+  readonly state: "running" | "completed" | "failed"
+}
+
+/** Presentation model derived from an AI SDK chat message. */
+export type ChatDisplayMessage = {
+  readonly attachments?: readonly ChatDisplayAttachment[]
+  readonly content: string
+  readonly id: string
+  readonly reasoning?: string
+  readonly role: "assistant" | "user"
+  readonly sources?: readonly ChatDisplaySource[]
+  readonly tools?: readonly ChatDisplayTool[]
+}
+
+/** Client metadata retained for local attachment labels. */
 export type ChatMessageMetadata = {
-  readonly attachments?: readonly MockChatAttachment[]
-  readonly seededDisplayMessage?: MockChatMessage
+  readonly attachments?: readonly ChatDisplayAttachment[]
 }
 
 /** AI SDK message shape shared by chat store and Mastra route. */
 export type ChatUIMessage = UIMessage<ChatMessageMetadata>
-
-/** Converts seeded demo history into AI SDK messages used as model context. */
-export function buildInitialChatUiMessages(
-  conversationTitle?: string
-): ChatUIMessage[] {
-  return buildMockChatMessages(conversationTitle).map((message) => ({
-    id: message.id,
-    metadata: { seededDisplayMessage: message },
-    parts: [{ type: "text", text: message.content }],
-    role: message.role,
-  }))
-}
 
 function getChatSourceLabel(url: string) {
   try {
@@ -44,11 +55,7 @@ function getChatSourceLabel(url: string) {
 /** Adapts AI SDK stream parts to existing chat presentation model. */
 export function convertChatUiMessageToDisplayMessage(
   message: ChatUIMessage
-): MockChatMessage | null {
-  if (message.metadata?.seededDisplayMessage) {
-    return message.metadata.seededDisplayMessage
-  }
-
+): ChatDisplayMessage | null {
   if (message.role === "system") {
     return null
   }
@@ -59,7 +66,7 @@ export function convertChatUiMessageToDisplayMessage(
   const reasoningParts = message.parts.flatMap((part) =>
     part.type === "reasoning" ? [part.text] : []
   )
-  const attachments: MockChatAttachment[] = [
+  const attachments: ChatDisplayAttachment[] = [
     ...(message.metadata?.attachments ?? []),
     ...message.parts.flatMap((part) =>
       part.type === "file"
@@ -72,7 +79,7 @@ export function convertChatUiMessageToDisplayMessage(
         : []
     ),
   ]
-  const sources = message.parts.flatMap((part): MockChatSource[] => {
+  const sources = message.parts.flatMap((part): ChatDisplaySource[] => {
     if (part.type === "source-url") {
       return [
         {
@@ -94,7 +101,7 @@ export function convertChatUiMessageToDisplayMessage(
 
     return []
   })
-  const tools = message.parts.flatMap((part): MockChatTool[] => {
+  const tools = message.parts.flatMap((part): ChatDisplayTool[] => {
     if (!isToolOrDynamicToolUIPart(part)) {
       return []
     }
