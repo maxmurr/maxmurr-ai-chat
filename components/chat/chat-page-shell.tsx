@@ -33,7 +33,7 @@ export function ChatPageShell({ className }: { className?: string }) {
               className="data-vertical:h-4 data-vertical:self-auto"
               orientation="vertical"
             />
-            <ChatConversationTitle className="min-w-0 flex-1" />
+            <ChatConversationTitle className="min-w-0 flex-1 pl-2" />
           </header>
           <ChatThread />
         </SidebarInset>
