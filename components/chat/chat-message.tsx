@@ -46,6 +46,11 @@ import {
 import { MessageScrollerItem } from "@/components/ui/message-scroller"
 import { Spinner } from "@/components/ui/spinner"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   type ChatDisplayAttachment,
   type ChatDisplayMessage,
   type ChatDisplayReasoning,
@@ -385,12 +390,6 @@ export function ChatMessageItem({
   onRetryMessage,
 }: ChatMessageItemProps) {
   const isAssistant = message.role === "assistant"
-  const copyLabel =
-    copyResult === "copied"
-      ? "Response copied"
-      : copyResult === "error"
-        ? "Copy response failed"
-        : "Copy response"
 
   return (
     <MessageScrollerItem
@@ -442,26 +441,44 @@ export function ChatMessageItem({
               "opacity-0 transition-opacity group-focus-within/message:opacity-100 group-hover/message:opacity-100 pointer-coarse:opacity-100"
             )}
           >
-            <ChatCopyButton
-              aria-label={copyLabel}
-              copyResult={copyResult}
-              onClick={onCopyMessage}
-              title={copyLabel}
-            />
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <ChatCopyButton
+                    aria-label="Copy message"
+                    copyResult={copyResult}
+                    onClick={onCopyMessage}
+                  />
+                }
+              />
+              <TooltipContent>
+                {copyResult === "copied"
+                  ? "Copied"
+                  : copyResult === "error"
+                    ? "Copy failed"
+                    : "Copy"}
+              </TooltipContent>
+            </Tooltip>
             {isAssistant && (
-              <Button
-                aria-label="Retry response"
-                className="relative"
-                disabled={isGenerating}
-                onClick={() => onRetryMessage(message.id)}
-                size="icon-sm"
-                title="Retry response"
-                type="button"
-                variant="ghost"
-              >
-                <RefreshCwIcon />
-                <ChatTouchTarget />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      aria-label="Regenerate response"
+                      className="relative"
+                      disabled={isGenerating}
+                      onClick={() => onRetryMessage(message.id)}
+                      size="icon-sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <RefreshCwIcon />
+                      <ChatTouchTarget />
+                    </Button>
+                  }
+                />
+                <TooltipContent>Regenerate</TooltipContent>
+              </Tooltip>
             )}
           </MessageFooter>
         </MessageContent>
