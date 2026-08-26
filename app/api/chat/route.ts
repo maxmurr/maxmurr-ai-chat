@@ -1,4 +1,4 @@
-import { handleChatStream } from "@mastra/ai-sdk"
+import { handleChatStream, smoothStream } from "@mastra/ai-sdk"
 import { createUIMessageStreamResponse, type UIMessage } from "ai"
 import { z } from "zod"
 
@@ -73,6 +73,10 @@ export async function POST(request: Request) {
   try {
     const stream = await handleChatStream({
       agentId: "chat-assistant",
+      experimentalTransform: smoothStream({
+        delayInMs: 20,
+        chunking: 'word',
+      }),
       mastra,
       onError: (error) => {
         console.error(
