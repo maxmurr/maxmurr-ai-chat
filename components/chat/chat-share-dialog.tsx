@@ -68,7 +68,6 @@ export function ChatShareDialogContent({
       return
     }
 
-    // ponytail: Simulated request; replace timeout when share-link API exists.
     const timeoutId = window.setTimeout(() => {
       setShareLink(buildChatShareLink(conversationId))
     }, 750)
