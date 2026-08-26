@@ -133,4 +133,21 @@
   html {
     @apply font-sans;
   }
+
+  [data-slot="message-scroller-viewport"] {
+    scrollbar-color: var(--border) transparent;
+  }
+
+  [data-slot="message-scroller-viewport"]::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  [data-slot="message-scroller-viewport"]::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  [data-slot="message-scroller-viewport"]::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 5px;
+  }
 }
