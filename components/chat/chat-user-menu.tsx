@@ -1,3 +1,5 @@
+"use client"
+
 import {
   BadgeCheckIcon,
   BellIcon,
@@ -18,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import { authClient } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
 
 type ChatUser = {
@@ -66,6 +69,21 @@ function ChatUserDetails({
 
 /** Renders current user identity and account actions. */
 export function ChatUserMenu({ className, user }: ChatUserMenuProps) {
+  async function signOutCurrentUser() {
+    try {
+      const { error } = await authClient.signOut()
+
+      if (error) {
+        console.error("Sign-out request failed.")
+        return
+      }
+
+      window.location.assign(new URL("/sign-in", window.location.origin))
+    } catch {
+      console.error("Sign-out request failed.")
+    }
+  }
+
   return (
     <SidebarMenuItem className={cn(className)}>
       <DropdownMenu>
@@ -114,7 +132,7 @@ export function ChatUserMenu({ className, user }: ChatUserMenuProps) {
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void signOutCurrentUser()}>
               <LogOutIcon />
               Log out
             </DropdownMenuItem>

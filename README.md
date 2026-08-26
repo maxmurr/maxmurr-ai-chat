@@ -6,22 +6,26 @@ Next.js 16 chat UI backed by Mastra and Vercel AI Gateway through AI SDK v7.
 
 - Bun 1.4+
 - Node.js 22.13+ compatibility for Mastra
+- Docker
 - Vercel AI Gateway API key
 
 ## Setup
 
 ```bash
 bun install
+docker compose up -d
 cp .env.example .env.local
+openssl rand -base64 32
 ```
 
-Set `AI_GATEWAY_API_KEY` in `.env.local`, then run:
+Set `AI_GATEWAY_API_KEY` and put generated value in `BETTER_AUTH_SECRET`. Then run:
 
 ```bash
+bun run db:migrate
 bun dev
 ```
 
-Open [http://localhost:3000/chat](http://localhost:3000/chat).
+Open [http://localhost:3000/sign-up](http://localhost:3000/sign-up). Google sign-in is optional; add Google credentials and authorize `http://localhost:3000/api/auth/callback/google` to enable it.
 
 ## Architecture
 

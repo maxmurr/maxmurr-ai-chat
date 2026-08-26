@@ -20,17 +20,41 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import {
+  CreateChatWorkspaceDialog,
+  type NewChatWorkspace,
+} from "@/components/chat/create-chat-workspace-dialog"
 import { cn } from "@/lib/utils"
 
-const chatWorkspaces = [
+type ChatWorkspace = {
+  icon: typeof BriefcaseBusinessIcon
+  memberCount?: number
+  name: string
+  plan: string
+}
+
+const initialChatWorkspaces: ChatWorkspace[] = [
   { name: "Acme Inc.", plan: "Enterprise", icon: BriefcaseBusinessIcon },
   { name: "Acme Labs", plan: "Pro", icon: FlaskConicalIcon },
   { name: "Personal", plan: "Free", icon: UserRoundIcon },
 ]
 
+function getChatWorkspaceDescription(workspace: ChatWorkspace) {
+  if (!workspace.memberCount) {
+    return workspace.plan
+  }
+
+  const memberLabel = workspace.memberCount === 1 ? "member" : "members"
+  return `${workspace.plan} · ${workspace.memberCount} ${memberLabel}`
+}
+
 /** Renders workspace selection with mouse and command-key controls. */
 export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
-  const [activeWorkspace, setActiveWorkspace] = useState(chatWorkspaces[0])
+  const [activeWorkspace, setActiveWorkspace] = useState(
+    initialChatWorkspaces[0]
+  )
+  const [chatWorkspaces, setChatWorkspaces] = useState(initialChatWorkspaces)
+  const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false)
 
   useEffect(() => {
     function handleWorkspaceShortcut(event: KeyboardEvent) {
@@ -48,7 +72,33 @@ export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
 
     window.addEventListener("keydown", handleWorkspaceShortcut)
     return () => window.removeEventListener("keydown", handleWorkspaceShortcut)
-  }, [])
+  }, [chatWorkspaces])
+
+  function isWorkspaceNameAvailable(name: string) {
+    const normalizedName = name.trim().toLowerCase()
+
+    return Promise.resolve(
+      !chatWorkspaces.some(
+        (workspace) =>
+          workspace.name.trim().toLowerCase() === normalizedName
+      )
+    )
+  }
+
+  function createChatWorkspace(workspace: NewChatWorkspace) {
+    const createdWorkspace: ChatWorkspace = {
+      icon: BriefcaseBusinessIcon,
+      memberCount: workspace.members.length + 1,
+      name: workspace.name,
+      plan: "Free",
+    }
+
+    setChatWorkspaces((currentWorkspaces) => [
+      ...currentWorkspaces,
+      createdWorkspace,
+    ])
+    setActiveWorkspace(createdWorkspace)
+  }
 
   return (
     <SidebarMenuItem className={cn(className)}>
@@ -70,7 +120,9 @@ export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
           </span>
           <div className="grid min-w-0 flex-1 text-left">
             <div className="truncate font-medium">{activeWorkspace.name}</div>
-            <div className="truncate text-base lg:text-xs">{activeWorkspace.plan}</div>
+            <div className="truncate text-base lg:text-xs">
+              {getChatWorkspaceDescription(activeWorkspace)}
+            </div>
           </div>
           <ChevronsUpDownIcon />
         </DropdownMenuTrigger>
@@ -92,7 +144,7 @@ export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setIsCreateWorkspaceOpen(true)}>
               <span className="flex size-8 shrink-0 items-center justify-center">
                 <PlusIcon />
               </span>
@@ -101,6 +153,12 @@ export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+      <CreateChatWorkspaceDialog
+        isWorkspaceNameAvailable={isWorkspaceNameAvailable}
+        onCreateWorkspace={createChatWorkspace}
+        onOpenChange={setIsCreateWorkspaceOpen}
+        open={isCreateWorkspaceOpen}
+      />
     </SidebarMenuItem>
   )
 }

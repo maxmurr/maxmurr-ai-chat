@@ -1,4 +1,5 @@
 import { resolveApplicationDependency } from "@/di/application-container"
+import { auth } from "@/di/authentication"
 import { applicationInjectionTokens } from "@/di/application-container.registry"
 import {
   ChatUnavailableError,
@@ -12,9 +13,26 @@ function invalidChatRequestResponse() {
   return Response.json({ error: "Invalid chat request." }, { status: 400 })
 }
 
-/** Streams validated chat messages through configured chat controller. */
+/** Streams authenticated, validated chat messages through configured controller. */
 export async function POST(request: Request) {
   let body: unknown
+
+  try {
+    const session = await auth.api.getSession({ headers: request.headers })
+
+    if (!session) {
+      return Response.json({ error: "Unauthorized." }, { status: 401 })
+    }
+  } catch (error) {
+    console.error(
+      "Chat authorization failed.",
+      error instanceof Error ? error.message : "Unknown error"
+    )
+    return Response.json(
+      { error: "Authorization is unavailable." },
+      { status: 503 }
+    )
+  }
 
   try {
     body = await request.json()

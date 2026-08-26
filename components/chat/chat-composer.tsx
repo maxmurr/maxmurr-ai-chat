@@ -1,12 +1,6 @@
+import { useForm } from "@tanstack/react-form"
 import Image from "next/image"
-import {
-  useEffect,
-  useRef,
-  useState,
-  type Dispatch,
-  type FormEvent,
-  type SetStateAction,
-} from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   ArrowUpIcon,
   ChevronDownIcon,
@@ -75,6 +69,25 @@ export function isChatFilePickerShortcut(event: ChatFilePickerShortcut) {
 export type ChatComposerSubmission = {
   readonly attachments: readonly File[]
   readonly text: string
+}
+
+type ChatComposerFormValues = {
+  attachments: File[]
+  message: {
+    text: string
+  }
+}
+
+/** Validates that chat composer has text or at least one attachment. */
+export function validateChatComposerMessage(
+  text: string,
+  attachments: readonly File[]
+) {
+  if (!text.trim() && attachments.length === 0) {
+    return "Enter a message or attach a file."
+  }
+
+  return undefined
 }
 
 function ChatSelectedAttachments({
@@ -319,10 +332,12 @@ function ChatModelMenu({
 }
 
 function ChatComposerSubmitButton({
+  canSend,
   className,
   isGenerating,
   onStopResponse,
 }: {
+  canSend: boolean
   className?: string
   isGenerating: boolean
   onStopResponse: () => void
@@ -344,6 +359,7 @@ function ChatComposerSubmitButton({
     <InputGroupButton
       aria-label="Send message"
       className={cn("relative shrink-0", className)}
+      disabled={!canSend}
       size="icon-sm"
       title="Send message"
       type="submit"
@@ -361,7 +377,7 @@ type ChatComposerProps = {
   draft: string
   isGenerating: boolean
   onAnnouncementChange: (announcement: string) => void
-  onAttachmentsChange: Dispatch<SetStateAction<File[]>>
+  onAttachmentsChange: (attachments: File[]) => void
   onDraftChange: (draft: string) => void
   onSendMessage: (submission: ChatComposerSubmission) => Promise<void>
   onStopResponse: () => void
@@ -385,6 +401,37 @@ export function ChatComposer({
   const [researchModeEnabled, setResearchModeEnabled] = useState(false)
   const [selectedModel, setSelectedModel] = useState(DEFAULT_CHAT_MODEL)
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
+  const form = useForm({
+    defaultValues: {
+      attachments,
+      message: {
+        text: draft,
+      },
+    } satisfies ChatComposerFormValues,
+    onSubmit: async ({ value }) => {
+      const messageText = value.message.text.trim()
+
+      if (isGenerating) {
+        return
+      }
+
+      onAnnouncementChange("")
+      await onSendMessage({
+        attachments: value.attachments,
+        text: messageText,
+      })
+    },
+  })
+
+  useEffect(() => {
+    if (form.getFieldValue("message.text") !== draft) {
+      form.setFieldValue("message.text", draft)
+    }
+
+    if (form.getFieldValue("attachments") !== attachments) {
+      form.setFieldValue("attachments", attachments)
+    }
+  }, [attachments, draft, form])
 
   useEffect(() => {
     function openChatFilePickerFromShortcut(event: KeyboardEvent) {
@@ -401,111 +448,166 @@ export function ChatComposer({
       document.removeEventListener("keydown", openChatFilePickerFromShortcut)
   }, [])
 
-  function submitChatMessage(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const messageText = draft.trim()
-
-    if (isGenerating || (!messageText && attachments.length === 0)) {
-      return
-    }
-
-    onAnnouncementChange("")
-    void onSendMessage({ attachments, text: messageText })
-  }
-
   return (
     <form
       className={cn(
         "relative z-10 w-full max-w-3xl shrink-0 px-4",
         className
       )}
-      onSubmit={submitChatMessage}
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        void form.handleSubmit()
+      }}
     >
-      <div className="rounded-lg bg-background">
-        <input
-          ref={fileInputRef}
-          aria-label="Choose files to attach"
-          hidden
-          multiple
-          name="attachments"
-          onChange={(event) => {
-            onAttachmentsChange((currentAttachments) => [
-              ...currentAttachments,
-              ...Array.from(event.currentTarget.files ?? []),
-            ])
-            event.currentTarget.value = ""
-          }}
-          type="file"
-        />
+      <form.Field mode="array" name="attachments">
+        {(attachmentsField) => (
+          <div className="rounded-lg bg-background">
+            <input
+              ref={fileInputRef}
+              aria-label="Choose files to attach"
+              hidden
+              multiple
+              name={attachmentsField.name}
+              onChange={(event) => {
+                const nextAttachments = [
+                  ...attachmentsField.state.value,
+                  ...Array.from(event.currentTarget.files ?? []),
+                ]
+                attachmentsField.handleChange(nextAttachments)
+                onAttachmentsChange(nextAttachments)
+                event.currentTarget.value = ""
+              }}
+              type="file"
+            />
 
-        <InputGroup>
-          {attachments.length > 0 && (
-            <InputGroupAddon
-              align="block-start"
-              className="overflow-hidden pb-0"
+            <form.Field
+              name="message.text"
+              validators={{
+                onChangeListenTo: ["attachments"],
+                onChange: ({ value, fieldApi }) =>
+                  validateChatComposerMessage(
+                    value,
+                    fieldApi.form.getFieldValue("attachments")
+                  ),
+              }}
             >
-              <ChatSelectedAttachments
-                files={attachments}
-                onRemoveFile={(file) =>
-                  onAttachmentsChange((currentAttachments) =>
-                    currentAttachments.filter(
-                      (currentFile) => currentFile !== file
-                    )
-                  )
-                }
-              />
-            </InputGroupAddon>
-          )}
+              {(messageField) => {
+                const error = messageField.state.meta.errors.find(
+                  (fieldError) => typeof fieldError === "string"
+                )
+                const errorId = "chat-composer-message-error"
 
-          <InputGroupTextarea
-            aria-label="Message"
-            autoComplete="off"
-            className="min-h-0 px-4"
-            data-1p-ignore
-            data-lpignore="true"
-            enterKeyHint="send"
-            name="message"
-            onChange={(event) => onDraftChange(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (
-                event.key === "Enter" &&
-                !event.shiftKey &&
-                !event.nativeEvent.isComposing
-              ) {
-                event.preventDefault()
-                event.currentTarget.form?.requestSubmit()
-              }
-            }}
-            placeholder="Ask anything..."
-            value={draft}
-          />
+                return (
+                  <InputGroup>
+                    {attachmentsField.state.value.length > 0 && (
+                      <InputGroupAddon
+                        align="block-start"
+                        className="overflow-hidden pb-0"
+                      >
+                        <ChatSelectedAttachments
+                          files={attachmentsField.state.value}
+                          onRemoveFile={(file) => {
+                            const nextAttachments =
+                              attachmentsField.state.value.filter(
+                                (currentFile) => currentFile !== file
+                              )
+                            attachmentsField.handleChange(nextAttachments)
+                            onAttachmentsChange(nextAttachments)
+                          }}
+                        />
+                      </InputGroupAddon>
+                    )}
 
-          <InputGroupAddon align="block-end" className="gap-1 p-2 pt-0">
-            <ChatComposerAddMenu
-              className="-mr-1"
-              figmaConnected={figmaConnected}
-              googleDriveConnected={googleDriveConnected}
-              onAnnouncementChange={onAnnouncementChange}
-              onChooseFiles={() => fileInputRef.current?.click()}
-              onFigmaConnectedChange={setFigmaConnected}
-              onGoogleDriveConnectedChange={setGoogleDriveConnected}
-              onResearchModeChange={setResearchModeEnabled}
-              onWebSearchChange={setWebSearchEnabled}
-              researchModeEnabled={researchModeEnabled}
-              webSearchEnabled={webSearchEnabled}
-            />
-            <ChatModelMenu
-              onModelChange={setSelectedModel}
-              selectedModel={selectedModel}
-            />
-            <ChatComposerSubmitButton
-              className="ml-auto"
-              isGenerating={isGenerating}
-              onStopResponse={onStopResponse}
-            />
-          </InputGroupAddon>
-        </InputGroup>
-      </div>
+                    {error && (
+                      <InputGroupAddon align="block-start" className="pb-0">
+                        <p
+                          className="text-sm text-destructive"
+                          id={errorId}
+                          role="alert"
+                        >
+                          {error}
+                        </p>
+                      </InputGroupAddon>
+                    )}
+
+                    <InputGroupTextarea
+                      aria-describedby={error ? errorId : undefined}
+                      aria-invalid={!messageField.state.meta.isValid}
+                      aria-label="Message"
+                      autoComplete="off"
+                      className="min-h-0 px-4"
+                      data-1p-ignore
+                      data-lpignore="true"
+                      enterKeyHint="send"
+                      name={messageField.name}
+                      onBlur={messageField.handleBlur}
+                      onChange={(event) => {
+                        messageField.handleChange(event.currentTarget.value)
+                        onDraftChange(event.currentTarget.value)
+                      }}
+                      onKeyDown={(event) => {
+                        if (
+                          event.key === "Enter" &&
+                          !event.shiftKey &&
+                          !event.nativeEvent.isComposing
+                        ) {
+                          event.preventDefault()
+                          event.currentTarget.form?.requestSubmit()
+                        }
+                      }}
+                      placeholder="Ask anything..."
+                      value={messageField.state.value}
+                    />
+
+                    <InputGroupAddon
+                      align="block-end"
+                      className="gap-1 p-2 pt-0"
+                    >
+                      <ChatComposerAddMenu
+                        className="-mr-1"
+                        figmaConnected={figmaConnected}
+                        googleDriveConnected={googleDriveConnected}
+                        onAnnouncementChange={onAnnouncementChange}
+                        onChooseFiles={() => fileInputRef.current?.click()}
+                        onFigmaConnectedChange={setFigmaConnected}
+                        onGoogleDriveConnectedChange={
+                          setGoogleDriveConnected
+                        }
+                        onResearchModeChange={setResearchModeEnabled}
+                        onWebSearchChange={setWebSearchEnabled}
+                        researchModeEnabled={researchModeEnabled}
+                        webSearchEnabled={webSearchEnabled}
+                      />
+                      <ChatModelMenu
+                        onModelChange={setSelectedModel}
+                        selectedModel={selectedModel}
+                      />
+                      <form.Subscribe
+                        selector={(state) =>
+                          !state.isSubmitting &&
+                          (Boolean(state.values.message.text.trim()) ||
+                            state.values.attachments.length > 0)
+                        }
+                      >
+                        {(canSend) => (
+                          <ChatComposerSubmitButton
+                            canSend={canSend}
+                            className="ml-auto"
+                            isGenerating={isGenerating}
+                            onStopResponse={onStopResponse}
+                          />
+                        )}
+                      </form.Subscribe>
+                    </InputGroupAddon>
+                  </InputGroup>
+                )
+              }}
+            </form.Field>
+          </div>
+        )}
+      </form.Field>
     </form>
   )
 }

@@ -1,8 +1,31 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
+import { createElement } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
 
-import { isChatFilePickerShortcut } from "@/components/chat/chat-composer"
+import {
+  ChatComposer,
+  isChatFilePickerShortcut,
+  validateChatComposerMessage,
+} from "@/components/chat/chat-composer"
 import { getChatGreeting } from "@/components/chat/chat-message-list"
+
+test("chat composer mounts TanStack form integration", () => {
+  const markup = renderToStaticMarkup(
+    createElement(ChatComposer, {
+      attachments: [],
+      draft: "",
+      isGenerating: false,
+      onAnnouncementChange() {},
+      onAttachmentsChange() {},
+      onDraftChange() {},
+      async onSendMessage() {},
+      onStopResponse() {},
+    })
+  )
+
+  assert.match(markup, /aria-label="Message"/)
+})
 
 test("chat file picker shortcut accepts Command or Control plus U", () => {
   assert.equal(
@@ -21,6 +44,14 @@ test("chat file picker shortcut accepts Command or Control plus U", () => {
     isChatFilePickerShortcut({ ctrlKey: false, key: "k", metaKey: true }),
     false
   )
+})
+
+test("chat composer requires text or an attachment", () => {
+  assert.equal(
+    validateChatComposerMessage("  ", []),
+    "Enter a message or attach a file."
+  )
+  assert.equal(validateChatComposerMessage("Hello", []), undefined)
 })
 
 test("chat greeting follows local time of day", () => {

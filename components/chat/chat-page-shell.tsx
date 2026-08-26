@@ -12,21 +12,27 @@ import {
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
-const currentUser = {
-  name: "maxmurr",
-  email: "maxmurr.m@gmail.com",
-  avatar: "https://github.com/maxmurr.png",
-  initials: "MM",
+type ChatPageShellProps = {
+  className?: string
+  currentUser: {
+    avatar: string
+    email: string
+    initials: string
+    name: string
+  }
 }
 
-/** Renders chat shell around current live conversation. */
-export function ChatPageShell({ className }: { className?: string }) {
+/** Renders chat shell around current authenticated user's conversation. */
+export function ChatPageShell({
+  className,
+  currentUser,
+}: ChatPageShellProps) {
   return (
     <ChatConversationTitleProvider initialTitle="New chat">
       <SidebarProvider className={cn("isolate h-svh", className)}>
         <ChatAppSidebar currentUser={currentUser} />
 
-        <SidebarInset className="min-w-0 overflow-hidden">
+        <SidebarInset id="main-content" className="min-w-0 overflow-hidden">
           <header className="flex h-14 shrink-0 items-center gap-2 px-3">
             <SidebarTrigger aria-label="Toggle sidebar" />
             <Separator
