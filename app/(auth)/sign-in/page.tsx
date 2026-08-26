@@ -7,6 +7,7 @@ import {
   auth,
   isGoogleAuthenticationEnabled,
 } from "@/di/authentication"
+import { getSafeAuthenticationCallbackPath } from "@/lib/authentication-callback"
 
 export const metadata: Metadata = {
   title: "Sign In · AI Chat",
@@ -17,16 +18,17 @@ export const metadata: Metadata = {
 export default async function SignInPage({
   searchParams,
 }: PageProps<"/sign-in">) {
+  const { callbackURL, error } = await searchParams
+  const callbackPath = getSafeAuthenticationCallbackPath(callbackURL)
   const session = await auth.api.getSession({ headers: await headers() })
 
   if (session) {
-    redirect("/chat")
+    redirect(callbackPath)
   }
-
-  const { error } = await searchParams
 
   return (
     <AuthenticationFormCard
+      callbackPath={callbackPath}
       googleEnabled={isGoogleAuthenticationEnabled}
       initialErrorMessage={
         error ? "Could not continue with Google. Try again." : undefined

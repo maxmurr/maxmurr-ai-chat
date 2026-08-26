@@ -18,7 +18,13 @@ cp .env.example .env.local
 openssl rand -base64 32
 ```
 
-Set `AI_GATEWAY_API_KEY` and put generated value in `BETTER_AUTH_SECRET`. Then run:
+Set `AI_GATEWAY_API_KEY` and put generated value in `BETTER_AUTH_SECRET`.
+
+Email verification and workspace invitation delivery need a Resend API key and verified sending domain.
+Set `RESEND_API_KEY` and `RESEND_EMAIL_FROM`, such as `AI Chat <notifications@yourdomain.com>`.
+Without both values, local authentication keeps email verification optional and does not deliver invitation email.
+
+Then run:
 
 ```bash
 bun run db:migrate

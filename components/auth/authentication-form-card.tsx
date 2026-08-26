@@ -7,6 +7,11 @@ import { useState } from "react"
 import { AuthenticationField } from "@/components/auth/authentication-field"
 import { AuthenticationGoogleButton } from "@/components/auth/authentication-google-button"
 import { AuthenticationPasswordVisibilityButton } from "@/components/auth/authentication-password-visibility-button"
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -39,6 +44,7 @@ type AuthenticationFormValues = {
 }
 
 type AuthenticationFormCardProps = {
+  callbackPath?: string
   className?: string
   googleEnabled: boolean
   initialErrorMessage?: string
@@ -119,6 +125,7 @@ function getAuthenticationFieldError(errors: unknown[]) {
 
 /** Renders Better Auth sign-in or account-creation controls. */
 export function AuthenticationFormCard({
+  callbackPath = "/chat",
   className,
   googleEnabled,
   initialErrorMessage,
@@ -127,6 +134,7 @@ export function AuthenticationFormCard({
   const [errorMessage, setErrorMessage] = useState<string | null>(
     initialErrorMessage ?? null
   )
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null)
   const [isGooglePending, setIsGooglePending] = useState(false)
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isPasswordConfirmationVisible, setIsPasswordConfirmationVisible] =
@@ -141,29 +149,48 @@ export function AuthenticationFormCard({
     onSubmit: async ({ value }) => {
       const username = value.identity.username.trim()
       const password = value.credentials.password
+      const callbackUrl = new URL(
+        callbackPath,
+        window.location.origin
+      ).toString()
 
       setErrorMessage(null)
+      setNoticeMessage(null)
 
       try {
         const result = isSignUp
           ? await authClient.signUp.email({
+              callbackURL: callbackUrl,
               email: value.identity.email.trim(),
               name: username,
               password,
               username,
             })
-          : await authClient.signIn.username({ username, password })
+          : await authClient.signIn.username({
+              callbackURL: callbackUrl,
+              password,
+              username,
+            })
 
         if (result.error) {
           setErrorMessage(
-            isSignUp
-              ? "Could not create account. Check your details or sign in."
-              : "Invalid username or password."
+            !isSignUp && result.error.status === 403
+              ? "Verify your email before signing in. We sent a new link."
+              : isSignUp
+                ? "Could not create account. Check your details or sign in."
+                : "Invalid username or password."
           )
           return
         }
 
-        window.location.assign(new URL("/chat", window.location.origin))
+        if (isSignUp && !result.data?.token) {
+          setNoticeMessage(
+            "Check for a verification link. If none arrives, try signing in."
+          )
+          return
+        }
+
+        window.location.assign(callbackUrl)
       } catch {
         setErrorMessage("Authentication is unavailable. Try again.")
       }
@@ -172,14 +199,26 @@ export function AuthenticationFormCard({
 
   async function signInWithGoogle() {
     setErrorMessage(null)
+    setNoticeMessage(null)
     setIsGooglePending(true)
 
     try {
       const path = isSignUp ? "/sign-up" : "/sign-in"
+      const callbackUrl = new URL(
+        callbackPath,
+        window.location.origin
+      ).toString()
+      const errorCallbackUrl = new URL(path, window.location.origin)
+
+      errorCallbackUrl.searchParams.set("error", "oauth")
+      if (callbackPath !== "/chat") {
+        errorCallbackUrl.searchParams.set("callbackURL", callbackPath)
+      }
+
       const { error } = await authClient.signIn.social({
         provider: "google",
-        callbackURL: new URL("/chat", window.location.origin).toString(),
-        errorCallbackURL: new URL(path, window.location.origin).toString(),
+        callbackURL: callbackUrl,
+        errorCallbackURL: errorCallbackUrl.toString(),
       })
 
       if (error) {
@@ -191,6 +230,12 @@ export function AuthenticationFormCard({
       setIsGooglePending(false)
     }
   }
+
+  const alternateAuthenticationPath = isSignUp ? "/sign-in" : "/sign-up"
+  const alternateAuthenticationHref =
+    callbackPath === "/chat"
+      ? alternateAuthenticationPath
+      : `${alternateAuthenticationPath}?callbackURL=${encodeURIComponent(callbackPath)}`
 
   return (
     <Card
@@ -209,6 +254,13 @@ export function AuthenticationFormCard({
       <Separator />
 
       <CardContent className="flex flex-col gap-6">
+        {noticeMessage && (
+          <Alert>
+            <AlertTitle>Check your email</AlertTitle>
+            <AlertDescription>{noticeMessage}</AlertDescription>
+          </Alert>
+        )}
+
         <form
           className="flex flex-col gap-4"
           noValidate
@@ -492,7 +544,7 @@ export function AuthenticationFormCard({
         </span>
         <Link
           className="rounded-sm font-medium text-foreground underline decoration-foreground/30 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-          href={isSignUp ? "/sign-in" : "/sign-up"}
+          href={alternateAuthenticationHref}
         >
           {isSignUp ? "Sign In" : "Sign Up"}
         </Link>
