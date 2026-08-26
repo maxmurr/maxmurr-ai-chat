@@ -1,4 +1,5 @@
 import { ChatAppSidebar } from "@/components/chat/chat-app-sidebar"
+import type { ChatWorkspaceSummary } from "@/components/chat/chat-workspace-switcher"
 import {
   ChatConversationTitle,
   ChatConversationTitleProvider,
@@ -13,6 +14,7 @@ import {
 import { cn } from "@/lib/utils"
 
 type ChatPageShellProps = {
+  activeWorkspaceId?: string
   className?: string
   currentUser: {
     avatar: string
@@ -20,17 +22,24 @@ type ChatPageShellProps = {
     initials: string
     name: string
   }
+  workspaces: ChatWorkspaceSummary[]
 }
 
 /** Renders chat shell around current authenticated user's conversation. */
 export function ChatPageShell({
+  activeWorkspaceId,
   className,
   currentUser,
+  workspaces,
 }: ChatPageShellProps) {
   return (
     <ChatConversationTitleProvider initialTitle="New chat">
       <SidebarProvider className={cn("isolate h-svh", className)}>
-        <ChatAppSidebar currentUser={currentUser} />
+        <ChatAppSidebar
+          activeWorkspaceId={activeWorkspaceId}
+          currentUser={currentUser}
+          workspaces={workspaces}
+        />
 
         <SidebarInset id="main-content" className="min-w-0 overflow-hidden">
           <header className="flex h-14 shrink-0 items-center gap-2 px-3">

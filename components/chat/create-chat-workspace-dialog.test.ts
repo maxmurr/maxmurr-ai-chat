@@ -20,7 +20,10 @@ test("chat workspace switcher mounts form integration", () => {
       createElement(
         SidebarMenu,
         null,
-        createElement(ChatWorkspaceSwitcher)
+        createElement(ChatWorkspaceSwitcher, {
+          activeWorkspaceId: "workspace-1",
+          initialWorkspaces: [{ id: "workspace-1", name: "Acme Inc." }],
+        })
       )
     )
   )

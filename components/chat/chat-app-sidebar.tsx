@@ -7,7 +7,10 @@ import {
 } from "lucide-react"
 
 import { ChatUserMenu } from "@/components/chat/chat-user-menu"
-import { ChatWorkspaceSwitcher } from "@/components/chat/chat-workspace-switcher"
+import {
+  ChatWorkspaceSwitcher,
+  type ChatWorkspaceSummary,
+} from "@/components/chat/chat-workspace-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -28,6 +31,7 @@ const primaryNavigation = [
 ]
 
 type ChatAppSidebarProps = {
+  activeWorkspaceId?: string
   className?: string
   currentUser: {
     avatar: string
@@ -35,6 +39,7 @@ type ChatAppSidebarProps = {
     initials: string
     name: string
   }
+  workspaces: ChatWorkspaceSummary[]
 }
 
 function ChatPrimaryNavigation({ className }: { className?: string }) {
@@ -60,14 +65,19 @@ function ChatPrimaryNavigation({ className }: { className?: string }) {
 
 /** Composes server-rendered chat navigation around focused client controls. */
 export function ChatAppSidebar({
+  activeWorkspaceId,
   className,
   currentUser,
+  workspaces,
 }: ChatAppSidebarProps) {
   return (
     <Sidebar className={cn(className)} collapsible="icon" variant="floating">
       <SidebarHeader>
         <SidebarMenu>
-          <ChatWorkspaceSwitcher />
+          <ChatWorkspaceSwitcher
+            activeWorkspaceId={activeWorkspaceId}
+            initialWorkspaces={workspaces}
+          />
         </SidebarMenu>
         <ChatPrimaryNavigation />
       </SidebarHeader>

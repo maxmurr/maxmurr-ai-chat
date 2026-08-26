@@ -2,6 +2,7 @@ import "server-only"
 
 import { drizzleAdapter } from "@better-auth/drizzle-adapter"
 import { betterAuth } from "better-auth"
+import { organization } from "better-auth/plugins/organization"
 import { username } from "better-auth/plugins/username"
 
 import { appDatabase } from "@/drizzle/app-database"
@@ -53,6 +54,7 @@ export const auth = betterAuth({
         }
       : {},
   plugins: [
+    organization(),
     username({
       displayUsername: false,
       immutableUsername: true,

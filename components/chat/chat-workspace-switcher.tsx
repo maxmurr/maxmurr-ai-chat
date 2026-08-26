@@ -4,9 +4,7 @@ import { useEffect, useState } from "react"
 import {
   BriefcaseBusinessIcon,
   ChevronsUpDownIcon,
-  FlaskConicalIcon,
   PlusIcon,
-  UserRoundIcon,
 } from "lucide-react"
 
 import { ChatSidebarIdentity } from "@/components/chat/chat-sidebar-identity"
@@ -27,18 +25,23 @@ import {
 } from "@/components/chat/create-chat-workspace-dialog"
 import { cn } from "@/lib/utils"
 
-type ChatWorkspace = {
+/** Minimal persisted workspace data rendered by chat navigation. */
+export type ChatWorkspaceSummary = {
+  id: string
+  name: string
+}
+
+type ChatWorkspace = ChatWorkspaceSummary & {
   icon: typeof BriefcaseBusinessIcon
   memberCount?: number
-  name: string
   plan: string
 }
 
-const initialChatWorkspaces: ChatWorkspace[] = [
-  { name: "Acme Inc.", plan: "Enterprise", icon: BriefcaseBusinessIcon },
-  { name: "Acme Labs", plan: "Pro", icon: FlaskConicalIcon },
-  { name: "Personal", plan: "Free", icon: UserRoundIcon },
-]
+type ChatWorkspaceSwitcherProps = {
+  activeWorkspaceId?: string
+  className?: string
+  initialWorkspaces: ChatWorkspaceSummary[]
+}
 
 function getChatWorkspaceDescription(workspace: ChatWorkspace) {
   if (!workspace.memberCount) {
@@ -49,10 +52,22 @@ function getChatWorkspaceDescription(workspace: ChatWorkspace) {
   return `${workspace.plan} · ${workspace.memberCount} ${memberLabel}`
 }
 
-/** Renders workspace selection with mouse and command-key controls. */
-export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
+/** Renders persisted workspaces with mouse and command-key controls. */
+export function ChatWorkspaceSwitcher({
+  activeWorkspaceId,
+  className,
+  initialWorkspaces,
+}: ChatWorkspaceSwitcherProps) {
+  const initialChatWorkspaces = initialWorkspaces.map((workspace) => ({
+    ...workspace,
+    icon: BriefcaseBusinessIcon,
+    plan: "Free",
+  }))
   const [activeWorkspace, setActiveWorkspace] = useState(
-    initialChatWorkspaces[0]
+    () =>
+      initialChatWorkspaces.find(
+        (workspace) => workspace.id === activeWorkspaceId
+      ) ?? initialChatWorkspaces[0]
   )
   const [chatWorkspaces, setChatWorkspaces] = useState(initialChatWorkspaces)
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false)
@@ -88,6 +103,7 @@ export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
 
   function createChatWorkspace(workspace: NewChatWorkspace) {
     const createdWorkspace: ChatWorkspace = {
+      id: crypto.randomUUID(),
       icon: BriefcaseBusinessIcon,
       memberCount: workspace.members.length + 1,
       name: workspace.name,
@@ -99,6 +115,10 @@ export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
       createdWorkspace,
     ])
     setActiveWorkspace(createdWorkspace)
+  }
+
+  if (!activeWorkspace) {
+    return null
   }
 
   return (
@@ -114,7 +134,7 @@ export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
           }
         >
           <span
-            key={activeWorkspace.name}
+            key={activeWorkspace.id}
             className="flex aspect-square size-8 shrink-0 animate-in items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground duration-200 ease-[cubic-bezier(0.34,1.35,0.64,1)] fade-in-0 zoom-in-75 motion-reduce:animate-none"
           >
             <activeWorkspace.icon />
@@ -130,7 +150,7 @@ export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
             <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
             {chatWorkspaces.map((workspace, index) => (
               <DropdownMenuItem
-                key={workspace.name}
+                key={workspace.id}
                 onClick={() => setActiveWorkspace(workspace)}
               >
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border">
