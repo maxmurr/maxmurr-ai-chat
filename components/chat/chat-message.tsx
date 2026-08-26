@@ -434,7 +434,7 @@ export function ChatMessageItem({
 
           <MessageFooter
             className={cn(
-              "gap-0.5",
+              "gap-0.5 px-0",
               !isAssistant &&
               "opacity-0 transition-opacity group-focus-within/message:opacity-100 group-hover/message:opacity-100 pointer-coarse:opacity-100"
             )}
