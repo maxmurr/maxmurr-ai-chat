@@ -1,7 +1,13 @@
 "use client"
 
 import Image from "next/image"
-import { useEffect, useRef, useState, type FormEvent } from "react"
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from "react"
 import { Provider, useChat } from "@ai-sdk-tools/store"
 import { code } from "@streamdown/code"
 import { DefaultChatTransport } from "ai"
@@ -17,7 +23,7 @@ import {
   FolderClosedIcon,
   GlobeIcon,
   LinkIcon,
-  MicIcon,
+  MessageCircleIcon,
   PaperclipIcon,
   PlusIcon,
   RefreshCwIcon,
@@ -64,11 +70,20 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import {
   InputGroup,
   InputGroupAddon,
@@ -100,11 +115,35 @@ import {
 } from "@/lib/chat-ui-messages"
 import { cn } from "@/lib/utils"
 
-const CHAT_MODEL_LABEL = "Qwen 3.8 Max"
+const CHAT_MODEL_OPTIONS = [
+  "Claude Opus 5",
+  "Claude Sonnet 5",
+  "Claude Haiku 4.5",
+  "GPT-5.6 Sol",
+  "GPT-5.6 Luna",
+  "Grok Build 0.1",
+] as const
+const CHAT_SUGGESTIONS = [
+  "Why is checkout throwing 500s?",
+  "Review our pricing page",
+  "Summarise this week's incidents",
+] as const
+const DEFAULT_CHAT_MODEL = "Grok Build 0.1"
+const CHAT_GREETING_SUBSCRIBE = () => () => {}
+const CHAT_GREETING_SERVER_SNAPSHOT = () => "Hello"
 const CHAT_TRANSPORT = new DefaultChatTransport<ChatUIMessage>({
   api: "/api/chat",
 })
 const CHAT_MARKDOWN_PLUGINS = { code } as const
+
+/** Returns time-aware greeting shown in empty chat state. */
+export function getChatGreeting(hour = new Date().getHours()) {
+  return hour < 12
+    ? "Good morning"
+    : hour < 17
+      ? "Good afternoon"
+      : "Good evening"
+}
 
 const CHAT_TOOL_STATE_METADATA = {
   running: {
@@ -400,7 +439,13 @@ function ChatThreadContent() {
   const [figmaConnected, setFigmaConnected] = useState(true)
   const [googleDriveConnected, setGoogleDriveConnected] = useState(false)
   const [researchModeEnabled, setResearchModeEnabled] = useState(false)
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_CHAT_MODEL)
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
+  const chatGreeting = useSyncExternalStore(
+    CHAT_GREETING_SUBSCRIBE,
+    getChatGreeting,
+    CHAT_GREETING_SERVER_SNAPSHOT
+  )
   const {
     clearError,
     error,
@@ -417,8 +462,6 @@ function ChatThreadContent() {
   const { conversationTitle, setConversationTitle } =
     useChatConversationTitle()
   const isGenerating = status === "submitted" || status === "streaming"
-  const canSend =
-    !isGenerating && (draft.trim().length > 0 || attachments.length > 0)
 
   useEffect(() => {
     function openChatFilePickerFromShortcut(event: KeyboardEvent) {
@@ -437,8 +480,11 @@ function ChatThreadContent() {
 
   function sendChatMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    submitChatMessage(draft)
+  }
 
-    const messageText = draft.trim()
+  function submitChatMessage(text: string) {
+    const messageText = text.trim()
 
     if (isGenerating || (!messageText && attachments.length === 0)) {
       return
@@ -509,20 +555,38 @@ function ChatThreadContent() {
       <div className="flex size-full min-w-0 flex-col">
         <MessageScrollerProvider autoScroll>
           <MessageScroller className="-mb-8">
-            <MessageScrollerViewport>
+            <MessageScrollerViewport className="scroll-fade-b-20 focus-visible:outline-none">
               <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 pb-12">
                 {messages.length === 0 ? (
                   <MessageScrollerItem
-                    className="flex flex-1"
+                    className="flex flex-1 items-center"
                     messageId="empty-chat"
                   >
-                    <Empty>
+                    <Empty className="w-full">
                       <EmptyHeader>
-                        <EmptyTitle>How can I help?</EmptyTitle>
+                        <EmptyMedia variant="icon">
+                          <MessageCircleIcon />
+                        </EmptyMedia>
+                        <EmptyTitle>{chatGreeting}, shadcn</EmptyTitle>
                         <EmptyDescription>
-                          Ask a question or attach files to start a conversation.
+                          Ask a question, or start from one of these.
                         </EmptyDescription>
                       </EmptyHeader>
+                      <EmptyContent>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {CHAT_SUGGESTIONS.map((suggestion) => (
+                            <Button
+                              key={suggestion}
+                              onClick={() => submitChatMessage(suggestion)}
+                              size="sm"
+                              type="button"
+                              variant="outline"
+                            >
+                              {suggestion}
+                            </Button>
+                          ))}
+                        </div>
+                      </EmptyContent>
                     </Empty>
                   </MessageScrollerItem>
                 ) : (
@@ -928,60 +992,77 @@ function ChatThreadContent() {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <span className="px-2 text-sm text-muted-foreground">
-                  {CHAT_MODEL_LABEL}
-                </span>
-
-                <div className="flex flex-1 justify-end gap-1">
-                  <InputGroupButton
-                    aria-label="Dictate"
-                    className="relative shrink-0"
-                    onClick={() =>
-                      setComposerAnnouncement(
-                        "Dictation is not connected in this UI demo."
-                      )
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <InputGroupButton
+                        className="min-w-0 gap-1 px-2"
+                        size="sm"
+                        type="button"
+                      />
                     }
-                    size="icon-sm"
-                    title="Dictate"
-                    type="button"
                   >
-                    <MicIcon />
+                    <span className="truncate text-foreground">
+                      {selectedModel}
+                    </span>
+                    <ChevronDownIcon
+                      className="shrink-0"
+                      data-icon="inline-end"
+                    />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    className="w-fit min-w-60"
+                    side="top"
+                  >
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Model</DropdownMenuLabel>
+                      <DropdownMenuRadioGroup
+                        onValueChange={setSelectedModel}
+                        value={selectedModel}
+                      >
+                        {CHAT_MODEL_OPTIONS.map((model) => (
+                          <DropdownMenuRadioItem key={model} value={model}>
+                            {model}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {isGenerating ? (
+                  <InputGroupButton
+                    aria-label="Stop response"
+                    className="relative ml-auto shrink-0"
+                    onClick={() => void stop()}
+                    size="icon-sm"
+                    title="Stop response"
+                    type="button"
+                    variant="default"
+                  >
+                    <XIcon />
                     <ChatTouchTarget />
                   </InputGroupButton>
-                  {isGenerating ? (
-                    <InputGroupButton
-                      aria-label="Stop response"
-                      className="relative shrink-0"
-                      onClick={() => void stop()}
-                      size="icon-sm"
-                      title="Stop response"
-                      type="button"
-                      variant="default"
-                    >
-                      <XIcon />
-                      <ChatTouchTarget />
-                    </InputGroupButton>
-                  ) : (
-                    <InputGroupButton
-                      aria-label="Send message"
-                      className="relative shrink-0"
-                      disabled={!canSend}
-                      size="icon-sm"
-                      title={canSend ? "Send message" : "Enter a message"}
-                      type="submit"
-                      variant="default"
-                    >
-                      <ArrowUpIcon />
-                      <ChatTouchTarget />
-                    </InputGroupButton>
-                  )}
-                </div>
+                ) : (
+                  <InputGroupButton
+                    aria-label="Send message"
+                    className="relative ml-auto shrink-0"
+                    size="icon-sm"
+                    title="Send message"
+                    type="submit"
+                    variant="default"
+                  >
+                    <ArrowUpIcon />
+                    <ChatTouchTarget />
+                  </InputGroupButton>
+                )}
               </InputGroupAddon>
             </InputGroup>
           </div>
         </form>
 
-        <p className="shrink-0 px-4 py-2.5 text-center text-base/6 text-balance text-muted-foreground sm:text-xs/5">
+        <p className="shrink-0 px-4 py-2.5 text-center text-xs text-balance text-muted-foreground">
           AI can make mistakes. Verify important information.
         </p>
       </div>

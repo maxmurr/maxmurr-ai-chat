@@ -5,10 +5,11 @@ import { z } from "zod"
 import { mastra } from "@/mastra"
 
 const chatMessagePartSchema = z
-  .looseObject({
+  .object({
     text: z.string().max(100_000).optional(),
     type: z.string().trim().min(1).max(100),
   })
+  .catchall(z.unknown())
   .refine(
     ({ text, type }) =>
       (type !== "text" && type !== "reasoning") || text !== undefined,
@@ -18,11 +19,13 @@ const chatMessagePartSchema = z
 const chatApiRequestSchema = z.object({
   messages: z
     .array(
-      z.looseObject({
-        id: z.string().min(1).max(200),
-        parts: z.array(chatMessagePartSchema).min(1).max(100),
-        role: z.enum(["system", "user", "assistant"]),
-      })
+      z
+        .object({
+          id: z.string().min(1).max(200),
+          parts: z.array(chatMessagePartSchema).min(1).max(100),
+          role: z.enum(["system", "user", "assistant"]),
+        })
+        .catchall(z.unknown())
     )
     .min(1)
     .max(100),

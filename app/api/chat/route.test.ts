@@ -8,8 +8,15 @@ test("chat API request parser accepts AI SDK messages and rejects malformed inpu
     messages: [
       {
         id: "user-message",
+        metadata: { createdAt: "2026-08-26T00:00:00.000Z" },
         role: "user" as const,
-        parts: [{ type: "text", text: "Hello" }],
+        parts: [
+          {
+            providerMetadata: { test: { traceId: "trace-1" } },
+            type: "text",
+            text: "Hello",
+          },
+        ],
       },
     ],
     trigger: "submit-message" as const,
