@@ -291,11 +291,17 @@ function ChatMessageMarkdown({ children }: { children: string }) {
   )
 }
 
-function ChatMessageReasoning({ reasoning }: { reasoning: string }) {
+function ChatMessageReasoning({
+  className,
+  reasoning,
+}: {
+  className?: string
+  reasoning: string
+}) {
   const isLoading = reasoning.length === 0
 
   return (
-    <Collapsible defaultOpen>
+    <Collapsible className={className} defaultOpen>
       <Marker
         aria-busy={isLoading}
         className="transition-colors hover:text-foreground"
@@ -529,30 +535,6 @@ function ChatMessageTool({ tool }: { tool: MockChatTool }) {
   )
 }
 
-function BillingRecommendationReasoning() {
-  return (
-    <Collapsible>
-      <Marker
-        className="w-fit rounded-sm py-1 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm"
-        render={<CollapsibleTrigger />}
-      >
-        <MarkerIcon>
-          <BrainIcon />
-        </MarkerIcon>
-        <MarkerContent>Reasoning</MarkerContent>
-        <MarkerIcon>
-          <ChevronDownIcon className="transition-transform group-aria-expanded/marker:rotate-180" />
-        </MarkerIcon>
-      </Marker>
-      <CollapsibleContent>
-        <p className="text-pretty text-base/7 text-muted-foreground sm:text-sm/6">
-          Gathering decision constraints before comparing build versus buy.
-        </p>
-      </CollapsibleContent>
-    </Collapsible>
-  )
-}
-
 function BillingRecommendationQuestionnaireActions() {
   return (
     <QuestionnaireActions>
@@ -602,25 +584,9 @@ function BillingRecommendationQuestionnaire() {
           </AlertDescription>
         </Alert>
 
-        <Collapsible>
-          <Marker
-            className="w-fit rounded-sm py-1 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm"
-            render={<CollapsibleTrigger />}
-          >
-            <MarkerIcon>
-              <BrainIcon />
-            </MarkerIcon>
-            <MarkerContent>Reasoning</MarkerContent>
-            <MarkerIcon>
-              <ChevronDownIcon className="transition-transform group-aria-expanded/marker:rotate-180" />
-            </MarkerIcon>
-          </Marker>
-          <CollapsibleContent>
-            <p className="text-pretty text-base/7 text-muted-foreground sm:text-sm/6">
-              Comparing ownership cost against Stripe Billing coverage.
-            </p>
-          </CollapsibleContent>
-        </Collapsible>
+        <ChatMessageReasoning
+          reasoning="Comparing ownership cost against Stripe Billing coverage."
+        />
 
         <Collapsible>
           <Marker
@@ -957,10 +923,6 @@ export function ChatThread({
                                     ))}
                                   </AttachmentGroup>
                                 )}
-
-                              {message.questionnaire && (
-                                <BillingRecommendationReasoning />
-                              )}
 
                               <Bubble
                                 align={isAssistant ? "start" : "end"}

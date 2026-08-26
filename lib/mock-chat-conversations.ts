@@ -172,6 +172,8 @@ const BILLING_RECOMMENDATION_MESSAGES: readonly MockChatMessage[] = [
       "Before I spend the research on this, four questions. Each one changes the answer, so guessing at them would waste both our time.",
     id: "billing-recommendation-questionnaire",
     questionnaire: true,
+    reasoning:
+      "Gathering decision constraints before comparing build versus buy.",
     role: "assistant",
   },
 ]
