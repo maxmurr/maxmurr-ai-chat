@@ -16,6 +16,8 @@ test("authentication cards render sign-in and sign-up variants", () => {
   )
 
   assert.match(signInMarkup, /Enter your username and password/)
+  assert.match(signInMarkup, /type="password"/)
+  assert.match(signInMarkup, /aria-controls="password"/)
   assert.doesNotMatch(signInMarkup, /Confirm password/)
   assert.doesNotMatch(signInMarkup, /\/google-logo\.svg/)
   assert.match(signUpMarkup, /type="email"/)

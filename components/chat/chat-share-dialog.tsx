@@ -1,13 +1,9 @@
 "use client"
 
-import { useEffect, useId, useRef, useState } from "react"
-import {
-  CheckIcon,
-  CircleAlertIcon,
-  CopyIcon,
-  Share2Icon,
-} from "lucide-react"
+import { useEffect, useId, useState } from "react"
+import { Share2Icon } from "lucide-react"
 
+import { ChatShareLinkField } from "@/components/chat/chat-share-link-field"
 import { ChatTouchTarget } from "@/components/chat/chat-touch-target"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,19 +24,16 @@ import {
   FieldTitle,
 } from "@/components/ui/field"
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "@/components/ui/input-group"
-import {
   RadioGroup,
   RadioGroupItem,
 } from "@/components/ui/radio-group"
 import { cn } from "@/lib/utils"
 
 type ChatShareAccess = "private" | "team" | "public"
-type ChatShareCopyStatus = "idle" | "copied" | "error"
+type ChatShareDialogContentProps = {
+  className?: string
+  conversationId: string
+}
 type ChatShareDialogProps = {
   className?: string
   conversationId: string
@@ -103,12 +96,9 @@ function ChatShareAccessOption({
 export function ChatShareDialogContent({
   className,
   conversationId,
-}: ChatShareDialogProps) {
+}: ChatShareDialogContentProps) {
   const optionIdPrefix = useId()
   const legendId = `${optionIdPrefix}-legend`
-  const shareLinkInputRef = useRef<HTMLInputElement>(null)
-  const [copyStatus, setCopyStatus] =
-    useState<ChatShareCopyStatus>("idle")
   const [shareAccess, setShareAccess] =
     useState<ChatShareAccess>("private")
   const [shareLink, setShareLink] = useState<string | null>(null)
@@ -128,40 +118,11 @@ export function ChatShareDialogContent({
 
   function changeChatShareAccess(nextAccess: ChatShareAccess) {
     setShareAccess(nextAccess)
-    setCopyStatus("idle")
 
     if (nextAccess === "private") {
       setShareLink(null)
     }
   }
-
-  async function copyChatShareLink() {
-    if (!shareLink) {
-      return
-    }
-
-    try {
-      await navigator.clipboard.writeText(shareLink)
-      setCopyStatus("copied")
-    } catch {
-      shareLinkInputRef.current?.select()
-      setCopyStatus("error")
-    }
-  }
-
-  const copyButtonLabel =
-    copyStatus === "copied"
-      ? "Link copied"
-      : copyStatus === "error"
-        ? "Copy failed. Select the link and copy manually."
-        : "Copy link"
-  const shareLinkAnnouncement = isGeneratingLink
-    ? "Creating share link."
-    : copyStatus === "copied"
-      ? "Share link copied."
-      : copyStatus === "error"
-        ? "Could not copy share link. Link selected for manual copying."
-        : "Share link ready."
 
   return (
     <DialogContent className={cn(className)}>
@@ -198,48 +159,11 @@ export function ChatShareDialogContent({
       </FieldSet>
 
       {shareAccess !== "private" && (
-        <>
-          <InputGroup aria-busy={isGeneratingLink} className="h-14">
-            <InputGroupInput
-              ref={shareLinkInputRef}
-              aria-label="Share link"
-              autoComplete="off"
-              className={cn(
-                "h-full font-mono",
-                isGeneratingLink && "text-muted-foreground"
-              )}
-              name="share-link"
-              readOnly
-              spellCheck={false}
-              tabIndex={isGeneratingLink ? -1 : undefined}
-              type="url"
-              value={isGeneratingLink ? "Creating link…" : (shareLink ?? "")}
-            />
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton
-                aria-label={copyButtonLabel}
-                className="relative"
-                disabled={isGeneratingLink}
-                onClick={copyChatShareLink}
-                size="icon-xs"
-                title={copyButtonLabel}
-                type="button"
-              >
-                {copyStatus === "copied" ? (
-                  <CheckIcon />
-                ) : copyStatus === "error" ? (
-                  <CircleAlertIcon />
-                ) : (
-                  <CopyIcon />
-                )}
-                <ChatTouchTarget />
-              </InputGroupButton>
-            </InputGroupAddon>
-          </InputGroup>
-          <p className="sr-only" role="status">
-            {shareLinkAnnouncement}
-          </p>
-        </>
+        <ChatShareLinkField
+          isGenerating={isGeneratingLink}
+          key={shareAccess}
+          shareLink={shareLink}
+        />
       )}
     </DialogContent>
   )

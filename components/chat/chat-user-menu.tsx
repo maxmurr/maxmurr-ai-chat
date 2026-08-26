@@ -9,6 +9,7 @@ import {
   SparklesIcon,
 } from "lucide-react"
 
+import { ChatSidebarIdentity } from "@/components/chat/chat-sidebar-identity"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -50,23 +51,6 @@ function ChatUserAvatar({
   )
 }
 
-function ChatUserDetails({
-  className,
-  user,
-}: {
-  className?: string
-  user: ChatUser
-}) {
-  return (
-    <div
-      className={cn("grid min-w-0 flex-1 text-left leading-4", className)}
-    >
-      <div className="truncate font-medium">{user.name}</div>
-      <div className="truncate text-base lg:text-xs">{user.email}</div>
-    </div>
-  )
-}
-
 /** Renders current user identity and account actions. */
 export function ChatUserMenu({ className, user }: ChatUserMenuProps) {
   async function signOutCurrentUser() {
@@ -96,7 +80,11 @@ export function ChatUserMenu({ className, user }: ChatUserMenuProps) {
           }
         >
           <ChatUserAvatar user={user} />
-          <ChatUserDetails user={user} />
+          <ChatSidebarIdentity
+            className="leading-4"
+            description={user.email}
+            title={user.name}
+          />
           <ChevronsUpDownIcon className="ml-auto" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-56" side="bottom">
@@ -104,7 +92,11 @@ export function ChatUserMenu({ className, user }: ChatUserMenuProps) {
             <DropdownMenuLabel className="p-0 font-normal text-foreground">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left">
                 <ChatUserAvatar user={user} />
-                <ChatUserDetails className="text-base sm:text-sm" user={user} />
+                <ChatSidebarIdentity
+                  className="text-base leading-4 sm:text-sm"
+                  description={user.email}
+                  title={user.name}
+                />
               </div>
             </DropdownMenuLabel>
           </DropdownMenuGroup>

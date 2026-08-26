@@ -27,6 +27,7 @@ import {
   NativeSelectOption,
 } from "@/components/ui/native-select"
 import { Spinner } from "@/components/ui/spinner"
+import { cn } from "@/lib/utils"
 
 const MAX_CHAT_WORKSPACE_MEMBERS = 5
 const CHAT_WORKSPACE_MEMBER_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -60,6 +61,7 @@ export type NewChatWorkspace = {
 }
 
 type CreateChatWorkspaceDialogProps = {
+  className?: string
   isWorkspaceNameAvailable: (name: string) => Promise<boolean>
   onCreateWorkspace: (workspace: NewChatWorkspace) => Promise<void> | void
   onOpenChange: (open: boolean) => void
@@ -138,6 +140,7 @@ function getFieldErrorMessage(errors: unknown[]) {
 
 /** Renders typed TanStack Form controls for creating one chat workspace. */
 export function CreateChatWorkspaceDialog({
+  className,
   isWorkspaceNameAvailable,
   onCreateWorkspace,
   onOpenChange,
@@ -168,7 +171,12 @@ export function CreateChatWorkspaceDialog({
 
   return (
     <Dialog onOpenChange={changeDialogOpenState} open={open}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl">
+      <DialogContent
+        className={cn(
+          "max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl",
+          className
+        )}
+      >
         <DialogHeader>
           <DialogTitle>Create workspace</DialogTitle>
           <DialogDescription>

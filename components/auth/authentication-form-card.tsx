@@ -1,11 +1,12 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
-import { EyeIcon, EyeOffIcon } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
 
+import { AuthenticationField } from "@/components/auth/authentication-field"
+import { AuthenticationGoogleButton } from "@/components/auth/authentication-google-button"
+import { AuthenticationPasswordVisibilityButton } from "@/components/auth/authentication-password-visibility-button"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -14,22 +15,15 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card"
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
+import { FieldError, FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
   InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group"
 import { Separator } from "@/components/ui/separator"
 import { authClient } from "@/lib/auth-client"
+import { cn } from "@/lib/utils"
 
 type AuthenticationMode = "sign-in" | "sign-up"
 
@@ -44,16 +38,11 @@ type AuthenticationFormValues = {
   }
 }
 
-type PasswordFieldProps = {
-  autoComplete: "current-password" | "new-password"
-  describedBy?: string
-  id: string
-  invalid: boolean
-  label: string
-  name: string
-  onBlur: () => void
-  onChange: (password: string) => void
-  value: string
+type AuthenticationFormCardProps = {
+  className?: string
+  googleEnabled: boolean
+  initialErrorMessage?: string
+  mode: AuthenticationMode
 }
 
 const AUTHENTICATION_USERNAME_PATTERN = /^[A-Za-z0-9_.]+$/
@@ -67,56 +56,6 @@ const defaultAuthenticationFormValues: AuthenticationFormValues = {
     password: "",
     passwordConfirmation: "",
   },
-}
-
-function PasswordField({
-  autoComplete,
-  describedBy,
-  id,
-  invalid,
-  label,
-  name,
-  onBlur,
-  onChange,
-  value,
-}: PasswordFieldProps) {
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
-
-  return (
-    <InputGroup className="h-11 sm:h-10">
-      <InputGroupInput
-        aria-describedby={describedBy}
-        aria-invalid={invalid}
-        autoComplete={autoComplete}
-        id={id}
-        maxLength={128}
-        minLength={8}
-        name={name}
-        onBlur={onBlur}
-        onChange={(event) => onChange(event.target.value)}
-        required
-        type={isPasswordVisible ? "text" : "password"}
-        value={value}
-      />
-      <InputGroupAddon align="inline-end">
-        <InputGroupButton
-          aria-controls={id}
-          aria-label={`${isPasswordVisible ? "Hide" : "Show"} ${label.toLowerCase()}`}
-          aria-pressed={isPasswordVisible}
-          className="relative"
-          onClick={() => setIsPasswordVisible((isVisible) => !isVisible)}
-          size="icon-sm"
-          type="button"
-        >
-          {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-1/2 size-12 -translate-1/2 pointer-fine:hidden"
-          />
-        </InputGroupButton>
-      </InputGroupAddon>
-    </InputGroup>
-  )
 }
 
 /** Validates username syntax shared by sign-in and sign-up forms. */
@@ -180,18 +119,18 @@ function getAuthenticationFieldError(errors: unknown[]) {
 
 /** Renders Better Auth sign-in or account-creation controls. */
 export function AuthenticationFormCard({
+  className,
   googleEnabled,
   initialErrorMessage,
   mode,
-}: {
-  googleEnabled: boolean
-  initialErrorMessage?: string
-  mode: AuthenticationMode
-}) {
+}: AuthenticationFormCardProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(
     initialErrorMessage ?? null
   )
   const [isGooglePending, setIsGooglePending] = useState(false)
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  const [isPasswordConfirmationVisible, setIsPasswordConfirmationVisible] =
+    useState(false)
   const isSignUp = mode === "sign-up"
   const title = isSignUp ? "Sign Up" : "Sign In"
   const description = isSignUp
@@ -254,7 +193,12 @@ export function AuthenticationFormCard({
   }
 
   return (
-    <Card className="w-full max-w-md [--card-spacing:--spacing(6)] dark:inset-ring dark:inset-ring-foreground/5 dark:shadow-none dark:ring-0">
+    <Card
+      className={cn(
+        "w-full max-w-md [--card-spacing:--spacing(6)] dark:inset-ring dark:inset-ring-foreground/5 dark:shadow-none dark:ring-0",
+        className
+      )}
+    >
       <CardHeader>
         <h1 className="text-balance font-heading text-xl font-semibold tracking-tight text-foreground">
           {title}
@@ -292,14 +236,19 @@ export function AuthenticationFormCard({
                 const errorId = "username-error"
 
                 return (
-                  <Field
-                    data-invalid={
-                      field.state.meta.isValid ? undefined : true
+                  <AuthenticationField
+                    description={
+                      isSignUp
+                        ? "3–31 letters, numbers, underscores, or periods."
+                        : undefined
                     }
+                    descriptionId={descriptionId}
+                    error={error}
+                    errorId={errorId}
+                    htmlFor="username"
+                    invalid={!field.state.meta.isValid}
+                    label="Username"
                   >
-                    <FieldLabel htmlFor="username" className="leading-none">
-                      Username
-                    </FieldLabel>
                     <Input
                       aria-describedby={
                         [descriptionId, error ? errorId : undefined]
@@ -326,16 +275,7 @@ export function AuthenticationFormCard({
                       type="text"
                       value={field.state.value}
                     />
-                    {isSignUp && (
-                      <FieldDescription
-                        className="text-sm sm:text-xs"
-                        id={descriptionId}
-                      >
-                        3–31 letters, numbers, underscores, or periods.
-                      </FieldDescription>
-                    )}
-                    <FieldError id={errorId}>{error}</FieldError>
-                  </Field>
+                  </AuthenticationField>
                 )
               }}
             </form.Field>
@@ -355,14 +295,13 @@ export function AuthenticationFormCard({
                   const errorId = "email-error"
 
                   return (
-                    <Field
-                      data-invalid={
-                        field.state.meta.isValid ? undefined : true
-                      }
+                    <AuthenticationField
+                      error={error}
+                      errorId={errorId}
+                      htmlFor="email"
+                      invalid={!field.state.meta.isValid}
+                      label="Email"
                     >
-                      <FieldLabel htmlFor="email" className="leading-none">
-                        Email
-                      </FieldLabel>
                       <Input
                         aria-describedby={error ? errorId : undefined}
                         aria-invalid={!field.state.meta.isValid}
@@ -382,8 +321,7 @@ export function AuthenticationFormCard({
                         type="email"
                         value={field.state.value}
                       />
-                      <FieldError id={errorId}>{error}</FieldError>
-                    </Field>
+                    </AuthenticationField>
                   )
                 }}
               </form.Field>
@@ -406,41 +344,46 @@ export function AuthenticationFormCard({
                 const errorId = "password-error"
 
                 return (
-                  <Field
-                    data-invalid={
-                      field.state.meta.isValid ? undefined : true
-                    }
+                  <AuthenticationField
+                    description={isSignUp ? "8–128 characters." : undefined}
+                    descriptionId={descriptionId}
+                    error={error}
+                    errorId={errorId}
+                    htmlFor="password"
+                    invalid={!field.state.meta.isValid}
+                    label="Password"
                   >
-                    <FieldLabel htmlFor="password" className="leading-none">
-                      Password
-                    </FieldLabel>
-                    <PasswordField
-                      autoComplete={
-                        isSignUp ? "new-password" : "current-password"
-                      }
-                      describedBy={
-                        [descriptionId, error ? errorId : undefined]
-                          .filter(Boolean)
-                          .join(" ") || undefined
-                      }
-                      id="password"
-                      invalid={!field.state.meta.isValid}
-                      label="Password"
-                      name={field.name}
-                      onBlur={field.handleBlur}
-                      onChange={field.handleChange}
-                      value={field.state.value}
-                    />
-                    {isSignUp && (
-                      <FieldDescription
-                        className="text-sm sm:text-xs"
-                        id={descriptionId}
-                      >
-                        8–128 characters.
-                      </FieldDescription>
-                    )}
-                    <FieldError id={errorId}>{error}</FieldError>
-                  </Field>
+                    <InputGroup className="h-11 sm:h-10">
+                      <InputGroupInput
+                        aria-describedby={
+                          [descriptionId, error ? errorId : undefined]
+                            .filter(Boolean)
+                            .join(" ") || undefined
+                        }
+                        aria-invalid={!field.state.meta.isValid}
+                        autoComplete={
+                          isSignUp ? "new-password" : "current-password"
+                        }
+                        id="password"
+                        maxLength={128}
+                        minLength={8}
+                        name={field.name}
+                        onBlur={field.handleBlur}
+                        onChange={(event) =>
+                          field.handleChange(event.target.value)
+                        }
+                        required
+                        type={isPasswordVisible ? "text" : "password"}
+                        value={field.state.value}
+                      />
+                      <AuthenticationPasswordVisibilityButton
+                        inputId="password"
+                        isVisible={isPasswordVisible}
+                        label="Password"
+                        onVisibilityChange={setIsPasswordVisible}
+                      />
+                    </InputGroup>
+                  </AuthenticationField>
                 )
               }}
             </form.Field>
@@ -464,37 +407,51 @@ export function AuthenticationFormCard({
                   const errorId = "confirm-password-error"
 
                   return (
-                    <Field
-                      data-invalid={
-                        field.state.meta.isValid ? undefined : true
-                      }
+                    <AuthenticationField
+                      error={error}
+                      errorId={errorId}
+                      htmlFor="confirm-password"
+                      invalid={!field.state.meta.isValid}
+                      label="Confirm password"
                     >
-                      <FieldLabel
-                        className="leading-none"
-                        htmlFor="confirm-password"
-                      >
-                        Confirm password
-                      </FieldLabel>
-                      <PasswordField
-                        autoComplete="new-password"
-                        describedBy={error ? errorId : undefined}
-                        id="confirm-password"
-                        invalid={!field.state.meta.isValid}
-                        label="Confirm password"
-                        name={field.name}
-                        onBlur={field.handleBlur}
-                        onChange={field.handleChange}
-                        value={field.state.value}
-                      />
-                      <FieldError id={errorId}>{error}</FieldError>
-                    </Field>
+                      <InputGroup className="h-11 sm:h-10">
+                        <InputGroupInput
+                          aria-describedby={error ? errorId : undefined}
+                          aria-invalid={!field.state.meta.isValid}
+                          autoComplete="new-password"
+                          id="confirm-password"
+                          maxLength={128}
+                          minLength={8}
+                          name={field.name}
+                          onBlur={field.handleBlur}
+                          onChange={(event) =>
+                            field.handleChange(event.target.value)
+                          }
+                          required
+                          type={
+                            isPasswordConfirmationVisible
+                              ? "text"
+                              : "password"
+                          }
+                          value={field.state.value}
+                        />
+                        <AuthenticationPasswordVisibilityButton
+                          inputId="confirm-password"
+                          isVisible={isPasswordConfirmationVisible}
+                          label="Confirm password"
+                          onVisibilityChange={
+                            setIsPasswordConfirmationVisible
+                          }
+                        />
+                      </InputGroup>
+                    </AuthenticationField>
                   )
                 }}
               </form.Field>
             )}
           </FieldGroup>
 
-          <FieldError id="authentication-error" className="text-center">
+          <FieldError className="text-center" id="authentication-error">
             {errorMessage}
           </FieldError>
 
@@ -518,47 +475,14 @@ export function AuthenticationFormCard({
         </form>
 
         {googleEnabled && (
-          <div className="flex flex-col gap-4">
-            <div aria-hidden="true" className="flex items-center gap-3">
-              <Separator className="flex-1" />
-              <p className="text-xs tracking-wider text-muted-foreground uppercase">
-                or
-              </p>
-              <Separator className="flex-1" />
-            </div>
-
-            <form.Subscribe selector={(state) => state.isSubmitting}>
-              {(isSubmitting) => (
-                <Button
-                  className="h-11 w-full touch-manipulation sm:h-10"
-                  disabled={isSubmitting || isGooglePending}
-                  onClick={() => void signInWithGoogle()}
-                  type="button"
-                  variant="outline"
-                >
-                  <span data-icon="inline-start" className="size-4 shrink-0">
-                    <Image
-                      alt=""
-                      className="size-4 dark:hidden"
-                      height={16}
-                      src="/google-logo.svg"
-                      width={16}
-                    />
-                    <Image
-                      alt=""
-                      className="hidden size-4 dark:block"
-                      height={16}
-                      src="/google-logo-dark.svg"
-                      width={16}
-                    />
-                  </span>
-                  <span>
-                    Continue with <span translate="no">Google</span>
-                  </span>
-                </Button>
-              )}
-            </form.Subscribe>
-          </div>
+          <form.Subscribe selector={(state) => state.isSubmitting}>
+            {(isSubmitting) => (
+              <AuthenticationGoogleButton
+                disabled={isSubmitting || isGooglePending}
+                onClick={() => void signInWithGoogle()}
+              />
+            )}
+          </form.Subscribe>
         )}
       </CardContent>
 

@@ -9,6 +9,7 @@ import {
   UserRoundIcon,
 } from "lucide-react"
 
+import { ChatSidebarIdentity } from "@/components/chat/chat-sidebar-identity"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -118,12 +119,10 @@ export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
           >
             <activeWorkspace.icon />
           </span>
-          <div className="grid min-w-0 flex-1 text-left">
-            <div className="truncate font-medium">{activeWorkspace.name}</div>
-            <div className="truncate text-base lg:text-xs">
-              {getChatWorkspaceDescription(activeWorkspace)}
-            </div>
-          </div>
+          <ChatSidebarIdentity
+            description={getChatWorkspaceDescription(activeWorkspace)}
+            title={activeWorkspace.name}
+          />
           <ChevronsUpDownIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-56" side="bottom">

@@ -25,6 +25,9 @@ test("chat composer mounts TanStack form integration", () => {
   )
 
   assert.match(markup, /aria-label="Message"/)
+  assert.match(markup, /aria-label="Add attachments and tools"/)
+  assert.match(markup, /Grok Build 0\.1/)
+  assert.match(markup, /aria-label="Send message"/)
 })
 
 test("chat file picker shortcut accepts Command or Control plus U", () => {
