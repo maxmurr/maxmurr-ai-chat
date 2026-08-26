@@ -70,7 +70,7 @@ export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
           </span>
           <div className="grid min-w-0 flex-1 text-left">
             <div className="truncate font-medium">{activeWorkspace.name}</div>
-            <div className="truncate text-xs">{activeWorkspace.plan}</div>
+            <div className="truncate text-base lg:text-xs">{activeWorkspace.plan}</div>
           </div>
           <ChevronsUpDownIcon />
         </DropdownMenuTrigger>

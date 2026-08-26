@@ -1298,7 +1298,7 @@ export function ChatThread({
           </div>
         </form>
 
-        <p className="shrink-0 px-4 py-2.5 text-center text-xs text-balance text-muted-foreground">
+        <p className="shrink-0 px-4 py-2.5 text-center text-base/6 text-balance text-muted-foreground sm:text-xs/5">
           AI can make mistakes. Verify important information.
         </p>
       </div>

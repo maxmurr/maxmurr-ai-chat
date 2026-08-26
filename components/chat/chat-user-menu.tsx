@@ -59,7 +59,7 @@ function ChatUserDetails({
       className={cn("grid min-w-0 flex-1 text-left leading-4", className)}
     >
       <div className="truncate font-medium">{user.name}</div>
-      <div className="truncate text-xs">{user.email}</div>
+      <div className="truncate text-base lg:text-xs">{user.email}</div>
     </div>
   )
 }
@@ -86,7 +86,7 @@ export function ChatUserMenu({ className, user }: ChatUserMenuProps) {
             <DropdownMenuLabel className="p-0 font-normal text-foreground">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left">
                 <ChatUserAvatar user={user} />
-                <ChatUserDetails className="text-sm" user={user} />
+                <ChatUserDetails className="text-base sm:text-sm" user={user} />
               </div>
             </DropdownMenuLabel>
           </DropdownMenuGroup>

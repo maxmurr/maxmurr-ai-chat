@@ -25,6 +25,7 @@ export function ChatThreadActions() {
         render={
           <Button
             aria-label="More chat options"
+            className="relative"
             size="icon-sm"
             type="button"
             variant="ghost"
@@ -32,6 +33,10 @@ export function ChatThreadActions() {
         }
       >
         <EllipsisIcon />
+        <span
+          aria-hidden="true"
+          className="pointer-fine:hidden absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2"
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuGroup>

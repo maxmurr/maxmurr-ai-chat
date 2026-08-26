@@ -53,7 +53,7 @@ export function ChatPageShell({ activeConversation }: ChatPageShellProps) {
             />
             <ChatConversationTitle className="min-w-0 flex-1" />
             {activeConversation && (
-              <div className="flex items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1">
                 <ChatShareDialog conversationId={activeConversation.id} />
                 <ChatThreadActions />
               </div>

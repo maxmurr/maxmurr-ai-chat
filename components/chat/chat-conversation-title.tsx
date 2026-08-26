@@ -58,7 +58,7 @@ export function ChatConversationTitle({
   const { conversationTitle } = useChatConversationTitle()
 
   return (
-    <p className={cn("truncate text-sm", className)} {...props}>
+    <p className={cn("truncate text-base sm:text-sm", className)} {...props}>
       {conversationTitle}
     </p>
   )

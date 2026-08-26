@@ -52,9 +52,9 @@ export function ChatConversationItem({
   const [isRenaming, setIsRenaming] = useState(false)
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
   const [isTitleOverflowing, setIsTitleOverflowing] = useState(false)
+  const conversationActionsRef = useRef<HTMLDivElement>(null)
   const conversationLinkRef = useRef<HTMLAnchorElement>(null)
   const movingTitleRef = useRef<HTMLSpanElement>(null)
-  const pinActionRef = useRef<HTMLButtonElement>(null)
   const renameInputRef = useRef<HTMLInputElement>(null)
   const restoreLinkFocusRef = useRef(false)
   const titleViewportRef = useRef<HTMLSpanElement>(null)
@@ -93,17 +93,17 @@ export function ChatConversationItem({
   }, [isRenaming])
 
   useEffect(() => {
+    const conversationActions = conversationActionsRef.current
     const movingTitle = movingTitleRef.current
-    const pinAction = pinActionRef.current
     const titleViewport = titleViewportRef.current
 
-    if (!movingTitle || !pinAction || !titleViewport) {
+    if (!conversationActions || !movingTitle || !titleViewport) {
       return
     }
 
     const updateTitleOverflow = () => {
       const titleVisibleWidth =
-        pinAction.getBoundingClientRect().left -
+        conversationActions.getBoundingClientRect().left -
         titleViewport.getBoundingClientRect().left
 
       titleViewport.style.setProperty(
@@ -116,8 +116,8 @@ export function ChatConversationItem({
     }
 
     const resizeObserver = new ResizeObserver(updateTitleOverflow)
+    resizeObserver.observe(conversationActions)
     resizeObserver.observe(movingTitle)
-    resizeObserver.observe(pinAction)
     resizeObserver.observe(titleViewport)
     updateTitleOverflow()
 
@@ -128,7 +128,7 @@ export function ChatConversationItem({
     <SidebarMenuItem className={cn(className)}>
       {isRenaming ? (
         <SidebarMenuButton
-          className="pr-2! group-hover/menu-item:bg-sidebar-accent group-hover/menu-item:text-sidebar-accent-foreground"
+          className="pr-2! pointer-fine:group-hover/menu-item:bg-sidebar-accent pointer-fine:group-hover/menu-item:text-sidebar-accent-foreground"
           isActive={isActive}
           render={<div />}
         >
@@ -157,7 +157,7 @@ export function ChatConversationItem({
         </SidebarMenuButton>
       ) : (
         <SidebarMenuButton
-          className="pr-2! group-hover/menu-item:bg-sidebar-accent group-hover/menu-item:text-sidebar-accent-foreground"
+          className="pr-2! pointer-fine:group-hover/menu-item:bg-sidebar-accent pointer-fine:group-hover/menu-item:text-sidebar-accent-foreground"
           isActive={isActive}
           render={
             <Link
@@ -202,12 +202,12 @@ export function ChatConversationItem({
       )}
 
       <div
-        className="pointer-events-none absolute inset-y-0 right-1 flex items-center gap-1 pl-4 opacity-0 [background:linear-gradient(to_right,transparent,var(--sidebar-accent)_1rem)] group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100"
+        ref={conversationActionsRef}
+        className="pointer-events-none absolute inset-y-0 right-1 flex items-center gap-1 pl-4 opacity-100 lg:opacity-0 lg:[background:linear-gradient(to_right,transparent,var(--sidebar-accent)_1rem)] lg:group-has-focus-visible/menu-item:opacity-100 lg:group-hover/menu-item:opacity-100"
       >
         <SidebarMenuAction
-          ref={pinActionRef}
           aria-label={`${isPinned ? "Unpin" : "Pin"} ${conversationTitle}`}
-          className="pointer-events-auto static! cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground!"
+          className="pointer-events-auto static! hidden cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! lg:flex"
           onClick={toggleConversationPin}
         >
           {isPinned ? <PinOffIcon /> : <PinIcon />}
