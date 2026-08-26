@@ -11,6 +11,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
+    "db:reset": "bun -e \"import postgres from 'postgres'; if (prompt('Type RESET to wipe database: ') !== 'RESET') process.exit(1); const sql = postgres(process.env.POSTGRES_URL!); await sql.unsafe('DROP SCHEMA IF EXISTS drizzle CASCADE; DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public').simple(); await sql.end()\" && drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
