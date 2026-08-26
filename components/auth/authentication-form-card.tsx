@@ -503,7 +503,7 @@ export function AuthenticationFormCard({
             )}
           </FieldGroup>
 
-          <FieldError className="text-center" id="authentication-error">
+          <FieldError className="text-left" id="authentication-error">
             {errorMessage}
           </FieldError>
 

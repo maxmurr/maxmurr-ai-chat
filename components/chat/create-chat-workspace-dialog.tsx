@@ -2,6 +2,7 @@
 
 import { useForm } from "@tanstack/react-form"
 import { PlusIcon, Trash2Icon } from "lucide-react"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -62,7 +63,6 @@ export type NewChatWorkspace = {
 
 type CreateChatWorkspaceDialogProps = {
   className?: string
-  isWorkspaceNameAvailable: (name: string) => Promise<boolean>
   onCreateWorkspace: (workspace: NewChatWorkspace) => Promise<void> | void
   onOpenChange: (open: boolean) => void
   open: boolean
@@ -141,21 +141,30 @@ function getFieldErrorMessage(errors: unknown[]) {
 /** Renders typed TanStack Form controls for creating one chat workspace. */
 export function CreateChatWorkspaceDialog({
   className,
-  isWorkspaceNameAvailable,
   onCreateWorkspace,
   onOpenChange,
   open,
 }: CreateChatWorkspaceDialogProps) {
+  const [submissionError, setSubmissionError] = useState<string | null>(null)
   const form = useForm({
     defaultValues: defaultChatWorkspaceFormValues,
     onSubmit: async ({ value }) => {
-      await onCreateWorkspace({
-        name: value.workspace.identity.name.trim(),
-        members: value.workspace.access.members.map(({ email, role }) => ({
-          email: email.trim(),
-          role,
-        })),
-      })
+      setSubmissionError(null)
+
+      try {
+        await onCreateWorkspace({
+          name: value.workspace.identity.name.trim(),
+          members: value.workspace.access.members.map(({ email, role }) => ({
+            email: email.trim(),
+            role,
+          })),
+        })
+      } catch (error) {
+        console.error("Chat workspace creation failed", error)
+        setSubmissionError("Could not create workspace. Try again.")
+        return
+      }
+
       form.reset()
       onOpenChange(false)
     },
@@ -164,6 +173,7 @@ export function CreateChatWorkspaceDialog({
   function changeDialogOpenState(nextOpen: boolean) {
     if (!nextOpen) {
       form.reset()
+      setSubmissionError(null)
     }
 
     onOpenChange(nextOpen)
@@ -200,16 +210,6 @@ export function CreateChatWorkspaceDialog({
                 name="workspace.identity.name"
                 validators={{
                   onChange: ({ value }) => validateChatWorkspaceName(value),
-                  onChangeAsyncDebounceMs: 400,
-                  onChangeAsync: async ({ value }) => {
-                    if (validateChatWorkspaceName(value)) {
-                      return undefined
-                    }
-
-                    return (await isWorkspaceNameAvailable(value.trim()))
-                      ? undefined
-                      : "A workspace with this name already exists."
-                  },
                 }}
               >
                 {(field) => {
@@ -242,10 +242,8 @@ export function CreateChatWorkspaceDialog({
                         required
                         value={field.state.value}
                       />
-                      <FieldDescription aria-live="polite" id={descriptionId}>
-                        {field.state.meta.isValidating
-                          ? "Checking name availability…"
-                          : "Shown in the workspace switcher."}
+                      <FieldDescription id={descriptionId}>
+                        Shown in the workspace switcher.
                       </FieldDescription>
                       <FieldError id={errorId}>{errorMessage}</FieldError>
                     </Field>
@@ -410,6 +408,8 @@ export function CreateChatWorkspaceDialog({
               }}
             </form.Field>
           </FieldGroup>
+
+          <FieldError className="mt-5">{submissionError}</FieldError>
 
           <DialogFooter className="mt-5">
             <Button

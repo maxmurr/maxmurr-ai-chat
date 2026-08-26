@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   BriefcaseBusinessIcon,
   ChevronsUpDownIcon,
@@ -19,10 +19,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import { toast } from "@/components/ui/toast"
 import {
   CreateChatWorkspaceDialog,
   type NewChatWorkspace,
 } from "@/components/chat/create-chat-workspace-dialog"
+import { authClient } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
 
 /** Minimal persisted workspace data rendered by chat navigation. */
@@ -33,7 +35,6 @@ export type ChatWorkspaceSummary = {
 
 type ChatWorkspace = ChatWorkspaceSummary & {
   icon: typeof BriefcaseBusinessIcon
-  memberCount?: number
   plan: string
 }
 
@@ -43,13 +44,38 @@ type ChatWorkspaceSwitcherProps = {
   initialWorkspaces: ChatWorkspaceSummary[]
 }
 
-function getChatWorkspaceDescription(workspace: ChatWorkspace) {
-  if (!workspace.memberCount) {
-    return workspace.plan
-  }
+type SendChatWorkspaceInvitation = (invitation: {
+  email: string
+  organizationId: string
+  role: "admin" | "member"
+}) => Promise<{ error?: unknown }>
 
-  const memberLabel = workspace.memberCount === 1 ? "member" : "members"
-  return `${workspace.plan} · ${workspace.memberCount} ${memberLabel}`
+/** Invites initial members independently and returns normalized failed emails. */
+export async function inviteChatWorkspaceMembers(
+  organizationId: string,
+  members: NewChatWorkspace["members"],
+  sendInvitation: SendChatWorkspaceInvitation = (invitation) =>
+    authClient.organization.inviteMember(invitation)
+) {
+  const results = await Promise.all(
+    members.map(async ({ email, role }) => {
+      const normalizedEmail = email.trim().toLowerCase()
+
+      try {
+        const { error } = await sendInvitation({
+          email: normalizedEmail,
+          organizationId,
+          role,
+        })
+
+        return error ? normalizedEmail : null
+      } catch {
+        return normalizedEmail
+      }
+    })
+  )
+
+  return results.filter((email): email is string => email !== null)
 }
 
 /** Renders persisted workspaces with mouse and command-key controls. */
@@ -72,6 +98,36 @@ export function ChatWorkspaceSwitcher({
   const [chatWorkspaces, setChatWorkspaces] = useState(initialChatWorkspaces)
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false)
 
+  const switchChatWorkspace = useCallback(
+    async (workspace: ChatWorkspace) => {
+      if (workspace.id === activeWorkspace?.id) {
+        return
+      }
+
+      try {
+        const { error } = await authClient.organization.setActive({
+          organizationId: workspace.id,
+        })
+
+        if (error) {
+          throw new Error(
+            `Chat workspace activation failed: ${error.message}`
+          )
+        }
+
+        setActiveWorkspace(workspace)
+      } catch (error) {
+        console.error("Chat workspace activation failed", error)
+        toast.add({
+          description: "Current workspace did not change. Try again.",
+          title: "Could not switch workspace",
+          type: "error",
+        })
+      }
+    },
+    [activeWorkspace?.id]
+  )
+
   useEffect(() => {
     function handleWorkspaceShortcut(event: KeyboardEvent) {
       if (!(event.metaKey || event.ctrlKey) || !event.code.startsWith("Digit")) {
@@ -82,31 +138,34 @@ export function ChatWorkspaceSwitcher({
 
       if (workspace) {
         event.preventDefault()
-        setActiveWorkspace(workspace)
+        void switchChatWorkspace(workspace)
       }
     }
 
     window.addEventListener("keydown", handleWorkspaceShortcut)
     return () => window.removeEventListener("keydown", handleWorkspaceShortcut)
-  }, [chatWorkspaces])
+  }, [chatWorkspaces, switchChatWorkspace])
 
-  function isWorkspaceNameAvailable(name: string) {
-    const normalizedName = name.trim().toLowerCase()
-
-    return Promise.resolve(
-      !chatWorkspaces.some(
-        (workspace) =>
-          workspace.name.trim().toLowerCase() === normalizedName
-      )
-    )
-  }
-
-  function createChatWorkspace(workspace: NewChatWorkspace) {
-    const createdWorkspace: ChatWorkspace = {
-      id: crypto.randomUUID(),
-      icon: BriefcaseBusinessIcon,
-      memberCount: workspace.members.length + 1,
+  async function createChatWorkspace(workspace: NewChatWorkspace) {
+    const { data, error } = await authClient.organization.create({
       name: workspace.name,
+      slug: crypto.randomUUID(),
+    })
+
+    if (error || !data) {
+      throw new Error(
+        `Chat workspace persistence failed: ${error?.message ?? "missing response data"}`
+      )
+    }
+
+    const failedInvitationEmails = await inviteChatWorkspaceMembers(
+      data.id,
+      workspace.members
+    )
+    const createdWorkspace: ChatWorkspace = {
+      id: data.id,
+      icon: BriefcaseBusinessIcon,
+      name: data.name,
       plan: "Free",
     }
 
@@ -115,6 +174,20 @@ export function ChatWorkspaceSwitcher({
       createdWorkspace,
     ])
     setActiveWorkspace(createdWorkspace)
+
+    toast.add({
+      description:
+        failedInvitationEmails.length > 0
+          ? `Could not invite ${new Intl.ListFormat("en").format(failedInvitationEmails)}.`
+          : workspace.members.length > 0
+            ? `${workspace.members.length} invitation${workspace.members.length === 1 ? "" : "s"} created.`
+            : `${data.name} is ready.`,
+      title:
+        failedInvitationEmails.length > 0
+          ? "Workspace created; some invitations failed"
+          : "Workspace created",
+      type: failedInvitationEmails.length > 0 ? "warning" : "success",
+    })
   }
 
   if (!activeWorkspace) {
@@ -140,7 +213,7 @@ export function ChatWorkspaceSwitcher({
             <activeWorkspace.icon />
           </span>
           <ChatSidebarIdentity
-            description={getChatWorkspaceDescription(activeWorkspace)}
+            description={activeWorkspace.plan}
             title={activeWorkspace.name}
           />
           <ChevronsUpDownIcon />
@@ -151,7 +224,7 @@ export function ChatWorkspaceSwitcher({
             {chatWorkspaces.map((workspace, index) => (
               <DropdownMenuItem
                 key={workspace.id}
-                onClick={() => setActiveWorkspace(workspace)}
+                onClick={() => void switchChatWorkspace(workspace)}
               >
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border">
                   <workspace.icon />
@@ -173,7 +246,6 @@ export function ChatWorkspaceSwitcher({
         </DropdownMenuContent>
       </DropdownMenu>
       <CreateChatWorkspaceDialog
-        isWorkspaceNameAvailable={isWorkspaceNameAvailable}
         onCreateWorkspace={createChatWorkspace}
         onOpenChange={setIsCreateWorkspaceOpen}
         open={isCreateWorkspaceOpen}

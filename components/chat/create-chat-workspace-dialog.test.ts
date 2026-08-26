@@ -5,7 +5,10 @@ import { renderToStaticMarkup } from "react-dom/server"
 
 import { SidebarMenu, SidebarProvider } from "@/components/ui/sidebar"
 
-import { ChatWorkspaceSwitcher } from "./chat-workspace-switcher"
+import {
+  ChatWorkspaceSwitcher,
+  inviteChatWorkspaceMembers,
+} from "./chat-workspace-switcher"
 import {
   validateChatWorkspaceMemberEmail,
   validateChatWorkspaceMembers,
@@ -45,4 +48,55 @@ test("chat workspace validators cover nested member data", () => {
     ]),
     "Each member email must be unique."
   )
+})
+
+test("chat workspace invitations preserve roles and report each failure", async () => {
+  const sentInvitations: Array<{
+    email: string
+    organizationId: string
+    role: "admin" | "member"
+  }> = []
+  const failedEmails = await inviteChatWorkspaceMembers(
+    "workspace-1",
+    [
+      { email: " Admin@Example.com ", role: "admin" },
+      { email: "api-error@example.com", role: "member" },
+      { email: "network-error@example.com", role: "member" },
+    ],
+    async (invitation) => {
+      sentInvitations.push(invitation)
+
+      if (invitation.email === "api-error@example.com") {
+        return { error: new Error("Invitation rejected") }
+      }
+
+      if (invitation.email === "network-error@example.com") {
+        throw new Error("Network unavailable")
+      }
+
+      return {}
+    }
+  )
+
+  assert.deepEqual(sentInvitations, [
+    {
+      email: "admin@example.com",
+      organizationId: "workspace-1",
+      role: "admin",
+    },
+    {
+      email: "api-error@example.com",
+      organizationId: "workspace-1",
+      role: "member",
+    },
+    {
+      email: "network-error@example.com",
+      organizationId: "workspace-1",
+      role: "member",
+    },
+  ])
+  assert.deepEqual(failedEmails, [
+    "api-error@example.com",
+    "network-error@example.com",
+  ])
 })
