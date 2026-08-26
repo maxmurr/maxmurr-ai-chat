@@ -1,13 +1,15 @@
-import {
-  getToolOrDynamicToolName,
-  isToolOrDynamicToolUIPart,
-  type UIMessage,
-} from "ai"
+import { getToolName, isToolUIPart, type UIMessage } from "ai"
 
 /** Describes one file shown with a chat message. */
 export type ChatDisplayAttachment = {
   readonly filename: string
   readonly mediaType: string
+}
+
+/** Describes reasoning activity shown with a chat message. */
+export type ChatDisplayReasoning = {
+  readonly state: "running" | "completed"
+  readonly text: string
 }
 
 /** Describes one source cited by a chat message. */
@@ -30,7 +32,7 @@ export type ChatDisplayMessage = {
   readonly attachments?: readonly ChatDisplayAttachment[]
   readonly content: string
   readonly id: string
-  readonly reasoning?: string
+  readonly reasoning?: ChatDisplayReasoning
   readonly role: "assistant" | "user"
   readonly sources?: readonly ChatDisplaySource[]
   readonly tools?: readonly ChatDisplayTool[]
@@ -64,7 +66,7 @@ export function convertChatUiMessageToDisplayMessage(
     .flatMap((part) => (part.type === "text" ? [part.text] : []))
     .join("\n\n")
   const reasoningParts = message.parts.flatMap((part) =>
-    part.type === "reasoning" ? [part.text] : []
+    part.type === "reasoning" ? [part] : []
   )
   const attachments: ChatDisplayAttachment[] = [
     ...(message.metadata?.attachments ?? []),
@@ -102,14 +104,14 @@ export function convertChatUiMessageToDisplayMessage(
     return []
   })
   const tools = message.parts.flatMap((part): ChatDisplayTool[] => {
-    if (!isToolOrDynamicToolUIPart(part)) {
+    if (!isToolUIPart(part)) {
       return []
     }
 
     const state =
       part.state === "output-available"
         ? "completed"
-        : part.state === "output-error"
+        : part.state === "output-error" || part.state === "output-denied"
           ? "failed"
           : "running"
     const payload =
@@ -117,12 +119,17 @@ export function convertChatUiMessageToDisplayMessage(
         ? { input: part.input, output: part.output }
         : part.state === "output-error"
           ? { error: part.errorText, input: part.input }
-          : { input: part.input }
+          : part.state === "output-denied"
+            ? {
+                error: part.approval.reason ?? "Tool execution denied.",
+                input: part.input,
+              }
+            : { input: part.input }
 
     return [
       {
         id: part.toolCallId,
-        name: getToolOrDynamicToolName(part),
+        name: getToolName(part),
         payload,
         state,
       },
@@ -135,7 +142,14 @@ export function convertChatUiMessageToDisplayMessage(
     role: message.role,
     ...(attachments.length > 0 ? { attachments } : {}),
     ...(reasoningParts.length > 0
-      ? { reasoning: reasoningParts.join("\n\n") }
+      ? {
+          reasoning: {
+            state: reasoningParts.some(({ state }) => state === "streaming")
+              ? "running"
+              : "completed",
+            text: reasoningParts.map(({ text }) => text).join("\n\n"),
+          },
+        }
       : {}),
     ...(sources.length > 0 ? { sources } : {}),
     ...(tools.length > 0 ? { tools } : {}),

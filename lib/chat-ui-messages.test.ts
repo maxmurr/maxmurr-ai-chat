@@ -11,7 +11,11 @@ test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", (
     id: "assistant-response",
     role: "assistant",
     parts: [
-      { type: "reasoning", text: "Checked current plan." },
+      {
+        type: "reasoning",
+        state: "done",
+        text: "Checked current plan.",
+      },
       {
         type: "dynamic-tool",
         toolCallId: "lookup-call",
@@ -45,7 +49,10 @@ test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", (
     ],
     content: "Pro costs $29.",
     id: "assistant-response",
-    reasoning: "Checked current plan.",
+    reasoning: {
+      state: "completed",
+      text: "Checked current plan.",
+    },
     role: "assistant",
     sources: [
       {
@@ -66,4 +73,56 @@ test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", (
       },
     ],
   })
+})
+
+test("streaming reasoning maps to running chat activity", () => {
+  const message: ChatUIMessage = {
+    id: "assistant-response",
+    role: "assistant",
+    parts: [
+      {
+        type: "reasoning",
+        state: "streaming",
+        text: "Checking current plan.",
+      },
+    ],
+  }
+
+  assert.deepEqual(convertChatUiMessageToDisplayMessage(message)?.reasoning, {
+    state: "running",
+    text: "Checking current plan.",
+  })
+})
+
+test("AI SDK 7 denied tool output maps to failed chat activity", () => {
+  const message: ChatUIMessage = {
+    id: "assistant-response",
+    role: "assistant",
+    parts: [
+      {
+        approval: {
+          approved: false,
+          id: "approval-request",
+          reason: "User declined.",
+        },
+        input: { planId: "pro" },
+        state: "output-denied",
+        toolCallId: "lookup-call",
+        toolName: "lookup_plan",
+        type: "dynamic-tool",
+      },
+    ],
+  }
+
+  assert.deepEqual(convertChatUiMessageToDisplayMessage(message)?.tools, [
+    {
+      id: "lookup-call",
+      name: "lookup_plan",
+      payload: {
+        error: "User declined.",
+        input: { planId: "pro" },
+      },
+      state: "failed",
+    },
+  ])
 })

@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       },
       sendReasoning: true,
       sendSources: true,
-      version: "v5",
+      version: "v7",
     })
 
     return createUIMessageStreamResponse({ stream })

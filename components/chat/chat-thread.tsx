@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Provider, useChat } from "@ai-sdk-tools/store"
+import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { CircleAlertIcon } from "lucide-react"
 
@@ -26,13 +26,9 @@ const CHAT_TRANSPORT = new DefaultChatTransport<ChatUIMessage>({
   api: "/api/chat",
 })
 
-/** Scopes optimized AI SDK state to current live chat conversation. */
+/** Renders current live chat conversation. */
 export function ChatThread({ className }: { className?: string }) {
-  return (
-    <Provider<ChatUIMessage>>
-      <ChatThreadContent className={className} />
-    </Provider>
-  )
+  return <ChatThreadContent className={className} />
 }
 
 function ChatThreadContent({ className }: { className?: string }) {

@@ -48,6 +48,7 @@ import { Spinner } from "@/components/ui/spinner"
 import {
   type ChatDisplayAttachment,
   type ChatDisplayMessage,
+  type ChatDisplayReasoning,
   type ChatDisplaySource,
   type ChatDisplayTool,
 } from "@/lib/chat-ui-messages"
@@ -148,38 +149,39 @@ function ChatMessageReasoning({
   reasoning,
 }: {
   className?: string
-  reasoning: string
+  reasoning: ChatDisplayReasoning
 }) {
-  const isLoading = reasoning.length === 0
+  const isRunning = reasoning.state === "running"
 
   return (
     <Collapsible
       className={cn("flex flex-col gap-2", className)}
-      defaultOpen
+      defaultOpen={isRunning}
+      key={reasoning.state}
     >
       <Marker
-        aria-busy={isLoading}
+        aria-busy={isRunning || undefined}
         className="transition-colors hover:text-foreground"
         render={<CollapsibleTrigger />}
       >
         <MarkerIcon>
-          {isLoading ? <Spinner /> : <BrainIcon />}
+          {isRunning ? <Spinner /> : <BrainIcon />}
         </MarkerIcon>
         <MarkerContent
-          className={cn(isLoading && "shimmer")}
-          role={isLoading ? "status" : undefined}
+          className={cn(isRunning && "shimmer")}
+          role={isRunning ? "status" : undefined}
         >
-          {isLoading ? "Reasoning..." : "Reasoning"}
+          {isRunning ? "Reasoning..." : "Reasoning"}
         </MarkerContent>
         <MarkerIcon>
           <ChevronDownIcon className="transition-transform group-aria-expanded/marker:rotate-180" />
         </MarkerIcon>
       </Marker>
-      {!isLoading && (
+      {reasoning.text && (
         <CollapsibleContent>
           <Bubble variant="muted">
             <BubbleContent className="text-muted-foreground">
-              <ChatMessageMarkdown>{reasoning}</ChatMessageMarkdown>
+              <ChatMessageMarkdown>{reasoning.text}</ChatMessageMarkdown>
             </BubbleContent>
           </Bubble>
         </CollapsibleContent>
@@ -279,6 +281,7 @@ function ChatMessageTool({
     <Collapsible
       className={cn("flex w-full min-w-0 flex-col gap-2", className)}
       defaultOpen={stateMetadata.defaultOpen}
+      key={tool.state}
     >
       <Marker
         aria-busy={tool.state === "running" ? true : undefined}

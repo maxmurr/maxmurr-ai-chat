@@ -1,6 +1,6 @@
 # maxmurr AI chat
 
-Next.js 16 chat UI backed by Mastra and Vercel AI Gateway through AI SDK. Client chat state uses `@ai-sdk-tools/store` over AI SDK v5.
+Next.js 16 chat UI backed by Mastra and Vercel AI Gateway through AI SDK v7.
 
 ## Requirements
 
@@ -28,6 +28,7 @@ Open [http://localhost:3000/chat](http://localhost:3000/chat).
 ```bash
 bun test
 bun run lint
+bunx tsc --noEmit
 bun run build
 ```
 
