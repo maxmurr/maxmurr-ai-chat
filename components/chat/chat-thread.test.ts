@@ -1,10 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import {
-  getChatGreeting,
-  isChatFilePickerShortcut,
-} from "@/components/chat/chat-thread"
+import { isChatFilePickerShortcut } from "@/components/chat/chat-composer"
+import { getChatGreeting } from "@/components/chat/chat-message-list"
 
 test("chat file picker shortcut accepts Command or Control plus U", () => {
   assert.equal(

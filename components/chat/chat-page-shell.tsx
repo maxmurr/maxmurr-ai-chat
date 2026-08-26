@@ -10,6 +10,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 
 const currentUser = {
   name: "maxmurr",
@@ -19,10 +20,10 @@ const currentUser = {
 }
 
 /** Renders chat shell around current live conversation. */
-export function ChatPageShell() {
+export function ChatPageShell({ className }: { className?: string }) {
   return (
     <ChatConversationTitleProvider initialTitle="New chat">
-      <SidebarProvider className="isolate h-svh">
+      <SidebarProvider className={cn("isolate h-svh", className)}>
         <ChatAppSidebar currentUser={currentUser} />
 
         <SidebarInset className="min-w-0 overflow-hidden">

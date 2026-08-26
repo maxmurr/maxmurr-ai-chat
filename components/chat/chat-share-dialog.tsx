@@ -8,6 +8,7 @@ import {
   Share2Icon,
 } from "lucide-react"
 
+import { ChatTouchTarget } from "@/components/chat/chat-touch-target"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -41,16 +42,66 @@ import { cn } from "@/lib/utils"
 type ChatShareAccess = "private" | "team" | "public"
 type ChatShareCopyStatus = "idle" | "copied" | "error"
 type ChatShareDialogProps = {
+  className?: string
   conversationId: string
 }
+
+const CHAT_SHARE_ACCESS_OPTIONS: readonly {
+  description: string
+  title: string
+  value: ChatShareAccess
+}[] = [
+  {
+    description: "Only you have access.",
+    title: "Keep private",
+    value: "private",
+  },
+  {
+    description: "Only teammates with the link can view.",
+    title: "Share with your team",
+    value: "team",
+  },
+  {
+    description: "Anyone with the link can view.",
+    title: "Create public link",
+    value: "public",
+  },
+]
 
 /** Builds deterministic mock share URL while chat backend remains local-only. */
 export function buildChatShareLink(conversationId: string) {
   return `https://chat.example.com/share/${encodeURIComponent(conversationId)}`
 }
 
+function ChatShareAccessOption({
+  className,
+  description,
+  id,
+  title,
+  value,
+}: {
+  className?: string
+  description: string
+  id: string
+  title: string
+  value: ChatShareAccess
+}) {
+  return (
+    <FieldLabel className={cn(className)} htmlFor={id}>
+      <Field orientation="horizontal">
+        <FieldContent className="min-w-0">
+          <FieldTitle>{title}</FieldTitle>
+          <FieldDescription>{description}</FieldDescription>
+        </FieldContent>
+        <RadioGroupItem id={id} value={value} />
+      </Field>
+    </FieldLabel>
+  )
+}
+
 /** Renders shared chat visibility choices for any dialog trigger. */
 export function ChatShareDialogContent({
+  className,
   conversationId,
 }: ChatShareDialogProps) {
   const optionIdPrefix = useId()
@@ -113,7 +164,7 @@ export function ChatShareDialogContent({
         : "Share link ready."
 
   return (
-    <DialogContent>
+    <DialogContent className={cn(className)}>
       <DialogHeader>
         <DialogTitle>Share chat</DialogTitle>
         <DialogDescription>
@@ -134,45 +185,15 @@ export function ChatShareDialogContent({
           }
           value={shareAccess}
         >
-          <FieldLabel htmlFor={`${optionIdPrefix}-private`}>
-            <Field orientation="horizontal">
-              <FieldContent className="min-w-0">
-                <FieldTitle>Keep private</FieldTitle>
-                <FieldDescription>Only you have access.</FieldDescription>
-              </FieldContent>
-              <RadioGroupItem
-                id={`${optionIdPrefix}-private`}
-                value="private"
-              />
-            </Field>
-          </FieldLabel>
-
-          <FieldLabel htmlFor={`${optionIdPrefix}-team`}>
-            <Field orientation="horizontal">
-              <FieldContent className="min-w-0">
-                <FieldTitle>Share with your team</FieldTitle>
-                <FieldDescription>
-                  Only teammates with the link can view.
-                </FieldDescription>
-              </FieldContent>
-              <RadioGroupItem id={`${optionIdPrefix}-team`} value="team" />
-            </Field>
-          </FieldLabel>
-
-          <FieldLabel htmlFor={`${optionIdPrefix}-public`}>
-            <Field orientation="horizontal">
-              <FieldContent className="min-w-0">
-                <FieldTitle>Create public link</FieldTitle>
-                <FieldDescription>
-                  Anyone with the link can view.
-                </FieldDescription>
-              </FieldContent>
-              <RadioGroupItem
-                id={`${optionIdPrefix}-public`}
-                value="public"
-              />
-            </Field>
-          </FieldLabel>
+          {CHAT_SHARE_ACCESS_OPTIONS.map((option) => (
+            <ChatShareAccessOption
+              description={option.description}
+              id={`${optionIdPrefix}-${option.value}`}
+              key={option.value}
+              title={option.title}
+              value={option.value}
+            />
+          ))}
         </RadioGroup>
       </FieldSet>
 
@@ -211,10 +232,7 @@ export function ChatShareDialogContent({
                 ) : (
                   <CopyIcon />
                 )}
-                <span
-                  aria-hidden="true"
-                  className="absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden"
-                />
+                <ChatTouchTarget />
               </InputGroupButton>
             </InputGroupAddon>
           </InputGroup>
@@ -228,20 +246,24 @@ export function ChatShareDialogContent({
 }
 
 /** Renders header share action with its accessible dialog. */
-export function ChatShareDialog({ conversationId }: ChatShareDialogProps) {
+export function ChatShareDialog({
+  className,
+  conversationId,
+}: ChatShareDialogProps) {
   return (
     <Dialog>
       <DialogTrigger
         render={
-          <Button className="relative" size="sm" variant="ghost" />
+          <Button
+            className={cn("relative", className)}
+            size="sm"
+            variant="ghost"
+          />
         }
       >
         <Share2Icon data-icon="inline-start" />
         Share
-        <span
-          aria-hidden="true"
-          className="absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden"
-        />
+        <ChatTouchTarget />
       </DialogTrigger>
       <ChatShareDialogContent conversationId={conversationId} />
     </Dialog>
