@@ -61,6 +61,7 @@ export function ChatPageShell({ activeConversation }: ChatPageShellProps) {
           </header>
           <ChatThread
             key={activeConversation?.id ?? "new-chat"}
+            conversationId={activeConversation?.id}
             initialConversationTitle={activeConversation?.title}
           />
         </SidebarInset>

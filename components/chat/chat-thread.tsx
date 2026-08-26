@@ -2,7 +2,9 @@
 
 import Image from "next/image"
 import { useEffect, useRef, useState, type FormEvent } from "react"
+import { Provider, useChat } from "@ai-sdk-tools/store"
 import { code } from "@streamdown/code"
+import { DefaultChatTransport } from "ai"
 import {
   ArrowUpIcon,
   BookOpenIcon,
@@ -63,8 +65,6 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
@@ -110,7 +110,11 @@ import {
 } from "@/components/ui/message-scroller"
 import { Switch } from "@/components/ui/switch"
 import {
-  buildMockChatMessages,
+  buildInitialChatUiMessages,
+  convertChatUiMessageToDisplayMessage,
+  type ChatUIMessage,
+} from "@/lib/chat-ui-messages"
+import {
   type MockChatMessage,
   type MockChatSource,
   type MockChatTool,
@@ -118,7 +122,10 @@ import {
 } from "@/lib/mock-chat-conversations"
 import { cn } from "@/lib/utils"
 
-const CHAT_MODEL_OPTIONS = ["Grok Build 0.1", "UI Demo"] as const
+const CHAT_MODEL_LABEL = "Qwen 3.8 Max"
+const CHAT_TRANSPORT = new DefaultChatTransport<ChatUIMessage>({
+  api: "/api/chat",
+})
 const CHAT_MARKDOWN_PLUGINS = { code } as const
 
 const CHAT_TOOL_STATE_METADATA = {
@@ -279,10 +286,18 @@ function ChatTouchTarget() {
   )
 }
 
-function ChatMessageMarkdown({ children }: { children: string }) {
+function ChatMessageMarkdown({
+  children,
+  isAnimating = false,
+}: {
+  children: string
+  isAnimating?: boolean
+}) {
   return (
     <Streamdown
+      caret="block"
       className="text-pretty max-sm:text-base"
+      isAnimating={isAnimating}
       lineNumbers={false}
       plugins={CHAT_MARKDOWN_PLUGINS}
     >
@@ -703,11 +718,32 @@ function BillingRecommendationQuestionnaire() {
   )
 }
 
-/** Renders local chat messages, attachment controls, and composer interactions. */
+/** Scopes optimized AI SDK chat state to one conversation. */
 export function ChatThread({
+  conversationId,
   initialConversationTitle,
 }: {
+  conversationId?: string
   initialConversationTitle?: string
+}) {
+  const initialMessages = buildInitialChatUiMessages(initialConversationTitle)
+
+  return (
+    <Provider<ChatUIMessage> initialMessages={initialMessages}>
+      <ChatThreadContent
+        chatId={conversationId}
+        initialMessages={initialMessages}
+      />
+    </Provider>
+  )
+}
+
+function ChatThreadContent({
+  chatId,
+  initialMessages,
+}: {
+  chatId?: string
+  initialMessages: ChatUIMessage[]
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [attachments, setAttachments] = useState<File[]>([])
@@ -718,14 +754,28 @@ export function ChatThread({
   const [googleDriveConnected, setGoogleDriveConnected] = useState(false)
   const [researchModeEnabled, setResearchModeEnabled] = useState(false)
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
-  const [messages, setMessages] = useState<MockChatMessage[]>(() =>
-    buildMockChatMessages(initialConversationTitle)
-  )
-  const [selectedModel, setSelectedModel] =
-    useState<(typeof CHAT_MODEL_OPTIONS)[number]>(CHAT_MODEL_OPTIONS[0])
+  const {
+    clearError,
+    error,
+    messages: chatMessages,
+    regenerate,
+    sendMessage,
+    status,
+    stop,
+  } = useChat<ChatUIMessage>({
+    ...(chatId ? { id: chatId } : {}),
+    messages: initialMessages,
+    transport: CHAT_TRANSPORT,
+  })
+  const messages = chatMessages.flatMap((message) => {
+    const displayMessage = convertChatUiMessageToDisplayMessage(message)
+    return displayMessage ? [displayMessage] : []
+  })
   const { conversationTitle, setConversationTitle } =
     useChatConversationTitle()
-  const canSend = draft.trim().length > 0 || attachments.length > 0
+  const isGenerating = status === "submitted" || status === "streaming"
+  const canSend =
+    !isGenerating && (draft.trim().length > 0 || attachments.length > 0)
 
   useEffect(() => {
     function openChatFilePickerFromShortcut(event: KeyboardEvent) {
@@ -747,7 +797,7 @@ export function ChatThread({
 
     const messageText = draft.trim()
 
-    if (!messageText && attachments.length === 0) {
+    if (isGenerating || (!messageText && attachments.length === 0)) {
       return
     }
 
@@ -755,12 +805,6 @@ export function ChatThread({
       filename: name,
       mediaType: type || "application/octet-stream",
     }))
-    const nextMessage: MockChatMessage = {
-      attachments: nextMessageAttachments,
-      content: messageText || "Attached files.",
-      id: crypto.randomUUID(),
-      role: "user",
-    }
 
     if (messages.length === 0) {
       setConversationTitle(
@@ -768,10 +812,16 @@ export function ChatThread({
       )
     }
 
-    setMessages((currentMessages) => [...currentMessages, nextMessage])
+    clearError()
     setAttachments([])
     setComposerAnnouncement("")
     setDraft("")
+    void sendMessage({
+      text: messageText || "Attached files.",
+      ...(nextMessageAttachments.length > 0
+        ? { metadata: { attachments: nextMessageAttachments } }
+        : {}),
+    }).catch(() => setComposerAnnouncement("Could not send message."))
   }
 
   async function copyChatMessage(message: MockChatMessage) {
@@ -784,32 +834,30 @@ export function ChatThread({
   }
 
   function retryChatMessage(messageId: string) {
-    setMessages((currentMessages) =>
-      currentMessages.map((message) =>
-        message.id === messageId && message.role === "assistant"
-          ? {
-              ...message,
-              content:
-                "Response refreshed locally. No model is connected.\n\nConnect an AI SDK route to retry against a real model.",
-              reasoning:
-                "No model is connected, so this retry used the local demo response.",
-            }
-          : message
-      )
+    clearError()
+    setComposerAnnouncement("")
+    void regenerate({ messageId }).catch(() =>
+      setComposerAnnouncement("Could not retry response.")
     )
-    setComposerAnnouncement("Response refreshed locally.")
   }
 
   const statusAnnouncement =
     composerAnnouncement ||
-    (copyStatus?.result === "copied"
-      ? "Response copied."
-      : copyStatus?.result === "error"
-        ? "Could not copy response."
-        : "")
+    (status === "submitted"
+      ? "Message sent. Waiting for response."
+      : status === "streaming"
+        ? "Response streaming."
+        : status === "error"
+          ? "Could not generate response."
+          : copyStatus?.result === "copied"
+            ? "Response copied."
+            : copyStatus?.result === "error"
+              ? "Could not copy response."
+              : "")
 
   return (
     <section
+      aria-busy={isGenerating}
       aria-label="Chat conversation"
       className="flex min-h-0 flex-1 flex-col"
     >
@@ -844,6 +892,10 @@ export function ChatThread({
 
                     {messages.map((message) => {
                       const isAssistant = message.role === "assistant"
+                      const isStreamingMessage =
+                        status === "streaming" &&
+                        isAssistant &&
+                        chatMessages.at(-1)?.id === message.id
                       const isCopied =
                         copyStatus?.messageId === message.id &&
                         copyStatus.result === "copied"
@@ -924,16 +976,20 @@ export function ChatThread({
                                   </AttachmentGroup>
                                 )}
 
-                              <Bubble
-                                align={isAssistant ? "start" : "end"}
-                                variant={isAssistant ? "ghost" : "default"}
-                              >
-                                <BubbleContent>
-                                  <ChatMessageMarkdown>
-                                    {message.content}
-                                  </ChatMessageMarkdown>
-                                </BubbleContent>
-                              </Bubble>
+                              {message.content && (
+                                <Bubble
+                                  align={isAssistant ? "start" : "end"}
+                                  variant={isAssistant ? "ghost" : "default"}
+                                >
+                                  <BubbleContent>
+                                    <ChatMessageMarkdown
+                                      isAnimating={isStreamingMessage}
+                                    >
+                                      {message.content}
+                                    </ChatMessageMarkdown>
+                                  </BubbleContent>
+                                </Bubble>
+                              )}
 
                               {message.questionnaire && (
                                 <BillingRecommendationQuestionnaire />
@@ -975,6 +1031,7 @@ export function ChatThread({
                                   <Button
                                     aria-label="Retry response"
                                     className="relative"
+                                    disabled={isGenerating}
                                     onClick={() => retryChatMessage(message.id)}
                                     size="icon-sm"
                                     title="Retry response"
@@ -991,6 +1048,23 @@ export function ChatThread({
                         </MessageScrollerItem>
                       )
                     })}
+
+                    {status === "submitted" && (
+                      <MessageScrollerItem messageId="pending-response">
+                        <Message align="start">
+                          <MessageContent>
+                            <Marker aria-busy="true" className="w-fit">
+                              <MarkerIcon>
+                                <Spinner />
+                              </MarkerIcon>
+                              <MarkerContent className="shimmer" role="status">
+                                Thinking...
+                              </MarkerContent>
+                            </Marker>
+                          </MessageContent>
+                        </Message>
+                      </MessageScrollerItem>
+                    )}
                   </>
                 )}
               </MessageScrollerContent>
@@ -998,6 +1072,18 @@ export function ChatThread({
             <MessageScrollerButton className="data-[direction=end]:bottom-12" />
           </MessageScroller>
         </MessageScrollerProvider>
+
+        {error && (
+          <div className="mx-auto mb-2 w-full max-w-3xl px-4">
+            <Alert variant="destructive">
+              <CircleAlertIcon />
+              <AlertTitle>Could not generate response</AlertTitle>
+              <AlertDescription>
+                Check model credentials, then send again or retry.
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
 
         <form
           className="relative z-10 mx-auto w-full max-w-3xl shrink-0 px-4"
@@ -1225,44 +1311,9 @@ export function ChatThread({
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <InputGroupButton
-                        className="min-w-0 gap-1 px-2"
-                        size="sm"
-                        type="button"
-                      />
-                    }
-                  >
-                    <span className="truncate text-foreground">
-                      {selectedModel}
-                    </span>
-                    <ChevronDownIcon />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="start"
-                    className="min-w-48"
-                    side="top"
-                  >
-                    <DropdownMenuGroup>
-                      <DropdownMenuRadioGroup
-                        onValueChange={(value) =>
-                          setSelectedModel(
-                            value as (typeof CHAT_MODEL_OPTIONS)[number]
-                          )
-                        }
-                        value={selectedModel}
-                      >
-                        {CHAT_MODEL_OPTIONS.map((model) => (
-                          <DropdownMenuRadioItem key={model} value={model}>
-                            {model}
-                          </DropdownMenuRadioItem>
-                        ))}
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <span className="px-2 text-sm text-muted-foreground">
+                  {CHAT_MODEL_LABEL}
+                </span>
 
                 <div className="flex flex-1 justify-end gap-1">
                   <InputGroupButton
@@ -1280,18 +1331,33 @@ export function ChatThread({
                     <MicIcon />
                     <ChatTouchTarget />
                   </InputGroupButton>
-                  <InputGroupButton
-                    aria-disabled={!canSend}
-                    aria-label="Send message"
-                    className="relative shrink-0"
-                    size="icon-sm"
-                    title={canSend ? "Send message" : "Enter a message"}
-                    type="submit"
-                    variant="default"
-                  >
-                    <ArrowUpIcon />
-                    <ChatTouchTarget />
-                  </InputGroupButton>
+                  {isGenerating ? (
+                    <InputGroupButton
+                      aria-label="Stop response"
+                      className="relative shrink-0"
+                      onClick={() => void stop()}
+                      size="icon-sm"
+                      title="Stop response"
+                      type="button"
+                      variant="default"
+                    >
+                      <XIcon />
+                      <ChatTouchTarget />
+                    </InputGroupButton>
+                  ) : (
+                    <InputGroupButton
+                      aria-label="Send message"
+                      className="relative shrink-0"
+                      disabled={!canSend}
+                      size="icon-sm"
+                      title={canSend ? "Send message" : "Enter a message"}
+                      type="submit"
+                      variant="default"
+                    >
+                      <ArrowUpIcon />
+                      <ChatTouchTarget />
+                    </InputGroupButton>
+                  )}
                 </div>
               </InputGroupAddon>
             </InputGroup>

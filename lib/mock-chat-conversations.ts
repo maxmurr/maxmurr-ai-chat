@@ -46,11 +46,11 @@ type MockChatConversation = {
 }
 
 const MOCK_CHAT_REASONING =
-  "No model behind this one, it’s a UI demo. Still worth running the full stream lifecycle so the interface behaves the way it would in production."
+  "This response is seeded demo history. New turns use the live Mastra agent."
 
 const MOCK_CHAT_RESPONSE = [
-  "This thread is scripted with `@shadcn/helpers/ai-sdk`, so nothing is being sent to a model.",
-  "Set `AI_GATEWAY_API_KEY` and the same request reaches a real model instead. Nothing in the UI changes.",
+  "This thread starts with local demo history so the interface has realistic content.",
+  "Send another message to stream a live response through Mastra and AI SDK.",
 ].join("\n\n")
 
 const STRIPE_BILLING_WEB_SEARCH_TITLE = "Stripe Billing pricing"
