@@ -274,7 +274,7 @@ function ChatTouchTarget() {
   return (
     <span
       aria-hidden="true"
-      className="pointer-fine:hidden absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2"
+      className="absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden"
     />
   )
 }
@@ -388,7 +388,7 @@ function ChatMessageSources({
   return (
     <Collapsible className="flex flex-col gap-1">
       <Marker
-        className="w-fit rounded-sm py-1 text-base select-none outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm"
+        className="w-fit rounded-sm py-1 text-base outline-none select-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm"
         render={<CollapsibleTrigger />}
       >
         <MarkerIcon>
@@ -469,7 +469,7 @@ function ChatMessageTool({ tool }: { tool: MockChatTool }) {
       <Marker
         aria-busy={tool.state === "running" ? true : undefined}
         className={cn(
-          "w-fit rounded-sm py-1 text-base select-none outline-none hover:opacity-80 focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm",
+          "w-fit rounded-sm py-1 text-base outline-none select-none hover:opacity-80 focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm",
           stateMetadata.statusClassName
         )}
         render={<CollapsibleTrigger />}
@@ -525,7 +525,7 @@ function ChatMessageTool({ tool }: { tool: MockChatTool }) {
             </CardAction>
           </CardHeader>
           <CardContent className="min-w-0">
-            <pre className="max-w-full overflow-x-auto whitespace-pre-wrap wrap-break-word tabular-nums text-base/7 sm:text-sm/6">
+            <pre className="max-w-full overflow-x-auto text-base/7 wrap-break-word whitespace-pre-wrap tabular-nums sm:text-sm/6">
               <code>{formattedPayload}</code>
             </pre>
           </CardContent>
@@ -605,7 +605,7 @@ function BillingRecommendationQuestionnaire() {
             </MarkerIcon>
           </Marker>
           <CollapsibleContent>
-            <p className="text-pretty text-base/7 text-muted-foreground sm:text-sm/6">
+            <p className="text-base/7 text-pretty text-muted-foreground sm:text-sm/6">
               Reviewing supported pricing models and billing controls.
             </p>
           </CollapsibleContent>
@@ -815,7 +815,7 @@ export function ChatThread({
     >
       <h1 className="sr-only">{conversationTitle}</h1>
 
-      <div className="flex h-full w-full min-w-0 flex-col">
+      <div className="flex size-full min-w-0 flex-col">
         <MessageScrollerProvider autoScroll>
           <MessageScroller className="-mb-8">
             <MessageScrollerViewport>

@@ -26,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       suppressHydrationWarning
       className={cn(
-        "h-full antialiased font-sans",
+        "h-full font-sans antialiased",
         geistSans.variable,
         geistMono.variable
       )}

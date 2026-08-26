@@ -207,7 +207,7 @@ export function ChatConversationItem({
         <SidebarMenuAction
           ref={pinActionRef}
           aria-label={`${isPinned ? "Unpin" : "Pin"} ${conversationTitle}`}
-          className="static! pointer-events-auto cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground!"
+          className="pointer-events-auto static! cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground!"
           onClick={toggleConversationPin}
         >
           {isPinned ? <PinOffIcon /> : <PinIcon />}
@@ -218,7 +218,7 @@ export function ChatConversationItem({
             render={
               <SidebarMenuAction
                 aria-label={`Open chat actions for ${conversationTitle}`}
-                className="static! pointer-events-auto cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground!"
+                className="pointer-events-auto static! cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground!"
               />
             }
           >

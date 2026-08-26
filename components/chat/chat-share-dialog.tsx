@@ -214,7 +214,7 @@ export function ChatShareDialogContent({
                 )}
                 <span
                   aria-hidden="true"
-                  className="pointer-fine:hidden absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2"
+                  className="absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden"
                 />
               </InputGroupButton>
             </InputGroupAddon>
@@ -241,7 +241,7 @@ export function ChatShareDialog({ conversationId }: ChatShareDialogProps) {
         Share
         <span
           aria-hidden="true"
-          className="pointer-fine:hidden absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2"
+          className="absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden"
         />
       </DialogTrigger>
       <ChatShareDialogContent conversationId={conversationId} />

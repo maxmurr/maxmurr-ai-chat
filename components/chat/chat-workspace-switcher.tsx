@@ -64,7 +64,7 @@ export function ChatWorkspaceSwitcher({ className }: { className?: string }) {
         >
           <span
             key={activeWorkspace.name}
-            className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground animate-in fade-in-0 zoom-in-75 duration-200 ease-[cubic-bezier(0.34,1.35,0.64,1)] motion-reduce:animate-none"
+            className="flex aspect-square size-8 shrink-0 animate-in items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground duration-200 ease-[cubic-bezier(0.34,1.35,0.64,1)] fade-in-0 zoom-in-75 motion-reduce:animate-none"
           >
             <activeWorkspace.icon />
           </span>
