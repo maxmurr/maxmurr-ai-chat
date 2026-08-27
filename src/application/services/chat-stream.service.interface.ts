@@ -1,7 +1,11 @@
-import type { ChatStreamRequest } from "@/src/entities/models/chat-stream-request"
+import type {
+  ChatRequestContext,
+  ChatStreamRequest,
+} from "@/src/entities/models/chat-stream-request"
 
-/** Streams one validated conversation through a configured chat provider. */
+/** Streams one validated chat turn through a configured chat provider. */
 export type StreamChatResponse = (
   request: ChatStreamRequest,
+  context: ChatRequestContext,
   abortSignal: AbortSignal
 ) => Promise<Response>

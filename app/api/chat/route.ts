@@ -2,9 +2,11 @@ import { resolveApplicationDependency } from "@/di/application-container"
 import { auth } from "@/di/authentication"
 import { applicationInjectionTokens } from "@/di/application-container.registry"
 import {
+  ChatAccessDeniedError,
   ChatUnavailableError,
   InvalidChatRequestError,
 } from "@/src/entities/errors/chat-errors"
+import type { ChatRequestContext } from "@/src/entities/models/chat-stream-request"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -16,6 +18,7 @@ function invalidChatRequestResponse() {
 /** Streams authenticated, validated chat messages through configured controller. */
 export async function POST(request: Request) {
   let body: unknown
+  let context: ChatRequestContext
 
   try {
     const session = await auth.api.getSession({ headers: request.headers })
@@ -23,6 +26,23 @@ export async function POST(request: Request) {
     if (!session) {
       return Response.json({ error: "Unauthorized." }, { status: 401 })
     }
+
+    // Sessions start without an active workspace; fall back to the first
+    // membership, matching the workspace switcher's display fallback.
+    let organizationId = session.session.activeOrganizationId ?? null
+
+    if (!organizationId) {
+      const organizations = await auth.api.listOrganizations({
+        headers: request.headers,
+      })
+      organizationId = organizations[0]?.id ?? null
+    }
+
+    if (!organizationId) {
+      return Response.json({ error: "Workspace is required." }, { status: 403 })
+    }
+
+    context = { organizationId, userId: session.user.id }
   } catch (error) {
     console.error(
       "Chat authorization failed.",
@@ -44,10 +64,14 @@ export async function POST(request: Request) {
     const streamChatController = resolveApplicationDependency(
       applicationInjectionTokens.streamChatController
     )
-    return await streamChatController(body, request.signal)
+    return await streamChatController(body, context, request.signal)
   } catch (error) {
     if (error instanceof InvalidChatRequestError) {
       return invalidChatRequestResponse()
+    }
+
+    if (error instanceof ChatAccessDeniedError) {
+      return Response.json({ error: "Chat not found." }, { status: 404 })
     }
 
     const cause = error instanceof ChatUnavailableError ? error.cause : error

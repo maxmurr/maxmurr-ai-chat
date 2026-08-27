@@ -4,21 +4,35 @@ import {
   applicationInjectionTokens,
   type ApplicationDependencyRegistry,
 } from "@/di/application-container.registry"
-import { streamChatResponseWithMastra } from "@/src/infrastructure/services/mastra-chat-stream.service"
+import { drizzleChatRepository } from "@/src/infrastructure/repositories/drizzle-chat.repository"
+import { createMastraChatStreamService } from "@/src/infrastructure/services/mastra-chat-stream.service"
+import { createChatLibraryController } from "@/src/interface-adapters/controllers/chat/chat-library.controller"
 import { createStreamChatController } from "@/src/interface-adapters/controllers/chat/stream-chat.controller"
 
-/** Registers chat controller and Mastra streaming adapter. */
+/** Registers chat persistence, controllers, and Mastra streaming adapter. */
 export function createChatModule() {
   const chatModule = createModule<ApplicationDependencyRegistry>()
 
   chatModule
+    .bind(applicationInjectionTokens.chatRepository)
+    .toValue(drizzleChatRepository)
+  chatModule
     .bind(applicationInjectionTokens.streamChatResponse)
-    .toFunction(streamChatResponseWithMastra)
+    .toHigherOrderFunction(createMastraChatStreamService, [
+      applicationInjectionTokens.chatRepository,
+    ])
   chatModule
     .bind(applicationInjectionTokens.streamChatController)
     .toHigherOrderFunction(createStreamChatController, [
       applicationInjectionTokens.streamChatResponse,
     ])
+  chatModule
+    .bind(applicationInjectionTokens.chatLibraryController)
+    .toFactory((resolve) =>
+      createChatLibraryController(
+        resolve(applicationInjectionTokens.chatRepository)
+      )
+    )
 
   return chatModule
 }

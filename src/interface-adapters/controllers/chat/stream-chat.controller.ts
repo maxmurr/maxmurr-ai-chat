@@ -2,6 +2,7 @@ import { z } from "zod"
 
 import type { StreamChatResponse } from "@/src/application/services/chat-stream.service.interface"
 import { InvalidChatRequestError } from "@/src/entities/errors/chat-errors"
+import type { ChatRequestContext } from "@/src/entities/models/chat-stream-request"
 
 const chatMessagePartSchema = z
   .object({
@@ -16,18 +17,15 @@ const chatMessagePartSchema = z
   )
 
 const chatStreamRequestSchema = z.object({
-  messages: z
-    .array(
-      z
-        .object({
-          id: z.string().min(1).max(200),
-          parts: z.array(chatMessagePartSchema).min(1).max(100),
-          role: z.enum(["system", "user", "assistant"]),
-        })
-        .catchall(z.unknown())
-    )
-    .min(1)
-    .max(100),
+  id: z.uuid(),
+  message: z
+    .object({
+      id: z.string().min(1).max(200),
+      parts: z.array(chatMessagePartSchema).min(1).max(100),
+      role: z.literal("user"),
+    })
+    .catchall(z.unknown()),
+  messageId: z.string().min(1).max(200).optional(),
   trigger: z.enum(["submit-message", "regenerate-message"]).optional(),
 })
 
@@ -38,13 +36,23 @@ export type StreamChatController = ReturnType<typeof createStreamChatController>
 export function createStreamChatController(
   streamChatResponse: StreamChatResponse
 ) {
-  return (input: unknown, abortSignal: AbortSignal) => {
+  return (
+    input: unknown,
+    context: ChatRequestContext,
+    abortSignal: AbortSignal
+  ) => {
     const result = chatStreamRequestSchema.safeParse(input)
 
     if (!result.success) {
       throw new InvalidChatRequestError({ cause: result.error })
     }
 
-    return streamChatResponse(result.data, abortSignal)
+    const { id, message, messageId, trigger } = result.data
+
+    return streamChatResponse(
+      { chatId: id, message, messageId, trigger },
+      context,
+      abortSignal
+    )
   }
 }
