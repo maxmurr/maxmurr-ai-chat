@@ -2,7 +2,12 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { EllipsisIcon, PencilIcon, Trash2Icon } from "lucide-react"
+import {
+  EllipsisIcon,
+  FolderPlusIcon,
+  PencilIcon,
+  Trash2Icon,
+} from "lucide-react"
 
 import { useChatConversationTitle } from "@/components/chat/chat-conversation-title"
 import {
@@ -13,7 +18,9 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
@@ -43,17 +50,27 @@ export function ChatThreadActions({ chatId }: { chatId: string }) {
           <EllipsisIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={() => setOpenDialog("rename")}>
-            <PencilIcon />
-            Rename
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => setOpenDialog("delete")}
-            variant="destructive"
-          >
-            <Trash2Icon />
-            Delete
-          </DropdownMenuItem>
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={() => setOpenDialog("rename")}>
+              <PencilIcon />
+              Rename
+            </DropdownMenuItem>
+            {/* Placeholder until projects exist. */}
+            <DropdownMenuItem>
+              <FolderPlusIcon />
+              Add to project
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              onClick={() => setOpenDialog("delete")}
+              variant="destructive"
+            >
+              <Trash2Icon />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
 
