@@ -1,6 +1,6 @@
 "use client"
 
-import { useId, useState, useTransition } from "react"
+import { useId, useState, useSyncExternalStore, useTransition } from "react"
 import { Share2Icon } from "lucide-react"
 
 import { updateChatSharingAction } from "@/app/chat/actions"
@@ -39,6 +39,9 @@ type ChatShareDialogContentProps = {
 }
 type ChatShareDialogProps = ChatShareDialogContentProps
 
+const CHAT_SHARE_ORIGIN_SUBSCRIBE = () => () => {}
+const CHAT_SHARE_ORIGIN_SERVER_SNAPSHOT = () => null
+
 const CHAT_SHARE_ACCESS_OPTIONS: readonly {
   description: string
   title: string
@@ -65,18 +68,19 @@ const CHAT_SHARE_ACCESS_OPTIONS: readonly {
 export function buildChatShareLink(
   chatId: string,
   visibility: ChatVisibility,
-  publicToken: string | null
+  publicToken: string | null,
+  origin: string
 ) {
   if (visibility === "private") {
     return null
   }
 
   if (visibility === "workspace") {
-    return `${window.location.origin}/chat/${encodeURIComponent(chatId)}`
+    return `${origin}/chat/${encodeURIComponent(chatId)}`
   }
 
   return publicToken
-    ? `${window.location.origin}/share/${encodeURIComponent(publicToken)}`
+    ? `${origin}/share/${encodeURIComponent(publicToken)}`
     : null
 }
 
@@ -120,6 +124,11 @@ export function ChatShareDialogContent({
   const [publicToken, setPublicToken] = useState(initialPublicToken)
   const [shareError, setShareError] = useState<string | null>(null)
   const [isSaving, startSaving] = useTransition()
+  const origin = useSyncExternalStore(
+    CHAT_SHARE_ORIGIN_SUBSCRIBE,
+    () => window.location.origin,
+    CHAT_SHARE_ORIGIN_SERVER_SNAPSHOT
+  )
 
   function changeChatShareAccess(nextAccess: ChatVisibility) {
     const previousAccess = shareAccess
@@ -139,9 +148,10 @@ export function ChatShareDialogContent({
     })
   }
 
-  const shareLink = isSaving
+  const isGeneratingShareLink = isSaving || origin === null
+  const shareLink = isGeneratingShareLink
     ? null
-    : buildChatShareLink(chatId, shareAccess, publicToken)
+    : buildChatShareLink(chatId, shareAccess, publicToken, origin)
 
   return (
     <DialogContent className={cn(className)}>
@@ -184,7 +194,7 @@ export function ChatShareDialogContent({
 
       {shareAccess !== "private" && !shareError && (
         <ChatShareLinkField
-          isGenerating={isSaving}
+          isGenerating={isGeneratingShareLink}
           key={shareAccess}
           shareLink={shareLink}
         />
