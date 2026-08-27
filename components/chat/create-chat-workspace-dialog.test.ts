@@ -32,6 +32,8 @@ test("chat workspace switcher mounts form integration", () => {
   )
 
   assert.match(markup, /Acme Inc\./)
+  assert.match(markup, /rounded-md[^>]*>A<\/span>/)
+  assert.doesNotMatch(markup, /lucide-briefcase-business/)
 })
 
 test("chat workspace validators cover nested member data", () => {

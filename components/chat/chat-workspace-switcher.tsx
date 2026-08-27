@@ -1,11 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import {
-  BriefcaseBusinessIcon,
-  ChevronsUpDownIcon,
-  PlusIcon,
-} from "lucide-react"
+import { ChevronsUpDownIcon, PlusIcon } from "lucide-react"
 
 import { ChatSidebarIdentity } from "@/components/chat/chat-sidebar-identity"
 import {
@@ -34,7 +30,6 @@ export type ChatWorkspaceSummary = {
 }
 
 type ChatWorkspace = ChatWorkspaceSummary & {
-  icon: typeof BriefcaseBusinessIcon
   plan: string
 }
 
@@ -86,7 +81,6 @@ export function ChatWorkspaceSwitcher({
 }: ChatWorkspaceSwitcherProps) {
   const initialChatWorkspaces = initialWorkspaces.map((workspace) => ({
     ...workspace,
-    icon: BriefcaseBusinessIcon,
     plan: "Free",
   }))
   const [activeWorkspace, setActiveWorkspace] = useState(
@@ -164,7 +158,6 @@ export function ChatWorkspaceSwitcher({
     )
     const createdWorkspace: ChatWorkspace = {
       id: data.id,
-      icon: BriefcaseBusinessIcon,
       name: data.name,
       plan: "Free",
     }
@@ -208,9 +201,10 @@ export function ChatWorkspaceSwitcher({
         >
           <span
             key={activeWorkspace.id}
-            className="flex aspect-square size-8 shrink-0 animate-in items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground duration-200 ease-[cubic-bezier(0.34,1.35,0.64,1)] fade-in-0 zoom-in-75 motion-reduce:animate-none"
+            aria-hidden="true"
+            className="flex aspect-square size-8 shrink-0 animate-in items-center justify-center rounded-md bg-sidebar-primary font-medium text-sidebar-primary-foreground duration-200 ease-[cubic-bezier(0.34,1.35,0.64,1)] fade-in-0 zoom-in-75 motion-reduce:animate-none"
           >
-            <activeWorkspace.icon />
+            {activeWorkspace.name.trim().charAt(0).toUpperCase()}
           </span>
           <ChatSidebarIdentity
             description={activeWorkspace.plan}
@@ -226,8 +220,11 @@ export function ChatWorkspaceSwitcher({
                 key={workspace.id}
                 onClick={() => void switchChatWorkspace(workspace)}
               >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border">
-                  <workspace.icon />
+                <span
+                  aria-hidden="true"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md border font-medium"
+                >
+                  {workspace.name.trim().charAt(0).toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1 truncate">{workspace.name}</div>
                 <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
