@@ -31,11 +31,12 @@ import { cn } from "@/lib/utils"
 const primaryNavigation = [
   { label: "New chat", href: "/chat", icon: PlusIcon },
   { label: "Search", href: "#search", icon: SearchIcon },
-  { label: "Projects", href: "#projects", icon: FolderIcon },
+  { label: "Projects", href: "/projects", icon: FolderIcon },
   { label: "Library", href: "#library", icon: LibraryBigIcon },
 ]
 
 type ChatAppSidebarProps = {
+  activeNavigation?: "projects"
   activeWorkspaceId?: string
   className?: string
   currentUser: {
@@ -49,7 +50,13 @@ type ChatAppSidebarProps = {
   workspaces: ChatWorkspaceSummary[]
 }
 
-function ChatPrimaryNavigation({ className }: { className?: string }) {
+function ChatPrimaryNavigation({
+  activeNavigation,
+  className,
+}: {
+  activeNavigation?: "projects"
+  className?: string
+}) {
   return (
     <SidebarMenu className={cn(className)}>
       {primaryNavigation.map((item) => (
@@ -58,6 +65,9 @@ function ChatPrimaryNavigation({ className }: { className?: string }) {
           id={item.href.startsWith("#") ? item.href.slice(1) : undefined}
         >
           <SidebarMenuButton
+            isActive={
+              activeNavigation === "projects" && item.href === "/projects"
+            }
             render={<Link href={item.href} />}
             tooltip={item.label}
           >
@@ -72,6 +82,7 @@ function ChatPrimaryNavigation({ className }: { className?: string }) {
 
 /** Composes server-rendered chat navigation around focused client controls. */
 export function ChatAppSidebar({
+  activeNavigation,
   activeWorkspaceId,
   className,
   currentUser,
@@ -88,7 +99,7 @@ export function ChatAppSidebar({
             initialWorkspaces={workspaces}
           />
         </SidebarMenu>
-        <ChatPrimaryNavigation />
+        <ChatPrimaryNavigation activeNavigation={activeNavigation} />
       </SidebarHeader>
 
       <SidebarContent>
