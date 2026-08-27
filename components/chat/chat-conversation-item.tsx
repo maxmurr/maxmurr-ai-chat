@@ -227,7 +227,7 @@ export function ChatConversationItem({
       <div
         ref={conversationActionsRef}
         className={cn(
-          "pointer-events-none absolute inset-y-0 right-1 flex items-center gap-1 pl-4 opacity-100 lg:opacity-0 lg:[background:linear-gradient(to_right,transparent,var(--sidebar-accent)_1rem)] lg:group-has-focus-visible/menu-item:opacity-100 lg:group-hover/menu-item:opacity-100",
+          "pointer-events-none absolute inset-y-0 right-1 flex items-center gap-1 pl-4 opacity-100 lg:opacity-0 lg:[background:linear-gradient(to_right,transparent,var(--sidebar-accent)_1rem)] lg:group-hover/menu-item:opacity-100 lg:group-has-focus-visible/menu-item:opacity-100",
           isRenaming && "invisible"
         )}
       >

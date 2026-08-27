@@ -93,11 +93,11 @@ export function ProjectDetail({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-4 pb-12">
           <div className="flex flex-col gap-1">
-            <h1 className="text-balance font-heading text-xl font-medium">
+            <h1 className="font-heading text-xl font-medium text-balance">
               {project.name}
             </h1>
             {project.description && (
-              <p className="max-w-[70ch] text-pretty text-base text-muted-foreground sm:text-sm">
+              <p className="max-w-[70ch] text-base text-pretty text-muted-foreground sm:text-sm">
                 {project.description}
               </p>
             )}

@@ -114,7 +114,7 @@ export function LibraryBrowser({ className }: { className?: string }) {
       <div className="mb-4 flex min-w-0 items-center gap-2">
         <ToggleGroup
           aria-label="Filter by type"
-          className="min-w-0 overflow-x-auto scrollbar-none *:shrink-0"
+          className="min-w-0 scrollbar-none overflow-x-auto *:shrink-0"
           onValueChange={(values) => {
             const nextFilter = values[0] as LibraryFilter | undefined
             if (nextFilter) setFilter(nextFilter)

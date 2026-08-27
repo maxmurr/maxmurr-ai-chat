@@ -93,7 +93,7 @@ export function ChatUserMenu({ className, user }: ChatUserMenuProps) {
               <div className="flex items-center gap-2 px-1 py-1.5 text-left">
                 <ChatUserAvatar user={user} />
                 <ChatSidebarIdentity
-                  className="text-base leading-4 sm:text-sm"
+                  className="text-base/4 sm:text-sm"
                   description={user.email}
                   title={user.name}
                 />

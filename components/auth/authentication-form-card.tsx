@@ -222,7 +222,7 @@ export function AuthenticationFormCard({
   return (
     <Card
       className={cn(
-        "w-full max-w-md [--card-spacing:--spacing(6)] dark:inset-ring dark:inset-ring-foreground/5 dark:shadow-none dark:ring-0",
+        "w-full max-w-md [--card-spacing:--spacing(6)] dark:shadow-none dark:ring-0 dark:inset-ring dark:inset-ring-foreground/5",
         className
       )}
     >

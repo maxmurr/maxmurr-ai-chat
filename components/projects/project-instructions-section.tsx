@@ -112,7 +112,7 @@ export function ProjectInstructionsSection({
         }
         title="Instructions"
       />
-      <p className="whitespace-pre-wrap text-pretty text-base text-muted-foreground sm:text-sm">
+      <p className="text-base text-pretty whitespace-pre-wrap text-muted-foreground sm:text-sm">
         {project.instructions ??
           "No instructions yet. Every chat in this project will carry them."}
       </p>

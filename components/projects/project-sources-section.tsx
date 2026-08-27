@@ -249,7 +249,7 @@ export function ProjectSourcesSection({
           </div>
         </div>
       ) : (
-        <p className="text-pretty text-base text-muted-foreground sm:text-sm">
+        <p className="text-base text-pretty text-muted-foreground sm:text-sm">
           No sources yet. Anything here is available to every chat in the
           project.
         </p>

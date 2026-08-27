@@ -76,7 +76,7 @@ export function ProjectsList({ className }: { className?: string }) {
           id="project-list"
         >
           <div className="flex min-w-0 items-center justify-between gap-2">
-            <InputGroup className="h-11 min-w-0 max-w-xs flex-1 sm:h-8">
+            <InputGroup className="h-11 max-w-xs min-w-0 flex-1 sm:h-8">
               <InputGroupAddon>
                 <SearchIcon />
               </InputGroupAddon>

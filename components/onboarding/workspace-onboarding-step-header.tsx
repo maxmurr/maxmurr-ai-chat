@@ -19,12 +19,12 @@ export function WorkspaceOnboardingStepHeader({
   return (
     <header className={cn("flex flex-col gap-2", className)}>
       <h1
-        className="text-balance text-2xl font-semibold tracking-tight"
+        className="text-2xl font-semibold tracking-tight text-balance"
         id={titleId}
       >
         {title}
       </h1>
-      <p className="text-pretty text-base/7 text-muted-foreground sm:text-sm/6">
+      <p className="text-base/7 text-pretty text-muted-foreground sm:text-sm/6">
         {description}
       </p>
     </header>

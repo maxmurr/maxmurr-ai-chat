@@ -73,7 +73,7 @@ export function ProjectChatsSection({
           ))}
         </ItemGroup>
       ) : (
-        <p className="text-pretty text-base text-muted-foreground sm:text-sm">
+        <p className="text-base text-pretty text-muted-foreground sm:text-sm">
           No chats in this project yet. Add one from any chat menu.
         </p>
       )}

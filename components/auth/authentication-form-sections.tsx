@@ -42,7 +42,7 @@ export function AuthenticationFormHeader({
           <MailIcon className="size-5" />
         </div>
       )}
-      <h1 className="text-balance font-heading text-2xl font-semibold tracking-tight text-foreground">
+      <h1 className="font-heading text-2xl font-semibold tracking-tight text-balance text-foreground">
         {title}
       </h1>
       <CardDescription className="text-balance">

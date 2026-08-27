@@ -55,10 +55,10 @@ export function LibraryList({
                   </ItemContent>
                 </Item>
               </TableCell>
-              <TableCell className="tabular-nums text-muted-foreground">
+              <TableCell className="text-muted-foreground tabular-nums">
                 {item.size}
               </TableCell>
-              <TableCell className="hidden tabular-nums text-muted-foreground sm:table-cell">
+              <TableCell className="hidden text-muted-foreground tabular-nums sm:table-cell">
                 {item.modified}
               </TableCell>
               <TableCell className="hidden text-muted-foreground lg:table-cell">
