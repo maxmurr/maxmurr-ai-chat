@@ -21,6 +21,8 @@
     "@evyweb/ioctopus": "^1.4.1",
     "@mastra/ai-sdk": "1.9.1",
     "@mastra/core": "1.61.0",
+    "@mastra/langfuse": "1.5.0",
+    "@mastra/observability": "1.17.1",
     "@next/env": "16.3.3",
     "@shadcn/react": "^0.3.0",
     "@streamdown/code": "^1.1.1",

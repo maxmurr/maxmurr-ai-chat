@@ -142,12 +142,21 @@ export function createMastraChatStreamService(
         params: {
           abortSignal,
           messages: modelMessages,
+          tracingOptions: {
+            metadata: {
+              langfuse: { organizationId: context.organizationId },
+              sessionId: chatId,
+              userId: context.userId,
+            },
+          },
           trigger,
         },
         sendReasoning: true,
         sendSources: true,
         version: "v7",
       })
+
+      after(() => mastraRuntime.observability.flush())
 
       return createUIMessageStreamResponse({
         stream: createUIMessageStream<UIMessage>({
