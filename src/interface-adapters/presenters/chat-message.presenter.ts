@@ -68,6 +68,13 @@ export function convertChatUiMessageToDisplayMessage(
   const reasoningParts = message.parts.flatMap((part) =>
     part.type === "reasoning" ? [part] : []
   )
+  const reasoningText = reasoningParts
+    .map(({ text }) => text)
+    .filter(Boolean)
+    .join("\n\n")
+  const isReasoningRunning = reasoningParts.some(
+    ({ state }) => state === "streaming"
+  )
   const attachments: ChatDisplayAttachment[] = [
     ...(message.metadata?.attachments ?? []),
     ...message.parts.flatMap((part) =>
@@ -141,13 +148,13 @@ export function convertChatUiMessageToDisplayMessage(
     id: message.id,
     role: message.role,
     ...(attachments.length > 0 ? { attachments } : {}),
-    ...(reasoningParts.length > 0
+    // Providers can emit reasoning items with hidden content; a finished,
+    // textless reasoning block has nothing to show.
+    ...(isReasoningRunning || reasoningText
       ? {
           reasoning: {
-            state: reasoningParts.some(({ state }) => state === "streaming")
-              ? "running"
-              : "completed",
-            text: reasoningParts.map(({ text }) => text).join("\n\n"),
+            state: isReasoningRunning ? "running" : "completed",
+            text: reasoningText,
           },
         }
       : {}),

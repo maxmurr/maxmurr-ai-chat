@@ -94,6 +94,35 @@ test("streaming reasoning maps to running chat activity", () => {
   })
 })
 
+test("finished reasoning without text is omitted from display", () => {
+  const message: ChatUIMessage = {
+    id: "assistant-response",
+    role: "assistant",
+    parts: [
+      { type: "reasoning", state: "done", text: "" },
+      { type: "text", text: "pong" },
+    ],
+  }
+
+  const displayMessage = convertChatUiMessageToDisplayMessage(message)
+
+  assert.equal(displayMessage?.reasoning, undefined)
+  assert.equal(displayMessage?.content, "pong")
+})
+
+test("empty streaming reasoning still shows running activity", () => {
+  const message: ChatUIMessage = {
+    id: "assistant-response",
+    role: "assistant",
+    parts: [{ type: "reasoning", state: "streaming", text: "" }],
+  }
+
+  assert.deepEqual(convertChatUiMessageToDisplayMessage(message)?.reasoning, {
+    state: "running",
+    text: "",
+  })
+})
+
 test("AI SDK 7 denied tool output maps to failed chat activity", () => {
   const message: ChatUIMessage = {
     id: "assistant-response",
