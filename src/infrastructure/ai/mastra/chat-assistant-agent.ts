@@ -9,5 +9,5 @@ export const chatAssistantAgent = new Agent({
     "Use concise Markdown when structure helps.",
     "State uncertainty instead of inventing facts, sources, or completed actions.",
   ],
-  model: "openai/gpt-5.6-luna",
+  model: "vercel/openai/gpt-5.6-luna",
 })
