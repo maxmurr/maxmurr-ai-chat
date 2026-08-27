@@ -1,4 +1,4 @@
-import { useForm } from "@tanstack/react-form"
+import { useForm, useStore } from "@tanstack/react-form"
 import { useEffect, useRef } from "react"
 
 import { ChatComposerToolbar } from "@/components/chat/chat-composer-toolbar"
@@ -85,12 +85,16 @@ export function ChatComposer({
       }
 
       onAnnouncementChange("")
+      // Reset before streaming so the emptied field is not flagged invalid.
+      form.reset()
       await onSendMessage({
         attachments: value.attachments,
         text: messageText,
       })
     },
   })
+  const hasAttemptedSubmit =
+    useStore(form.store, (state) => state.submissionAttempts) > 0
 
   useEffect(() => {
     if (form.getFieldValue("message.text") !== draft) {
@@ -163,9 +167,13 @@ export function ChatComposer({
               }}
             >
               {(messageField) => {
-                const error = messageField.state.meta.errors.find(
-                  (fieldError) => typeof fieldError === "string"
-                )
+                // Live-validated, but only surfaced after a submit attempt so
+                // typing or clearing the draft never flags the field.
+                const error = hasAttemptedSubmit
+                  ? messageField.state.meta.errors.find(
+                      (fieldError) => typeof fieldError === "string"
+                    )
+                  : undefined
                 const errorId = "chat-composer-message-error"
 
                 return (
@@ -203,7 +211,7 @@ export function ChatComposer({
 
                     <InputGroupTextarea
                       aria-describedby={error ? errorId : undefined}
-                      aria-invalid={!messageField.state.meta.isValid}
+                      aria-invalid={error !== undefined}
                       aria-label="Message"
                       autoComplete="off"
                       className="min-h-0 px-4"
