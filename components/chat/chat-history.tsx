@@ -53,6 +53,105 @@ type ChatHistoryDialog =
   | { chat: ChatHistoryEntry; kind: "rename" }
   | null
 
+/** Renames one owned chat behind a small controlled dialog. */
+export function ChatRenameDialog({
+  chat,
+  onOpenChange,
+  onRenamed,
+  open,
+}: {
+  chat: ChatHistoryEntry
+  onOpenChange: (open: boolean) => void
+  onRenamed?: (title: string) => void
+  open: boolean
+}) {
+  const [title, setTitle] = useState(chat.title)
+
+  async function renameChat() {
+    const result = await renameChatAction(chat.id, title)
+
+    if (!result.ok) {
+      toast.add({ description: result.error, title: "Rename failed", type: "error" })
+      return
+    }
+
+    onRenamed?.(title)
+    onOpenChange(false)
+  }
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rename chat</DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            void renameChat()
+          }}
+        >
+          <Input
+            aria-label="Chat title"
+            maxLength={80}
+            onChange={(event) => setTitle(event.target.value)}
+            required
+            value={title}
+          />
+          <DialogFooter className="mt-4">
+            <Button type="submit">Save</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Confirms and deletes one owned chat. */
+export function ChatDeleteDialog({
+  chat,
+  onDeleted,
+  onOpenChange,
+  open,
+}: {
+  chat: ChatHistoryEntry
+  onDeleted?: () => void
+  onOpenChange: (open: boolean) => void
+  open: boolean
+}) {
+  async function deleteChat() {
+    const result = await deleteChatAction(chat.id)
+
+    if (!result.ok) {
+      toast.add({ description: result.error, title: "Delete failed", type: "error" })
+      return
+    }
+
+    onOpenChange(false)
+    onDeleted?.()
+  }
+
+  return (
+    <AlertDialog onOpenChange={onOpenChange} open={open}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete chat?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This permanently deletes the chat and its messages. Shared links
+            stop working.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={() => void deleteChat()}>
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
 function ChatHistoryGroup({
   chats,
   label,
@@ -102,42 +201,6 @@ export function ChatHistory({
   const pathname = usePathname()
   const router = useRouter()
   const [dialog, setDialog] = useState<ChatHistoryDialog>(null)
-  const [renameTitle, setRenameTitle] = useState("")
-
-  async function renameChat() {
-    if (dialog?.kind !== "rename") {
-      return
-    }
-
-    const result = await renameChatAction(dialog.chat.id, renameTitle)
-
-    if (!result.ok) {
-      toast.add({ description: result.error, title: "Rename failed", type: "error" })
-      return
-    }
-
-    setDialog(null)
-  }
-
-  async function deleteChat() {
-    if (dialog?.kind !== "delete") {
-      return
-    }
-
-    const chatId = dialog.chat.id
-    const result = await deleteChatAction(chatId)
-
-    if (!result.ok) {
-      toast.add({ description: result.error, title: "Delete failed", type: "error" })
-      return
-    }
-
-    setDialog(null)
-
-    if (pathname === `/chat/${chatId}`) {
-      router.push("/chat")
-    }
-  }
 
   return (
     <>
@@ -158,10 +221,7 @@ export function ChatHistory({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" side="right">
               <DropdownMenuItem
-                onClick={() => {
-                  setRenameTitle(chat.title)
-                  setDialog({ chat, kind: "rename" })
-                }}
+                onClick={() => setDialog({ chat, kind: "rename" })}
               >
                 <PencilIcon />
                 Rename
@@ -179,54 +239,27 @@ export function ChatHistory({
       />
       <ChatHistoryGroup chats={teamChats} label="Team" />
 
-      <Dialog
-        onOpenChange={(open) => !open && setDialog(null)}
-        open={dialog?.kind === "rename"}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rename chat</DialogTitle>
-          </DialogHeader>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              void renameChat()
-            }}
-          >
-            <Input
-              aria-label="Chat title"
-              maxLength={80}
-              onChange={(event) => setRenameTitle(event.target.value)}
-              required
-              value={renameTitle}
-            />
-            <DialogFooter className="mt-4">
-              <Button type="submit">Save</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        onOpenChange={(open) => !open && setDialog(null)}
-        open={dialog?.kind === "delete"}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete chat?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This permanently deletes the chat and its messages. Shared links
-              stop working.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void deleteChat()}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {dialog && (
+        <ChatRenameDialog
+          chat={dialog.chat}
+          key={`rename-${dialog.chat.id}`}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open={dialog.kind === "rename"}
+        />
+      )}
+      {dialog && (
+        <ChatDeleteDialog
+          chat={dialog.chat}
+          key={`delete-${dialog.chat.id}`}
+          onDeleted={() => {
+            if (pathname === `/chat/${dialog.chat.id}`) {
+              router.push("/chat")
+            }
+          }}
+          onOpenChange={(open) => !open && setDialog(null)}
+          open={dialog.kind === "delete"}
+        />
+      )}
     </>
   )
 }

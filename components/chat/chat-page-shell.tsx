@@ -7,6 +7,7 @@ import {
 } from "@/components/chat/chat-conversation-title"
 import { ChatShareDialog } from "@/components/chat/chat-share-dialog"
 import { ChatThread } from "@/components/chat/chat-thread"
+import { ChatThreadActions } from "@/components/chat/chat-thread-actions"
 import { ChatTranscript } from "@/components/chat/chat-transcript"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -71,11 +72,14 @@ export function ChatPageShell({
             />
             <ChatConversationTitle className="min-w-0 flex-1 pl-2" />
             {chat.isOwner && (
-              <ChatShareDialog
-                chatId={chat.id}
-                initialPublicToken={chat.publicToken}
-                initialVisibility={chat.visibility}
-              />
+              <div className="flex items-center gap-1">
+                <ChatShareDialog
+                  chatId={chat.id}
+                  initialPublicToken={chat.publicToken}
+                  initialVisibility={chat.visibility}
+                />
+                <ChatThreadActions chatId={chat.id} />
+              </div>
             )}
           </header>
           {chat.isOwner ? (
