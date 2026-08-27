@@ -25,6 +25,7 @@ type ChatPageShellProps = {
   chat: {
     id: string
     isOwner: boolean
+    pinned: boolean
     publicToken: string | null
     title: string
     visibility: ChatVisibility
@@ -79,7 +80,7 @@ export function ChatPageShell({
                   initialPublicToken={chat.publicToken}
                   initialVisibility={chat.visibility}
                 />
-                <ChatThreadActions chatId={chat.id} />
+                <ChatThreadActions chatId={chat.id} pinned={chat.pinned} />
               </div>
             )}
           </header>

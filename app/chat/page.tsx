@@ -12,6 +12,7 @@ export default async function ChatPage() {
       chat={{
         id: crypto.randomUUID(),
         isOwner: true,
+        pinned: false,
         publicToken: null,
         title: "New chat",
         visibility: "private",

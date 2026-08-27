@@ -29,6 +29,7 @@ export default async function ChatByIdPage(props: PageProps<"/chat/[chatId]">) {
       chat={{
         id: view.chat.id,
         isOwner: view.isOwner,
+        pinned: view.chat.pinned,
         publicToken: view.chat.publicToken,
         title: view.chat.title,
         visibility: view.chat.visibility,
