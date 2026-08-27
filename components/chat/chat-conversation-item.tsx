@@ -175,16 +175,19 @@ export function ChatConversationItem({
     <SidebarMenuItem className={cn(className)}>
       {isRenaming ? (
         <SidebarMenuButton
-          className="pr-2! pointer-fine:group-hover/menu-item:bg-sidebar-accent pointer-fine:group-hover/menu-item:text-sidebar-accent-foreground"
-          isActive={isActive}
+          className="bg-transparent! pr-2!"
           render={<div />}
         >
           {chat.pinned && <MessageCircleIcon />}
           <input
             ref={renameInputRef}
             aria-label={`Rename ${chat.title}`}
-            className="-mx-1 w-full min-w-0 rounded-sm bg-transparent px-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            autoComplete="off"
+            className="-mx-1 w-full min-w-0 bg-transparent px-1 outline-none"
             defaultValue={chat.title}
+            name="chat-title"
+            spellCheck={false}
+            type="text"
             onBlur={(event) => finishRenaming(event.currentTarget.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.nativeEvent.isComposing) {
@@ -250,7 +253,10 @@ export function ChatConversationItem({
 
       <div
         ref={conversationActionsRef}
-        className="pointer-events-none absolute inset-y-0 right-1 flex items-center gap-1 pl-4 opacity-100 lg:opacity-0 lg:[background:linear-gradient(to_right,transparent,var(--sidebar-accent)_1rem)] lg:group-has-focus-visible/menu-item:opacity-100 lg:group-hover/menu-item:opacity-100"
+        className={cn(
+          "pointer-events-none absolute inset-y-0 right-1 flex items-center gap-1 pl-4 opacity-100 lg:opacity-0 lg:[background:linear-gradient(to_right,transparent,var(--sidebar-accent)_1rem)] lg:group-has-focus-visible/menu-item:opacity-100 lg:group-hover/menu-item:opacity-100",
+          isRenaming && "invisible"
+        )}
       >
         <SidebarMenuAction
           aria-label={`${chat.pinned ? "Unpin" : "Pin"} ${chat.title}`}
