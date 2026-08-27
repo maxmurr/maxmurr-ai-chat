@@ -118,7 +118,7 @@ type ChatMessageListProps = {
   className?: string
   isGenerating: boolean
   messages: readonly ChatDisplayMessage[]
-  onRetryMessage: (messageId: string) => void
+  onRetryMessage?: (messageId: string) => void
   onSuggestionSelect: (suggestion: string) => void
   status: ChatStatus
   streamingMessageId?: string

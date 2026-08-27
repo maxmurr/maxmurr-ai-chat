@@ -1,41 +1,25 @@
-import { headers } from "next/headers"
-import { redirect } from "next/navigation"
-
+import { loadChatPageData } from "@/app/chat/chat-page-data"
 import { ChatPageShell } from "@/components/chat/chat-page-shell"
-import { auth } from "@/di/authentication"
 
 /** Requires an onboarded session before rendering empty new-chat page. */
 export default async function ChatPage() {
-  const requestHeaders = await headers()
-  const session = await auth.api.getSession({ headers: requestHeaders })
-
-  if (!session) {
-    redirect("/sign-in")
-  }
-
-  const organizations = await auth.api.listOrganizations({
-    headers: requestHeaders,
-  })
-
-  if (organizations.length === 0) {
-    redirect("/onboarding")
-  }
-
-  const name = session.user.username ?? session.user.name
+  const { activeWorkspaceId, currentUser, ownChats, teamChats, workspaces } =
+    await loadChatPageData()
 
   return (
     <ChatPageShell
-      activeWorkspaceId={session.session.activeOrganizationId ?? undefined}
-      currentUser={{
-        avatar: session.user.image ?? "",
-        email: session.user.email,
-        initials: name.slice(0, 2).toUpperCase(),
-        name,
+      activeWorkspaceId={activeWorkspaceId}
+      chat={{
+        id: crypto.randomUUID(),
+        isOwner: true,
+        publicToken: null,
+        title: "New chat",
+        visibility: "private",
       }}
-      workspaces={organizations.map(({ id, name: workspaceName }) => ({
-        id,
-        name: workspaceName,
-      }))}
+      currentUser={currentUser}
+      ownChats={ownChats}
+      teamChats={teamChats}
+      workspaces={workspaces}
     />
   )
 }

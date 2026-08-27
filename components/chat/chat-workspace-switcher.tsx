@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { ChevronsUpDownIcon, PlusIcon } from "lucide-react"
 
 import { ChatSidebarIdentity } from "@/components/chat/chat-sidebar-identity"
@@ -91,6 +92,7 @@ export function ChatWorkspaceSwitcher({
   )
   const [chatWorkspaces, setChatWorkspaces] = useState(initialChatWorkspaces)
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false)
+  const router = useRouter()
 
   const switchChatWorkspace = useCallback(
     async (workspace: ChatWorkspace) => {
@@ -110,6 +112,8 @@ export function ChatWorkspaceSwitcher({
         }
 
         setActiveWorkspace(workspace)
+        // Sidebar chat history is server-rendered per workspace.
+        router.refresh()
       } catch (error) {
         console.error("Chat workspace activation failed", error)
         toast.add({
@@ -119,7 +123,7 @@ export function ChatWorkspaceSwitcher({
         })
       }
     },
-    [activeWorkspace?.id]
+    [activeWorkspace?.id, router]
   )
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { CircleAlertIcon } from "lucide-react"
@@ -24,14 +25,40 @@ import { cn } from "@/lib/utils"
 
 const CHAT_TRANSPORT = new DefaultChatTransport<ChatUIMessage>({
   api: "/api/chat",
+  // The server owns chat history; each request carries only the new turn.
+  prepareSendMessagesRequest: ({ id, messageId, messages, trigger }) => ({
+    body: { id, message: messages.at(-1), messageId, trigger },
+  }),
 })
 
-/** Renders current live chat conversation. */
-export function ChatThread({ className }: { className?: string }) {
-  return <ChatThreadContent className={className} />
+type ChatThreadProps = {
+  chatId: string
+  className?: string
+  initialMessages?: ChatUIMessage[]
 }
 
-function ChatThreadContent({ className }: { className?: string }) {
+/** Renders current live chat conversation. */
+export function ChatThread({
+  chatId,
+  className,
+  initialMessages,
+}: ChatThreadProps) {
+  return (
+    <ChatThreadContent
+      chatId={chatId}
+      className={className}
+      initialMessages={initialMessages}
+    />
+  )
+}
+
+function ChatThreadContent({
+  chatId,
+  className,
+  initialMessages,
+}: ChatThreadProps) {
+  const router = useRouter()
+  const isNewlyPersistedChatRef = useRef(false)
   const [attachments, setAttachments] = useState<File[]>([])
   const [composerAnnouncement, setComposerAnnouncement] = useState("")
   const [draft, setDraft] = useState("")
@@ -43,7 +70,18 @@ function ChatThreadContent({ className }: { className?: string }) {
     sendMessage,
     status,
     stop,
-  } = useChat<ChatUIMessage>({ transport: CHAT_TRANSPORT })
+  } = useChat<ChatUIMessage>({
+    id: chatId,
+    messages: initialMessages,
+    onFinish: () => {
+      // Refresh once after the first exchange so the sidebar picks up the chat.
+      if (isNewlyPersistedChatRef.current) {
+        isNewlyPersistedChatRef.current = false
+        router.refresh()
+      }
+    },
+    transport: CHAT_TRANSPORT,
+  })
   const messages = chatMessages.flatMap((message) => {
     const displayMessage = convertChatUiMessageToDisplayMessage(message)
     return displayMessage ? [displayMessage] : []
@@ -71,6 +109,8 @@ function ChatThreadContent({ className }: { className?: string }) {
       setConversationTitle(
         text || messageAttachments[0]?.filename || "New chat"
       )
+      isNewlyPersistedChatRef.current = true
+      window.history.replaceState(null, "", `/chat/${chatId}`)
     }
 
     clearError()

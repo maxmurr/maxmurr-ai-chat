@@ -21,7 +21,7 @@ type ChatMessageActionsProps = {
   isGenerating: boolean
   messageId: string
   onCopyMessage: () => void
-  onRetryMessage: (messageId: string) => void
+  onRetryMessage?: (messageId: string) => void
 }
 
 /** Renders copy and retry actions for one chat message. */
@@ -61,7 +61,7 @@ export function ChatMessageActions({
               : "Copy"}
         </TooltipContent>
       </Tooltip>
-      {isAssistant && (
+      {isAssistant && onRetryMessage && (
         <Tooltip>
           <TooltipTrigger
             render={

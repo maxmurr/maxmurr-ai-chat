@@ -6,11 +6,25 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { buildChatShareLink } from "@/components/chat/chat-share-dialog"
 import { ChatShareLinkField } from "@/components/chat/chat-share-link-field"
 
-test("chat share links encode conversation IDs", () => {
-  assert.equal(
-    buildChatShareLink("billing brief/2026"),
-    "https://chat.example.com/share/billing%20brief%2F2026"
-  )
+test("chat share links target the viewer route for each visibility", () => {
+  const originalWindow = globalThis.window
+  // @ts-expect-error minimal browser stub for URL building
+  globalThis.window = { location: { origin: "https://app.example.com" } }
+
+  try {
+    assert.equal(
+      buildChatShareLink("chat 1", "workspace", null),
+      "https://app.example.com/chat/chat%201"
+    )
+    assert.equal(
+      buildChatShareLink("chat-1", "public", "token/2026"),
+      "https://app.example.com/share/token%2F2026"
+    )
+    assert.equal(buildChatShareLink("chat-1", "public", null), null)
+    assert.equal(buildChatShareLink("chat-1", "private", "token"), null)
+  } finally {
+    globalThis.window = originalWindow
+  }
 })
 
 test("chat share link field renders generated link and copy action", () => {

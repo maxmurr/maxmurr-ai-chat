@@ -6,6 +6,10 @@ import {
   SearchIcon,
 } from "lucide-react"
 
+import {
+  ChatHistory,
+  type ChatHistoryEntry,
+} from "@/components/chat/chat-history"
 import { ChatUserMenu } from "@/components/chat/chat-user-menu"
 import {
   ChatWorkspaceSwitcher,
@@ -39,6 +43,8 @@ type ChatAppSidebarProps = {
     initials: string
     name: string
   }
+  ownChats: ChatHistoryEntry[]
+  teamChats: ChatHistoryEntry[]
   workspaces: ChatWorkspaceSummary[]
 }
 
@@ -68,6 +74,8 @@ export function ChatAppSidebar({
   activeWorkspaceId,
   className,
   currentUser,
+  ownChats,
+  teamChats,
   workspaces,
 }: ChatAppSidebarProps) {
   return (
@@ -82,7 +90,9 @@ export function ChatAppSidebar({
         <ChatPrimaryNavigation />
       </SidebarHeader>
 
-      <SidebarContent />
+      <SidebarContent>
+        <ChatHistory ownChats={ownChats} teamChats={teamChats} />
+      </SidebarContent>
 
       <SidebarFooter>
         <SidebarMenu>

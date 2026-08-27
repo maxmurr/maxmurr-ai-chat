@@ -54,7 +54,7 @@ type ChatMessageItemProps = {
   isStreaming: boolean
   message: ChatDisplayMessage
   onCopyMessage: () => void
-  onRetryMessage: (messageId: string) => void
+  onRetryMessage?: (messageId: string) => void
 }
 
 /** Renders one chat message with reasoning, tools, files, sources, and actions. */

@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useId, useState } from "react"
+import { useId, useState, useTransition } from "react"
 import { Share2Icon } from "lucide-react"
 
+import { updateChatSharingAction } from "@/app/chat/actions"
 import { ChatShareLinkField } from "@/components/chat/chat-share-link-field"
 import { ChatTouchTarget } from "@/components/chat/chat-touch-target"
 import { Button } from "@/components/ui/button"
@@ -27,22 +28,21 @@ import {
   RadioGroup,
   RadioGroupItem,
 } from "@/components/ui/radio-group"
+import type { ChatVisibility } from "@/src/entities/models/chat"
 import { cn } from "@/lib/utils"
 
-type ChatShareAccess = "private" | "team" | "public"
 type ChatShareDialogContentProps = {
+  chatId: string
   className?: string
-  conversationId: string
+  initialPublicToken: string | null
+  initialVisibility: ChatVisibility
 }
-type ChatShareDialogProps = {
-  className?: string
-  conversationId: string
-}
+type ChatShareDialogProps = ChatShareDialogContentProps
 
 const CHAT_SHARE_ACCESS_OPTIONS: readonly {
   description: string
   title: string
-  value: ChatShareAccess
+  value: ChatVisibility
 }[] = [
   {
     description: "Only you have access.",
@@ -50,9 +50,9 @@ const CHAT_SHARE_ACCESS_OPTIONS: readonly {
     value: "private",
   },
   {
-    description: "Only teammates with the link can view.",
+    description: "Teammates in this workspace can view.",
     title: "Share with your team",
-    value: "team",
+    value: "workspace",
   },
   {
     description: "Anyone with the link can view.",
@@ -61,9 +61,23 @@ const CHAT_SHARE_ACCESS_OPTIONS: readonly {
   },
 ]
 
-/** Builds deterministic mock share URL while chat backend remains local-only. */
-export function buildChatShareLink(conversationId: string) {
-  return `https://chat.example.com/share/${encodeURIComponent(conversationId)}`
+/** Builds the viewer URL for one shared chat visibility. */
+export function buildChatShareLink(
+  chatId: string,
+  visibility: ChatVisibility,
+  publicToken: string | null
+) {
+  if (visibility === "private") {
+    return null
+  }
+
+  if (visibility === "workspace") {
+    return `${window.location.origin}/chat/${encodeURIComponent(chatId)}`
+  }
+
+  return publicToken
+    ? `${window.location.origin}/share/${encodeURIComponent(publicToken)}`
+    : null
 }
 
 function ChatShareAccessOption({
@@ -77,7 +91,7 @@ function ChatShareAccessOption({
   description: string
   id: string
   title: string
-  value: ChatShareAccess
+  value: ChatVisibility
 }) {
   return (
     <FieldLabel className={cn(className)} htmlFor={id}>
@@ -94,43 +108,47 @@ function ChatShareAccessOption({
 
 /** Renders shared chat visibility choices for any dialog trigger. */
 export function ChatShareDialogContent({
+  chatId,
   className,
-  conversationId,
+  initialPublicToken,
+  initialVisibility,
 }: ChatShareDialogContentProps) {
   const optionIdPrefix = useId()
   const legendId = `${optionIdPrefix}-legend`
   const [shareAccess, setShareAccess] =
-    useState<ChatShareAccess>("private")
-  const [shareLink, setShareLink] = useState<string | null>(null)
-  const isGeneratingLink = shareAccess !== "private" && shareLink === null
+    useState<ChatVisibility>(initialVisibility)
+  const [publicToken, setPublicToken] = useState(initialPublicToken)
+  const [shareError, setShareError] = useState<string | null>(null)
+  const [isSaving, startSaving] = useTransition()
 
-  useEffect(() => {
-    if (shareAccess === "private" || shareLink) {
-      return
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setShareLink(buildChatShareLink(conversationId))
-    }, 750)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [conversationId, shareAccess, shareLink])
-
-  function changeChatShareAccess(nextAccess: ChatShareAccess) {
+  function changeChatShareAccess(nextAccess: ChatVisibility) {
+    const previousAccess = shareAccess
     setShareAccess(nextAccess)
+    setShareError(null)
 
-    if (nextAccess === "private") {
-      setShareLink(null)
-    }
+    startSaving(async () => {
+      const result = await updateChatSharingAction(chatId, nextAccess)
+
+      if (!result.ok) {
+        setShareAccess(previousAccess)
+        setShareError(result.error)
+        return
+      }
+
+      setPublicToken(result.publicToken)
+    })
   }
+
+  const shareLink = isSaving
+    ? null
+    : buildChatShareLink(chatId, shareAccess, publicToken)
 
   return (
     <DialogContent className={cn(className)}>
       <DialogHeader>
         <DialogTitle>Share chat</DialogTitle>
         <DialogDescription>
-          Only messages up to this point are shared. Anything sent later is
-          not.
+          Viewers see the conversation as it is now, including new messages.
         </DialogDescription>
       </DialogHeader>
 
@@ -142,7 +160,7 @@ export function ChatShareDialogContent({
           aria-labelledby={legendId}
           name="chat-share-access"
           onValueChange={(value) =>
-            changeChatShareAccess(value as ChatShareAccess)
+            changeChatShareAccess(value as ChatVisibility)
           }
           value={shareAccess}
         >
@@ -158,9 +176,15 @@ export function ChatShareDialogContent({
         </RadioGroup>
       </FieldSet>
 
-      {shareAccess !== "private" && (
+      {shareError && (
+        <p className="text-sm text-destructive" role="alert">
+          {shareError}
+        </p>
+      )}
+
+      {shareAccess !== "private" && !shareError && (
         <ChatShareLinkField
-          isGenerating={isGeneratingLink}
+          isGenerating={isSaving}
           key={shareAccess}
           shareLink={shareLink}
         />
@@ -171,8 +195,10 @@ export function ChatShareDialogContent({
 
 /** Renders header share action with its accessible dialog. */
 export function ChatShareDialog({
+  chatId,
   className,
-  conversationId,
+  initialPublicToken,
+  initialVisibility,
 }: ChatShareDialogProps) {
   return (
     <Dialog>
@@ -189,7 +215,11 @@ export function ChatShareDialog({
         Share
         <ChatTouchTarget />
       </DialogTrigger>
-      <ChatShareDialogContent conversationId={conversationId} />
+      <ChatShareDialogContent
+        chatId={chatId}
+        initialPublicToken={initialPublicToken}
+        initialVisibility={initialVisibility}
+      />
     </Dialog>
   )
 }
