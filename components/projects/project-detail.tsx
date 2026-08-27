@@ -6,13 +6,16 @@ import { useRouter } from "next/navigation"
 import {
   FileTextIcon,
   FolderXIcon,
+  LibraryBigIcon,
   MessageSquareIcon,
   PencilIcon,
   PlusIcon,
+  UploadIcon,
   XIcon,
 } from "lucide-react"
 
 import { ChatComposerToolbar } from "@/components/chat/chat-composer-toolbar"
+import { LIBRARY_ITEMS } from "@/components/library/library-data"
 import { ProjectActions } from "@/components/projects/project-controls"
 import {
   formatProjectSourceType,
@@ -39,6 +42,16 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+} from "@/components/ui/command"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -46,6 +59,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Empty,
   EmptyDescription,
@@ -182,6 +202,84 @@ function ProjectInstructionsDialog({
   )
 }
 
+function getLibraryProjectSourceMediaType(filename: string) {
+  if (filename.endsWith(".pdf")) {
+    return "application/pdf"
+  }
+
+  if (filename.endsWith(".csv")) {
+    return "text/csv"
+  }
+
+  return "application/octet-stream"
+}
+
+function ProjectLibrarySourceDialog({
+  existingSources,
+  onAdd,
+  onOpenChange,
+  open,
+}: {
+  existingSources: ProjectSource[]
+  onAdd: (source: ProjectSource) => void
+  onOpenChange: (open: boolean) => void
+  open: boolean
+}) {
+  const existingFilenames = new Set(
+    existingSources.map(({ filename }) => filename),
+  )
+  const availableFiles = LIBRARY_ITEMS.filter(
+    (item) => item.kind === "file" && !existingFilenames.has(item.name),
+  )
+
+  if (!open) {
+    return null
+  }
+
+  return (
+    <CommandDialog
+      description="Attach a file the library already holds."
+      onOpenChange={onOpenChange}
+      open={open}
+      title="Add from Library"
+    >
+      <Command>
+        <CommandInput
+          aria-label="Search library files"
+          name="project-library-search"
+          placeholder="Search the library…"
+        />
+        <CommandList>
+          <CommandEmpty>Nothing left to add.</CommandEmpty>
+          {availableFiles.length > 0 && (
+            <CommandGroup heading="Library">
+              {availableFiles.map((file) => (
+                <CommandItem
+                  key={file.name}
+                  onSelect={() => {
+                    onAdd({
+                      filename: file.name,
+                      mediaType: getLibraryProjectSourceMediaType(file.name),
+                    })
+                    onOpenChange(false)
+                  }}
+                  value={file.name}
+                >
+                  <FileTextIcon />
+                  <span className="min-w-0 flex-1 truncate">{file.name}</span>
+                  <CommandShortcut className="tracking-normal">
+                    {file.size}
+                  </CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </Command>
+    </CommandDialog>
+  )
+}
+
 function ProjectChatComposer() {
   const [announcement, setAnnouncement] = useState("")
   const [draft, setDraft] = useState("")
@@ -270,7 +368,8 @@ function ProjectDetailNotFound() {
             </EmptyMedia>
             <EmptyTitle>Project not found</EmptyTitle>
             <EmptyDescription>
-              It may have been deleted, or the link belongs to another workspace.
+              It may have been deleted, or the link belongs to another
+              workspace.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -285,32 +384,40 @@ export function ProjectDetail({ projectSlug }: { projectSlug: string }) {
   const router = useRouter()
   const { getProject, isReady, updateProject } = useProjects()
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(false)
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false)
   const project = getProject(projectSlug)
 
   if (!project) {
     return isReady ? <ProjectDetailNotFound /> : <ProjectDetailLoading />
   }
 
-  function addProjectSources(files: File[]) {
-    const filenames = new Set(
-      project?.sources.map(({ filename }) => filename) ?? [],
-    )
-    const sources = files.flatMap<ProjectSource>((file) =>
-      filenames.has(file.name)
-        ? []
-        : [
-            {
-              filename: file.name,
-              mediaType: file.type || "application/octet-stream",
-            },
-          ],
-    )
+  const projectSources = project.sources
+
+  function addProjectSourceRecords(nextSources: ProjectSource[]) {
+    const filenames = new Set(projectSources.map(({ filename }) => filename))
+    const sources = nextSources.filter((source) => {
+      if (filenames.has(source.filename)) {
+        return false
+      }
+
+      filenames.add(source.filename)
+      return true
+    })
 
     if (sources.length > 0) {
       updateProject(projectSlug, {
-        sources: [...(project?.sources ?? []), ...sources],
+        sources: [...projectSources, ...sources],
       })
     }
+  }
+
+  function addUploadedProjectSources(files: File[]) {
+    addProjectSourceRecords(
+      files.map((file) => ({
+        filename: file.name,
+        mediaType: file.type || "application/octet-stream",
+      })),
+    )
   }
 
   return (
@@ -365,16 +472,35 @@ export function ProjectDetail({ projectSlug }: { projectSlug: string }) {
           <section className="flex flex-col gap-3" id="project-sources">
             <ProjectSectionHeader
               action={
-                <Button
-                  className="h-11 sm:h-7"
-                  onClick={() => fileInputRef.current?.click()}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  <PlusIcon data-icon="inline-start" />
-                  Add source
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        className="h-11 sm:h-7"
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      />
+                    }
+                  >
+                    <PlusIcon data-icon="inline-start" />
+                    Add source
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <UploadIcon />
+                        Upload
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setIsLibraryOpen(true)}>
+                        <LibraryBigIcon />
+                        Add from Library
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               }
               title="Sources"
             />
@@ -418,8 +544,8 @@ export function ProjectDetail({ projectSlug }: { projectSlug: string }) {
               </div>
             ) : (
               <p className="text-pretty text-base text-muted-foreground sm:text-sm">
-                No sources yet. Anything here is available to every chat in
-                the project.
+                No sources yet. Anything here is available to every chat in the
+                project.
               </p>
             )}
           </section>
@@ -482,10 +608,16 @@ export function ProjectDetail({ projectSlug }: { projectSlug: string }) {
         multiple
         name="project-sources"
         onChange={(event) => {
-          addProjectSources(Array.from(event.currentTarget.files ?? []))
+          addUploadedProjectSources(Array.from(event.currentTarget.files ?? []))
           event.currentTarget.value = ""
         }}
         type="file"
+      />
+      <ProjectLibrarySourceDialog
+        existingSources={project.sources}
+        onAdd={(source) => addProjectSourceRecords([source])}
+        onOpenChange={setIsLibraryOpen}
+        open={isLibraryOpen}
       />
       <ProjectInstructionsDialog
         onOpenChange={setIsInstructionsOpen}
