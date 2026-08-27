@@ -1,8 +1,7 @@
 import type { Metadata } from "next"
 
+import { ChatPageHeader } from "@/components/chat/chat-page-header"
 import { ProjectsList } from "@/components/projects/projects-list"
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
 
 export const metadata: Metadata = {
   title: "Projects – AI Chat",
@@ -12,14 +11,9 @@ export const metadata: Metadata = {
 export default function ProjectsPage() {
   return (
     <>
-      <header className="flex h-14 shrink-0 items-center gap-2 px-3">
-        <SidebarTrigger aria-label="Toggle sidebar" />
-        <Separator
-          className="data-vertical:h-4 data-vertical:self-auto"
-          orientation="vertical"
-        />
-        <p className="pl-2 text-sm font-medium">Projects</p>
-      </header>
+      <ChatPageHeader>
+        <p className="text-sm font-medium">Projects</p>
+      </ChatPageHeader>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <ProjectsList />
       </div>

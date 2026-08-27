@@ -1,7 +1,7 @@
 import { useRef, useState } from "react"
 import { CheckIcon, CircleAlertIcon, CopyIcon } from "lucide-react"
 
-import { ChatTouchTarget } from "@/components/chat/chat-touch-target"
+import { TouchTarget } from "@/components/ui/touch-target"
 import {
   InputGroup,
   InputGroupAddon,
@@ -91,7 +91,7 @@ export function ChatShareLinkField({
             ) : (
               <CopyIcon />
             )}
-            <ChatTouchTarget />
+            <TouchTarget />
           </InputGroupButton>
         </InputGroupAddon>
       </InputGroup>

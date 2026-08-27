@@ -11,7 +11,7 @@ import {
   XIcon,
 } from "lucide-react"
 
-import { ChatTouchTarget } from "@/components/chat/chat-touch-target"
+import { TouchTarget } from "@/components/ui/touch-target"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -125,7 +125,7 @@ function ChatComposerAddMenu({
         }
       >
         <PlusIcon />
-        <ChatTouchTarget />
+        <TouchTarget />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-60" side="top">
         <DropdownMenuGroup>
@@ -268,7 +268,7 @@ function ChatComposerSubmitButton({
       variant="default"
     >
       <XIcon />
-      <ChatTouchTarget />
+      <TouchTarget />
     </InputGroupButton>
   ) : (
     <InputGroupButton
@@ -281,7 +281,7 @@ function ChatComposerSubmitButton({
       variant="default"
     >
       <ArrowUpIcon />
-      <ChatTouchTarget />
+      <TouchTarget />
     </InputGroupButton>
   )
 }

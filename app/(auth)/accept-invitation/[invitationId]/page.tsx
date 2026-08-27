@@ -2,20 +2,13 @@ import type { Metadata } from "next"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
+import { WorkspaceInvitationCard } from "@/components/auth/workspace-invitation-card"
 import {
   Alert,
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { auth } from "@/di/authentication"
 
 export const metadata: Metadata = {
@@ -42,19 +35,12 @@ async function acceptWorkspaceInvitation(invitationId: string) {
 
 function InvitationUnavailableCard() {
   return (
-    <Card className="w-full max-w-md [--card-spacing:--spacing(6)]">
-      <CardHeader>
-        <CardTitle>
-          <h1>Invitation unavailable</h1>
-        </CardTitle>
-        <CardDescription>
-          Link expired, was already used, or belongs to another email address.
-        </CardDescription>
-      </CardHeader>
-      <CardFooter className="text-sm text-muted-foreground">
-        Sign in with invited email, then open link again.
-      </CardFooter>
-    </Card>
+    <WorkspaceInvitationCard
+      description="Link expired, was already used, or belongs to another email address."
+      footer="Sign in with invited email, then open link again."
+      footerClassName="text-sm text-muted-foreground"
+      title="Invitation unavailable"
+    />
   )
 }
 
@@ -94,35 +80,29 @@ export default async function AcceptWorkspaceInvitationPage({
   )
 
   return (
-    <Card className="w-full max-w-md [--card-spacing:--spacing(6)]">
-      <CardHeader>
-        <CardTitle>
-          <h1>Join {invitation.organizationName}</h1>
-        </CardTitle>
-        <CardDescription>
-          {invitation.inviterEmail} invited you to this workspace.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {error && (
-          <Alert variant="destructive">
-            <AlertTitle>Invitation not accepted</AlertTitle>
-            <AlertDescription>
-              Try again. Link may have expired.
-            </AlertDescription>
-          </Alert>
-        )}
-        <p className="text-sm text-muted-foreground">
-          Invitation matches {session.user.email}.
-        </p>
-      </CardContent>
-      <CardFooter>
+    <WorkspaceInvitationCard
+      contentClassName="flex flex-col gap-4"
+      description={`${invitation.inviterEmail} invited you to this workspace.`}
+      footer={
         <form action={acceptInvitationAction} className="w-full">
           <Button className="h-11 w-full touch-manipulation" type="submit">
             Accept invitation
           </Button>
         </form>
-      </CardFooter>
-    </Card>
+      }
+      title={`Join ${invitation.organizationName}`}
+    >
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Invitation not accepted</AlertTitle>
+          <AlertDescription>
+            Try again. Link may have expired.
+          </AlertDescription>
+        </Alert>
+      )}
+      <p className="text-sm text-muted-foreground">
+        Invitation matches {session.user.email}.
+      </p>
+    </WorkspaceInvitationCard>
   )
 }

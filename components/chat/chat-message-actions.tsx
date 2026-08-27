@@ -4,7 +4,7 @@ import {
   ChatCopyButton,
   type ChatCopyResult,
 } from "@/components/chat/chat-copy-button"
-import { ChatTouchTarget } from "@/components/chat/chat-touch-target"
+import { TouchTarget } from "@/components/ui/touch-target"
 import { Button } from "@/components/ui/button"
 import { MessageFooter } from "@/components/ui/message"
 import {
@@ -75,7 +75,7 @@ export function ChatMessageActions({
                 variant="ghost"
               >
                 <RefreshCwIcon />
-                <ChatTouchTarget />
+                <TouchTarget />
               </Button>
             }
           />

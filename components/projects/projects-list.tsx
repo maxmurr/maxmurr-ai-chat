@@ -4,10 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { FolderIcon, PlusIcon, SearchIcon, SearchXIcon } from "lucide-react"
 
-import {
-  NewProjectDialog,
-  ProjectActions,
-} from "@/components/projects/project-controls"
+import { NewProjectDialog } from "@/components/projects/new-project-dialog"
+import { ProjectActions } from "@/components/projects/project-actions"
 import { formatProjectUpdatedDate } from "@/components/projects/project-data"
 import { useProjects } from "@/components/projects/project-state"
 import { Button } from "@/components/ui/button"
@@ -32,9 +30,10 @@ import {
   ItemGroup,
   ItemTitle,
 } from "@/components/ui/item"
+import { cn } from "@/lib/utils"
 
 /** Renders searchable project cards and project creation dialog. */
-export function ProjectsList() {
+export function ProjectsList({ className }: { className?: string }) {
   const { projects } = useProjects()
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false)
   const [query, setQuery] = useState("")
@@ -46,7 +45,7 @@ export function ProjectsList() {
   )
 
   return (
-    <div className="mx-auto w-full max-w-3xl p-4">
+    <div className={cn("mx-auto w-full max-w-3xl p-4", className)}>
       {projects.length === 0 ? (
         <Empty className="min-h-64">
           <EmptyHeader>

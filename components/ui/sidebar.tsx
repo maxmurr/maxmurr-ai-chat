@@ -18,6 +18,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
+import { TouchTarget } from "@/components/ui/touch-target"
 import {
   Tooltip,
   TooltipContent,
@@ -273,10 +274,7 @@ function SidebarTrigger({
     >
       <PanelLeftIcon />
       <span className="sr-only">Toggle Sidebar</span>
-      <span
-        aria-hidden="true"
-        className="absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden"
-      />
+      <TouchTarget />
     </Button>
   )
 }

@@ -4,6 +4,15 @@ import { useForm } from "@tanstack/react-form"
 import { PlusIcon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 
+import {
+  getChatWorkspaceFieldError,
+  MAX_CHAT_WORKSPACE_MEMBERS,
+  type ChatWorkspaceFormMember,
+  type ChatWorkspaceMemberRole,
+  validateChatWorkspaceMemberEmail,
+  validateChatWorkspaceMembers,
+  validateChatWorkspaceName,
+} from "@/components/chat/chat-workspace-validation"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -29,17 +38,6 @@ import {
 } from "@/components/ui/native-select"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
-
-const MAX_CHAT_WORKSPACE_MEMBERS = 5
-const CHAT_WORKSPACE_MEMBER_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-type ChatWorkspaceMemberRole = "admin" | "member"
-
-type ChatWorkspaceFormMember = {
-  id: string
-  email: string
-  role: ChatWorkspaceMemberRole
-}
 
 type ChatWorkspaceFormValues = {
   workspace: {
@@ -79,64 +77,11 @@ const defaultChatWorkspaceFormValues: ChatWorkspaceFormValues = {
   },
 }
 
-/** Validates workspace names before availability checks run. */
-export function validateChatWorkspaceName(name: string) {
-  const normalizedName = name.trim()
-
-  if (!normalizedName) {
-    return "Enter a workspace name."
-  }
-
-  if (normalizedName.length < 2) {
-    return "Workspace name must have at least 2 characters."
-  }
-
-  if (normalizedName.length > 48) {
-    return "Workspace name must have at most 48 characters."
-  }
-
-  return undefined
-}
-
-/** Validates one member email in workspace access settings. */
-export function validateChatWorkspaceMemberEmail(email: string) {
-  const normalizedEmail = email.trim()
-
-  if (!normalizedEmail) {
-    return "Enter a member email."
-  }
-
-  if (
-    normalizedEmail.length > 254 ||
-    !CHAT_WORKSPACE_MEMBER_EMAIL_PATTERN.test(normalizedEmail)
-  ) {
-    return "Enter a valid email address."
-  }
-
-  return undefined
-}
-
-/** Validates member count and duplicate emails across workspace member array. */
-export function validateChatWorkspaceMembers(
-  members: ChatWorkspaceFormMember[]
-) {
-  if (members.length > MAX_CHAT_WORKSPACE_MEMBERS) {
-    return `Add no more than ${MAX_CHAT_WORKSPACE_MEMBERS} members.`
-  }
-
-  const emails = members.map(({ email }) => email.trim().toLowerCase())
-  const uniqueEmails = new Set(emails.filter(Boolean))
-
-  if (uniqueEmails.size !== emails.filter(Boolean).length) {
-    return "Each member email must be unique."
-  }
-
-  return undefined
-}
-
-function getFieldErrorMessage(errors: unknown[]) {
-  return errors.find((error): error is string => typeof error === "string")
-}
+export {
+  validateChatWorkspaceMemberEmail,
+  validateChatWorkspaceMembers,
+  validateChatWorkspaceName,
+} from "@/components/chat/chat-workspace-validation"
 
 /** Renders typed TanStack Form controls for creating one chat workspace. */
 export function CreateChatWorkspaceDialog({
@@ -213,7 +158,7 @@ export function CreateChatWorkspaceDialog({
                 }}
               >
                 {(field) => {
-                  const errorMessage = getFieldErrorMessage(
+                  const errorMessage = getChatWorkspaceFieldError(
                     field.state.meta.errors
                   )
                   const descriptionId = "chat-workspace-name-description"
@@ -261,7 +206,7 @@ export function CreateChatWorkspaceDialog({
               }}
             >
               {(membersField) => {
-                const membersError = getFieldErrorMessage(
+                const membersError = getChatWorkspaceFieldError(
                   membersField.state.meta.errors
                 )
 
@@ -288,7 +233,7 @@ export function CreateChatWorkspaceDialog({
                             }}
                           >
                             {(field) => {
-                              const errorMessage = getFieldErrorMessage(
+                              const errorMessage = getChatWorkspaceFieldError(
                                 field.state.meta.errors
                               )
                               const inputId = `chat-workspace-member-${member.id}-email`

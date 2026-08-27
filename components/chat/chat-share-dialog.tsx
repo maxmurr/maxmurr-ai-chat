@@ -5,7 +5,7 @@ import { Share2Icon } from "lucide-react"
 
 import { updateChatSharingAction } from "@/app/chat/actions"
 import { ChatShareLinkField } from "@/components/chat/chat-share-link-field"
-import { ChatTouchTarget } from "@/components/chat/chat-touch-target"
+import { TouchTarget } from "@/components/ui/touch-target"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -223,7 +223,7 @@ export function ChatShareDialog({
       >
         <Share2Icon data-icon="inline-start" />
         Share
-        <ChatTouchTarget />
+        <TouchTarget />
       </DialogTrigger>
       <ChatShareDialogContent
         chatId={chatId}

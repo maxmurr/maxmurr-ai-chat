@@ -1,6 +1,6 @@
 import { FileTextIcon, XIcon } from "lucide-react"
 
-import { ChatTouchTarget } from "@/components/chat/chat-touch-target"
+import { TouchTarget } from "@/components/ui/touch-target"
 import {
   Attachment,
   AttachmentAction,
@@ -43,7 +43,7 @@ export function ChatSelectedAttachments({
               type="button"
             >
               <XIcon />
-              <ChatTouchTarget />
+              <TouchTarget />
             </AttachmentAction>
           </AttachmentActions>
         </Attachment>

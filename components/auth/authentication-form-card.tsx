@@ -1,34 +1,27 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
-import { REGEXP_ONLY_DIGITS } from "input-otp"
-import { MailIcon } from "lucide-react"
-import Link from "next/link"
 import { useState } from "react"
 
 import { AuthenticationField } from "@/components/auth/authentication-field"
+import {
+  AuthenticationAlternateLink,
+  AuthenticationFormHeader,
+  AuthenticationOtpField,
+} from "@/components/auth/authentication-form-sections"
+import {
+  getAuthenticationFieldError,
+  maskAuthenticationEmail,
+  validateAuthenticationEmail,
+  validateAuthenticationOtp,
+  validateAuthenticationUsername,
+} from "@/components/auth/authentication-form-validation"
 import { AuthenticationGoogleButton } from "@/components/auth/authentication-google-button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card"
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
+import { Card, CardContent } from "@/components/ui/card"
+import { FieldError, FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp"
 import { Separator } from "@/components/ui/separator"
 import { authClient } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
@@ -55,72 +48,18 @@ type AuthenticationFormCardProps = {
   mode: AuthenticationMode
 }
 
-const AUTHENTICATION_USERNAME_PATTERN = /^[A-Za-z0-9_.]+$/
-const AUTHENTICATION_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const AUTHENTICATION_OTP_PATTERN = /^\d{6}$/
 const defaultAuthenticationFormValues: AuthenticationFormValues = {
   email: "",
   otp: "",
   username: "",
 }
 
-/** Validates account username syntax during email OTP registration. */
-export function validateAuthenticationUsername(username: string) {
-  const normalizedUsername = username.trim()
-
-  if (!normalizedUsername) {
-    return "Enter your username."
-  }
-
-  if (
-    normalizedUsername.length < 3 ||
-    normalizedUsername.length > 31 ||
-    !AUTHENTICATION_USERNAME_PATTERN.test(normalizedUsername)
-  ) {
-    return "Use 3–31 letters, numbers, underscores, or periods."
-  }
-
-  return undefined
-}
-
-/** Validates email syntax before requesting an authentication code. */
-export function validateAuthenticationEmail(email: string) {
-  const normalizedEmail = email.trim()
-
-  if (
-    !normalizedEmail ||
-    normalizedEmail.length > 320 ||
-    !AUTHENTICATION_EMAIL_PATTERN.test(normalizedEmail)
-  ) {
-    return "Enter a valid email address."
-  }
-
-  return undefined
-}
-
-/** Validates six-digit Better Auth email one-time password codes. */
-export function validateAuthenticationOtp(otp: string) {
-  if (!AUTHENTICATION_OTP_PATTERN.test(otp)) {
-    return "Enter the 6-digit code."
-  }
-
-  return undefined
-}
-
-/** Masks authentication email local-part while keeping recipient recognizable. */
-export function maskAuthenticationEmail(email: string) {
-  const atIndex = email.lastIndexOf("@")
-
-  if (atIndex <= 0) {
-    return email
-  }
-
-  return `${email[0]}***${email.slice(atIndex)}`
-}
-
-function getAuthenticationFieldError(errors: unknown[]) {
-  return errors.find((error): error is string => typeof error === "string")
-}
+export {
+  maskAuthenticationEmail,
+  validateAuthenticationEmail,
+  validateAuthenticationOtp,
+  validateAuthenticationUsername,
+} from "@/components/auth/authentication-form-validation"
 
 /** Renders passwordless email OTP sign-in or verified account creation. */
 export function AuthenticationFormCard({
@@ -280,12 +219,6 @@ export function AuthenticationFormCard({
     }
   }
 
-  const alternateAuthenticationPath = isSignUp ? "/sign-in" : "/sign-up"
-  const alternateAuthenticationHref =
-    callbackPath === "/chat"
-      ? alternateAuthenticationPath
-      : `${alternateAuthenticationPath}?callbackURL=${encodeURIComponent(callbackPath)}`
-
   return (
     <Card
       className={cn(
@@ -293,22 +226,11 @@ export function AuthenticationFormCard({
         className
       )}
     >
-      <CardHeader className="justify-items-center gap-2 text-center">
-        {isVerificationStep && (
-          <div
-            aria-hidden="true"
-            className="mb-2 flex size-12 items-center justify-center rounded-full bg-muted text-foreground"
-          >
-            <MailIcon className="size-5" />
-          </div>
-        )}
-        <h1 className="text-balance font-heading text-2xl font-semibold tracking-tight text-foreground">
-          {title}
-        </h1>
-        <CardDescription className="text-balance">
-          {description}
-        </CardDescription>
-      </CardHeader>
+      <AuthenticationFormHeader
+        description={description}
+        isVerificationStep={isVerificationStep}
+        title={title}
+      />
 
       <CardContent className="flex flex-col gap-6">
         {!emailOtpEnabled && (
@@ -470,63 +392,25 @@ export function AuthenticationFormCard({
                     const error = getAuthenticationFieldError(
                       field.state.meta.errors
                     )
-                    const errorId = "otp-error"
                     const invalid = !field.state.meta.isValid
 
                     return (
                       <form.Subscribe selector={(state) => state.isSubmitting}>
                         {(isSubmitting) => (
-                          <Field
-                            className="items-center"
-                            data-invalid={invalid || undefined}
-                          >
-                            <FieldLabel
-                              className="sr-only"
-                              htmlFor="verification-code"
-                            >
-                              One-time password
-                            </FieldLabel>
-                            <InputOTP
-                              aria-describedby={error ? errorId : undefined}
-                              aria-invalid={invalid}
-                              autoComplete="one-time-code"
-                              autoFocus
-                              containerClassName="justify-center"
-                              disabled={isSubmitting}
-                              id="verification-code"
-                              maxLength={6}
-                              name={field.name}
-                              onBlur={field.handleBlur}
-                              onChange={field.handleChange}
-                              onComplete={() => {
-                                if (!isSubmitting) {
-                                  void form.handleSubmit()
-                                }
-                              }}
-                              pattern={REGEXP_ONLY_DIGITS}
-                              required
-                              value={field.state.value}
-                            >
-                              <InputOTPGroup>
-                                {[0, 1, 2, 3, 4, 5].map((index) => (
-                                  <InputOTPSlot
-                                    aria-invalid={invalid}
-                                    className="h-12 w-11 text-lg"
-                                    index={index}
-                                    key={index}
-                                  />
-                                ))}
-                              </InputOTPGroup>
-                            </InputOTP>
-                            <FieldError className="text-center" id={errorId}>
-                              {error}
-                            </FieldError>
-                            <span aria-live="polite" className="sr-only">
-                              {isSubmitting
-                                ? "Verifying one-time password…"
-                                : ""}
-                            </span>
-                          </Field>
+                          <AuthenticationOtpField
+                            disabled={isSubmitting}
+                            error={error}
+                            invalid={invalid}
+                            name={field.name}
+                            onBlur={field.handleBlur}
+                            onChange={field.handleChange}
+                            onComplete={() => {
+                              if (!isSubmitting) {
+                                void form.handleSubmit()
+                              }
+                            }}
+                            value={field.state.value}
+                          />
                         )}
                       </form.Subscribe>
                     )
@@ -564,17 +448,10 @@ export function AuthenticationFormCard({
       </CardContent>
 
       {!isVerificationStep && (
-        <CardFooter className="flex-wrap justify-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-          <span>
-            {isSignUp ? "Already have an account?" : "Don't have an account?"}
-          </span>
-          <Link
-            className="rounded-sm font-medium text-foreground underline decoration-foreground/30 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-            href={alternateAuthenticationHref}
-          >
-            {isSignUp ? "Sign In" : "Sign Up"}
-          </Link>
-        </CardFooter>
+        <AuthenticationAlternateLink
+          callbackPath={callbackPath}
+          isSignUp={isSignUp}
+        />
       )}
     </Card>
   )

@@ -35,7 +35,8 @@ const primaryNavigation = [
   { label: "Library", href: "/library", icon: LibraryBigIcon },
 ]
 
-type ChatAppSidebarProps = {
+/** Data needed to render workspace navigation and chat history. */
+export type ChatAppSidebarProps = {
   activeNavigation?: "library" | "projects"
   activeWorkspaceId?: string
   className?: string

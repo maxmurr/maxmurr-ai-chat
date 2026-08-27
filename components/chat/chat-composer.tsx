@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react"
 
 import { ChatComposerToolbar } from "@/components/chat/chat-composer-toolbar"
 import { ChatSelectedAttachments } from "@/components/chat/chat-selected-attachments"
+import { Input } from "@/components/ui/input"
 import {
   InputGroup,
   InputGroupAddon,
@@ -137,7 +138,7 @@ export function ChatComposer({
       <form.Field mode="array" name="attachments">
         {(attachmentsField) => (
           <div className="rounded-lg bg-background">
-            <input
+            <Input
               ref={fileInputRef}
               aria-label="Choose files to attach"
               hidden

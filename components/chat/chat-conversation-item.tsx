@@ -14,24 +14,12 @@ import {
   Trash2Icon,
 } from "lucide-react"
 
-import {
-  deleteChatAction,
-  pinChatAction,
-  renameChatAction,
-} from "@/app/chat/actions"
+import { pinChatAction, renameChatAction } from "@/app/chat/actions"
 import { useChatConversationTitle } from "@/components/chat/chat-conversation-title"
+import { ChatDeleteDialog } from "@/components/chat/chat-dialogs"
 import { ChatShareDialogContent } from "@/components/chat/chat-share-dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Dialog } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -111,21 +99,6 @@ export function ChatConversationItem({
     setIsRenaming(false)
   }
 
-  async function deleteConversation() {
-    const result = await deleteChatAction(chat.id)
-
-    if (!result.ok) {
-      toast.add({ description: result.error, title: "Delete failed", type: "error" })
-      return
-    }
-
-    setIsDeleteDialogOpen(false)
-
-    if (isActive) {
-      router.push("/chat")
-    }
-  }
-
   useEffect(() => {
     if (isRenaming) {
       renameInputRef.current?.focus()
@@ -179,11 +152,11 @@ export function ChatConversationItem({
           render={<div />}
         >
           {chat.pinned && <MessageCircleIcon />}
-          <input
+          <Input
             ref={renameInputRef}
             aria-label={`Rename ${chat.title}`}
             autoComplete="off"
-            className="-mx-1 w-full min-w-0 bg-transparent px-1 outline-none"
+            className="-mx-1 h-auto w-full min-w-0 rounded-none border-0 bg-transparent px-1 py-0 focus-visible:border-transparent focus-visible:ring-0 dark:bg-transparent"
             defaultValue={chat.title}
             name="chat-title"
             spellCheck={false}
@@ -326,26 +299,12 @@ export function ChatConversationItem({
         />
       </Dialog>
 
-      <AlertDialog
+      <ChatDeleteDialog
+        chat={chat}
+        onDeleted={isActive ? () => router.push("/chat") : undefined}
         onOpenChange={setIsDeleteDialogOpen}
         open={isDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete chat?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This permanently deletes the chat and its messages. Shared links
-              stop working.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void deleteConversation()}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      />
     </SidebarMenuItem>
   )
 }

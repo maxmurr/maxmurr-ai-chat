@@ -5,7 +5,7 @@ import {
   CopyIcon,
 } from "lucide-react"
 
-import { ChatTouchTarget } from "@/components/chat/chat-touch-target"
+import { TouchTarget } from "@/components/ui/touch-target"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -37,7 +37,7 @@ export function ChatCopyButton({
       ) : (
         <CopyIcon />
       )}
-      <ChatTouchTarget />
+      <TouchTarget />
     </Button>
   )
 }

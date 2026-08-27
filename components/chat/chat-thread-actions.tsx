@@ -16,7 +16,7 @@ import { useChatConversationTitle } from "@/components/chat/chat-conversation-ti
 import {
   ChatDeleteDialog,
   ChatRenameDialog,
-} from "@/components/chat/chat-history"
+} from "@/components/chat/chat-dialogs"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -27,13 +27,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "@/components/ui/toast"
+import { cn } from "@/lib/utils"
 
 /** Renders header menu actions for the currently open chat. */
 export function ChatThreadActions({
   chatId,
+  className,
   pinned,
 }: {
   chatId: string
+  className?: string
   pinned: boolean
 }) {
   const router = useRouter()
@@ -63,6 +66,7 @@ export function ChatThreadActions({
           render={
             <Button
               aria-label="More chat options"
+              className={cn(className)}
               size="icon-sm"
               type="button"
               variant="ghost"

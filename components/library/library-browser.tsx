@@ -3,8 +3,6 @@
 import { useState } from "react"
 import {
   ChevronDownIcon,
-  FileTextIcon,
-  FolderIcon,
   FolderPlusIcon,
   LayoutGridIcon,
   ListIcon,
@@ -13,19 +11,13 @@ import {
   UploadIcon,
 } from "lucide-react"
 
+import { LibraryGrid } from "@/components/library/library-grid"
+import { LibraryList } from "@/components/library/library-list"
 import {
   filterLibraryItems,
   LIBRARY_ITEMS,
   type LibraryFilter,
-  type LibraryItem,
 } from "@/components/library/library-data"
-import {
-  Attachment,
-  AttachmentContent,
-  AttachmentDescription,
-  AttachmentMedia,
-  AttachmentTitle,
-} from "@/components/ui/attachment"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -46,16 +38,8 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { cn } from "@/lib/utils"
 
 type LibraryView = "grid" | "list"
 
@@ -75,84 +59,15 @@ const libraryViews = [
   value: LibraryView
 }[]
 
-function LibraryGrid({ items }: { items: readonly LibraryItem[] }) {
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      {items.map((item) => (
-        <Attachment className="w-full!" key={item.name} orientation="vertical">
-          <AttachmentMedia>
-            {item.kind === "folder" ? <FolderIcon /> : <FileTextIcon />}
-          </AttachmentMedia>
-          <AttachmentContent>
-            <AttachmentTitle>{item.name}</AttachmentTitle>
-            <AttachmentDescription>
-              {item.kind === "folder" ? "Folder" : item.size}
-            </AttachmentDescription>
-          </AttachmentContent>
-        </Attachment>
-      ))}
-    </div>
-  )
-}
-
-function LibraryList({ items }: { items: readonly LibraryItem[] }) {
-  return (
-    <div className="overflow-x-auto rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead className="w-28">Size</TableHead>
-            <TableHead className="hidden w-32 sm:table-cell">
-              Modified
-            </TableHead>
-            <TableHead className="hidden w-48 lg:table-cell">Source</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item) => (
-            <TableRow key={item.name}>
-              <TableCell>
-                <Item className="flex-nowrap p-0 text-left" size="sm">
-                  <ItemMedia
-                    className="size-8 rounded-md bg-muted"
-                    variant="icon"
-                  >
-                    {item.kind === "folder" ? <FolderIcon /> : <FileTextIcon />}
-                  </ItemMedia>
-                  <ItemContent className="min-w-0">
-                    <ItemTitle className="max-w-full truncate">
-                      {item.name}
-                    </ItemTitle>
-                  </ItemContent>
-                </Item>
-              </TableCell>
-              <TableCell className="tabular-nums text-muted-foreground">
-                {item.size}
-              </TableCell>
-              <TableCell className="hidden tabular-nums text-muted-foreground sm:table-cell">
-                {item.modified}
-              </TableCell>
-              <TableCell className="hidden text-muted-foreground lg:table-cell">
-                {item.source}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  )
-}
-
 /** Renders searchable library files with grid and list views. */
-export function LibraryBrowser() {
+export function LibraryBrowser({ className }: { className?: string }) {
   const [filter, setFilter] = useState<LibraryFilter>("all")
   const [query, setQuery] = useState("")
   const [view, setView] = useState<LibraryView>("grid")
   const matchingItems = filterLibraryItems(LIBRARY_ITEMS, query, filter)
 
   return (
-    <div className="mx-auto w-full max-w-3xl p-4">
+    <div className={cn("mx-auto w-full max-w-3xl p-4", className)}>
       <div className="mb-6 flex items-center gap-2">
         <InputGroup className="max-w-xs pointer-coarse:h-11">
           <InputGroupAddon>
