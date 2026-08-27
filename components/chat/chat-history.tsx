@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { isToday, isYesterday, subDays } from "date-fns"
 
 import { deleteChatAction, renameChatAction } from "@/app/chat/actions"
 import {
@@ -143,6 +144,49 @@ export function ChatDeleteDialog({
   )
 }
 
+// ponytail: local-time grouping renders on the server too; a viewer in a
+// different timezone than the server may see a one-off hydration re-render.
+function chatDateGroupLabel(updatedAt: Date, now: Date) {
+  if (isToday(updatedAt)) {
+    return "Today"
+  }
+
+  if (isYesterday(updatedAt)) {
+    return "Yesterday"
+  }
+
+  if (updatedAt >= subDays(now, 7)) {
+    return "Previous 7 days"
+  }
+
+  if (updatedAt >= subDays(now, 30)) {
+    return "Previous 30 days"
+  }
+
+  return "Older"
+}
+
+/** Splits owned chats into a pinned section followed by recency sections. */
+function groupOwnChats(ownChats: ChatConversationEntry[]) {
+  const now = new Date()
+  const groups: { chats: ChatConversationEntry[]; label: string }[] = []
+
+  for (const chat of ownChats) {
+    const label = chat.pinned
+      ? "Pinned"
+      : chatDateGroupLabel(chat.updatedAt, now)
+    const group = groups.find((candidate) => candidate.label === label)
+
+    if (group) {
+      group.chats.push(chat)
+    } else {
+      groups.push({ chats: [chat], label })
+    }
+  }
+
+  return groups
+}
+
 /** Renders own and team chat history in the sidebar. */
 export function ChatHistory({
   ownChats,
@@ -155,12 +199,15 @@ export function ChatHistory({
 
   return (
     <>
-      {ownChats.length > 0 && (
-        <SidebarGroup>
-          <SidebarGroupLabel>Chats</SidebarGroupLabel>
+      {groupOwnChats(ownChats).map((group) => (
+        <SidebarGroup
+          className="group-data-[collapsible=icon]:hidden"
+          key={group.label}
+        >
+          <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {ownChats.map((chat) => (
+              {group.chats.map((chat) => (
                 <ChatConversationItem
                   chat={chat}
                   isActive={pathname === `/chat/${chat.id}`}
@@ -170,10 +217,10 @@ export function ChatHistory({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-      )}
+      ))}
 
       {teamChats.length > 0 && (
-        <SidebarGroup>
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
           <SidebarGroupLabel>Team</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

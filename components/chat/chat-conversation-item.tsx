@@ -55,6 +55,7 @@ export type ChatConversationEntry = {
   pinned: boolean
   publicToken: string | null
   title: string
+  updatedAt: Date
   visibility: ChatVisibility
 }
 

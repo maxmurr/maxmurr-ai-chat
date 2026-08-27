@@ -45,11 +45,12 @@ export async function loadChatPageData() {
       name,
     },
     ownChats: ownChats.map(
-      ({ id, pinned, publicToken, title, visibility }) => ({
+      ({ id, pinned, publicToken, title, updatedAt, visibility }) => ({
         id,
         pinned,
         publicToken,
         title,
+        updatedAt,
         visibility,
       })
     ),
