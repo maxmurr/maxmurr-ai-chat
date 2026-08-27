@@ -7,6 +7,8 @@ import {
   boolean,
   integer,
   index,
+  jsonb,
+  primaryKey,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
@@ -148,6 +150,48 @@ export const invitation = pgTable(
   ],
 );
 
+export const chat = pgTable(
+  "chat",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").default("New chat").notNull(),
+    visibility: text("visibility").default("private").notNull(),
+    publicToken: text("public_token"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("chat_organizationId_idx").on(table.organizationId),
+    index("chat_ownerId_idx").on(table.ownerId),
+    uniqueIndex("chat_publicToken_uidx").on(table.publicToken),
+  ],
+);
+
+export const chatMessage = pgTable(
+  "chat_message",
+  {
+    // Message ids are client-generated: unique per chat, not globally.
+    id: text("id").notNull(),
+    chatId: text("chat_id")
+      .notNull()
+      .references(() => chat.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    parts: jsonb("parts").notNull(),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.chatId, table.id] })],
+);
+
 export const rateLimit = pgTable("rate_limit", {
   id: text("id").primaryKey(),
   key: text("key").notNull().unique(),
@@ -189,6 +233,25 @@ export const memberRelations = relations(member, ({ one }) => ({
   user: one(user, {
     fields: [member.userId],
     references: [user.id],
+  }),
+}));
+
+export const chatRelations = relations(chat, ({ one, many }) => ({
+  organization: one(organization, {
+    fields: [chat.organizationId],
+    references: [organization.id],
+  }),
+  owner: one(user, {
+    fields: [chat.ownerId],
+    references: [user.id],
+  }),
+  messages: many(chatMessage),
+}));
+
+export const chatMessageRelations = relations(chatMessage, ({ one }) => ({
+  chat: one(chat, {
+    fields: [chatMessage.chatId],
+    references: [chat.id],
   }),
 }));
 

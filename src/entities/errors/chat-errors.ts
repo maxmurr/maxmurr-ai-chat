@@ -13,3 +13,11 @@ export class ChatUnavailableError extends Error {
     this.name = "ChatUnavailableError"
   }
 }
+
+/** Signals the requester may not act on this chat. */
+export class ChatAccessDeniedError extends Error {
+  constructor(options?: ErrorOptions) {
+    super("Chat access denied.", options)
+    this.name = "ChatAccessDeniedError"
+  }
+}
