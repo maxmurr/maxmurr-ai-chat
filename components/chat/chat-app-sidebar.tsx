@@ -32,11 +32,11 @@ const primaryNavigation = [
   { label: "New chat", href: "/chat", icon: PlusIcon },
   { label: "Search", href: "#search", icon: SearchIcon },
   { label: "Projects", href: "/projects", icon: FolderIcon },
-  { label: "Library", href: "#library", icon: LibraryBigIcon },
+  { label: "Library", href: "/library", icon: LibraryBigIcon },
 ]
 
 type ChatAppSidebarProps = {
-  activeNavigation?: "projects"
+  activeNavigation?: "library" | "projects"
   activeWorkspaceId?: string
   className?: string
   currentUser: {
@@ -54,7 +54,7 @@ function ChatPrimaryNavigation({
   activeNavigation,
   className,
 }: {
-  activeNavigation?: "projects"
+  activeNavigation?: "library" | "projects"
   className?: string
 }) {
   return (
@@ -66,7 +66,8 @@ function ChatPrimaryNavigation({
         >
           <SidebarMenuButton
             isActive={
-              activeNavigation === "projects" && item.href === "/projects"
+              activeNavigation !== undefined &&
+              item.href === `/${activeNavigation}`
             }
             render={<Link href={item.href} />}
             tooltip={item.label}
