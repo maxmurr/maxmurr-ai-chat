@@ -6,6 +6,7 @@ import {
   SearchIcon,
 } from "lucide-react"
 
+import type { ChatConversationEntry } from "@/components/chat/chat-conversation-item"
 import {
   ChatHistory,
   type ChatHistoryEntry,
@@ -43,7 +44,7 @@ type ChatAppSidebarProps = {
     initials: string
     name: string
   }
-  ownChats: ChatHistoryEntry[]
+  ownChats: ChatConversationEntry[]
   teamChats: ChatHistoryEntry[]
   workspaces: ChatWorkspaceSummary[]
 }

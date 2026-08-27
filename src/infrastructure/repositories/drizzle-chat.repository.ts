@@ -17,6 +17,7 @@ function toChat(row: typeof chat.$inferSelect): Chat {
     id: row.id,
     organizationId: row.organizationId,
     ownerId: row.ownerId,
+    pinned: row.pinned,
     publicToken: row.publicToken,
     title: row.title,
     updatedAt: row.updatedAt,
@@ -116,7 +117,7 @@ export const drizzleChatRepository: ChatRepository = {
       .where(
         and(eq(chat.organizationId, organizationId), eq(chat.ownerId, ownerId))
       )
-      .orderBy(desc(chat.updatedAt))
+      .orderBy(desc(chat.pinned), desc(chat.updatedAt))
       .limit(CHAT_LIST_LIMIT)
     return rows.map(toChat)
   },
@@ -158,6 +159,10 @@ export const drizzleChatRepository: ChatRepository = {
       .update(chat)
       .set({ updatedAt: new Date() })
       .where(eq(chat.id, chatId))
+  },
+
+  async updateChatPinned(chatId, pinned) {
+    await appDatabase.update(chat).set({ pinned }).where(eq(chat.id, chatId))
   },
 
   async updateChatSharing(chatId, sharing) {

@@ -48,6 +48,18 @@ export async function updateChatSharingAction(
   }
 }
 
+export async function pinChatAction(chatId: string, pinned: boolean) {
+  const userId = await requireUserId()
+
+  try {
+    await chatLibrary().pinChat(chatId, userId, pinned === true)
+    refresh()
+    return { ok: true as const }
+  } catch {
+    return { error: "Could not update pin.", ok: false as const }
+  }
+}
+
 export async function renameChatAction(chatId: string, title: string) {
   const userId = await requireUserId()
 

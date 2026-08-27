@@ -2,10 +2,13 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react"
+import { usePathname } from "next/navigation"
 
 import { deleteChatAction, renameChatAction } from "@/app/chat/actions"
+import {
+  ChatConversationItem,
+  type ChatConversationEntry,
+} from "@/components/chat/chat-conversation-item"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,19 +27,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
@@ -47,11 +43,6 @@ export type ChatHistoryEntry = {
   id: string
   title: string
 }
-
-type ChatHistoryDialog =
-  | { chat: ChatHistoryEntry; kind: "delete" }
-  | { chat: ChatHistoryEntry; kind: "rename" }
-  | null
 
 /** Renames one owned chat behind a small controlled dialog. */
 export function ChatRenameDialog({
@@ -152,113 +143,54 @@ export function ChatDeleteDialog({
   )
 }
 
-function ChatHistoryGroup({
-  chats,
-  label,
-  renderItemAction,
-}: {
-  chats: ChatHistoryEntry[]
-  label: string
-  renderItemAction?: (chat: ChatHistoryEntry) => React.ReactNode
-}) {
-  const pathname = usePathname()
-
-  if (chats.length === 0) {
-    return null
-  }
-
-  return (
-    <SidebarGroup>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {chats.map((chat) => (
-            <SidebarMenuItem key={chat.id}>
-              <SidebarMenuButton
-                isActive={pathname === `/chat/${chat.id}`}
-                render={<Link href={`/chat/${chat.id}`} />}
-                tooltip={chat.title}
-              >
-                <span className="truncate">{chat.title}</span>
-              </SidebarMenuButton>
-              {renderItemAction?.(chat)}
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  )
-}
-
-/** Renders own and team chat history with owner rename and delete actions. */
+/** Renders own and team chat history in the sidebar. */
 export function ChatHistory({
   ownChats,
   teamChats,
 }: {
-  ownChats: ChatHistoryEntry[]
+  ownChats: ChatConversationEntry[]
   teamChats: ChatHistoryEntry[]
 }) {
   const pathname = usePathname()
-  const router = useRouter()
-  const [dialog, setDialog] = useState<ChatHistoryDialog>(null)
 
   return (
     <>
-      <ChatHistoryGroup
-        chats={ownChats}
-        label="Chats"
-        renderItemAction={(chat) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <SidebarMenuAction
-                  aria-label={`Chat actions for ${chat.title}`}
-                  showOnHover
+      {ownChats.length > 0 && (
+        <SidebarGroup>
+          <SidebarGroupLabel>Chats</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {ownChats.map((chat) => (
+                <ChatConversationItem
+                  chat={chat}
+                  isActive={pathname === `/chat/${chat.id}`}
+                  key={chat.id}
                 />
-              }
-            >
-              <MoreHorizontalIcon />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="right">
-              <DropdownMenuItem
-                onClick={() => setDialog({ chat, kind: "rename" })}
-              >
-                <PencilIcon />
-                Rename
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setDialog({ chat, kind: "delete" })}
-                variant="destructive"
-              >
-                <Trash2Icon />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      />
-      <ChatHistoryGroup chats={teamChats} label="Team" />
-
-      {dialog && (
-        <ChatRenameDialog
-          chat={dialog.chat}
-          key={`rename-${dialog.chat.id}`}
-          onOpenChange={(open) => !open && setDialog(null)}
-          open={dialog.kind === "rename"}
-        />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       )}
-      {dialog && (
-        <ChatDeleteDialog
-          chat={dialog.chat}
-          key={`delete-${dialog.chat.id}`}
-          onDeleted={() => {
-            if (pathname === `/chat/${dialog.chat.id}`) {
-              router.push("/chat")
-            }
-          }}
-          onOpenChange={(open) => !open && setDialog(null)}
-          open={dialog.kind === "delete"}
-        />
+
+      {teamChats.length > 0 && (
+        <SidebarGroup>
+          <SidebarGroupLabel>Team</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {teamChats.map((chat) => (
+                <SidebarMenuItem key={chat.id}>
+                  <SidebarMenuButton
+                    isActive={pathname === `/chat/${chat.id}`}
+                    render={<Link href={`/chat/${chat.id}`} />}
+                    tooltip={chat.title}
+                  >
+                    <span className="truncate">{chat.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       )}
     </>
   )

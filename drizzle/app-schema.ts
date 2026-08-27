@@ -163,6 +163,7 @@ export const chat = pgTable(
     title: text("title").default("New chat").notNull(),
     visibility: text("visibility").default("private").notNull(),
     publicToken: text("public_token"),
+    pinned: boolean("pinned").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

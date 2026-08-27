@@ -27,6 +27,7 @@ export type ChatRepository = {
     excludedOwnerId: string
   ): Promise<Chat[]>
   saveMessage(chatId: string, message: ChatMessage): Promise<void>
+  updateChatPinned(chatId: string, pinned: boolean): Promise<void>
   updateChatSharing(
     chatId: string,
     sharing: { publicToken: string | null; visibility: ChatVisibility }

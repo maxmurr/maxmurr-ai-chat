@@ -86,6 +86,11 @@ export function createChatLibraryController(chatRepository: ChatRepository) {
       return { ownChats, teamChats }
     },
 
+    async pinChat(chatId: string, userId: string, pinned: boolean) {
+      await requireOwnedChat(chatId, userId)
+      await chatRepository.updateChatPinned(chatId, pinned)
+    },
+
     async renameChat(chatId: string, userId: string, title: unknown) {
       const result = chatTitleSchema.safeParse(title)
 

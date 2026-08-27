@@ -44,7 +44,15 @@ export async function loadChatPageData() {
       initials: name.slice(0, 2).toUpperCase(),
       name,
     },
-    ownChats: ownChats.map(({ id, title }) => ({ id, title })),
+    ownChats: ownChats.map(
+      ({ id, pinned, publicToken, title, visibility }) => ({
+        id,
+        pinned,
+        publicToken,
+        title,
+        visibility,
+      })
+    ),
     teamChats: teamChats.map(({ id, title }) => ({ id, title })),
     userId: session.user.id,
     workspaces: organizations.map(({ id, name: workspaceName }) => ({

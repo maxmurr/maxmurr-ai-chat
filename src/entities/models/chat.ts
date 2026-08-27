@@ -11,6 +11,7 @@ export type Chat = {
   readonly title: string
   readonly visibility: ChatVisibility
   readonly publicToken: string | null
+  readonly pinned: boolean
   readonly createdAt: Date
   readonly updatedAt: Date
 }

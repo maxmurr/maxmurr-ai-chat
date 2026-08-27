@@ -1,4 +1,5 @@
 import { ChatAppSidebar } from "@/components/chat/chat-app-sidebar"
+import type { ChatConversationEntry } from "@/components/chat/chat-conversation-item"
 import type { ChatHistoryEntry } from "@/components/chat/chat-history"
 import type { ChatWorkspaceSummary } from "@/components/chat/chat-workspace-switcher"
 import {
@@ -36,7 +37,7 @@ type ChatPageShellProps = {
     name: string
   }
   initialMessages?: ChatUIMessage[]
-  ownChats: ChatHistoryEntry[]
+  ownChats: ChatConversationEntry[]
   teamChats: ChatHistoryEntry[]
   workspaces: ChatWorkspaceSummary[]
 }
