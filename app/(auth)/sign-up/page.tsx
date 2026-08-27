@@ -5,16 +5,17 @@ import { redirect } from "next/navigation"
 import { AuthenticationFormCard } from "@/components/auth/authentication-form-card"
 import {
   auth,
+  isEmailOtpAuthenticationEnabled,
   isGoogleAuthenticationEnabled,
 } from "@/di/authentication"
 import { getSafeAuthenticationCallbackPath } from "@/lib/authentication-callback"
 
 export const metadata: Metadata = {
   title: "Sign Up · AI Chat",
-  description: "Create an account.",
+  description: "Create an account with verified email.",
 }
 
-/** Redirects active sessions or renders account-creation controls. */
+/** Redirects active sessions or renders verified email account creation. */
 export default async function SignUpPage({
   searchParams,
 }: PageProps<"/sign-up">) {
@@ -29,6 +30,7 @@ export default async function SignUpPage({
   return (
     <AuthenticationFormCard
       callbackPath={callbackPath}
+      emailOtpEnabled={isEmailOtpAuthenticationEnabled}
       googleEnabled={isGoogleAuthenticationEnabled}
       initialErrorMessage={
         error ? "Could not continue with Google. Try again." : undefined

@@ -1,17 +1,14 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
+import { REGEXP_ONLY_DIGITS } from "input-otp"
+import { MailIcon } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
 import { AuthenticationField } from "@/components/auth/authentication-field"
 import { AuthenticationGoogleButton } from "@/components/auth/authentication-google-button"
-import { AuthenticationPasswordVisibilityButton } from "@/components/auth/authentication-password-visibility-button"
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -20,12 +17,18 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card"
-import { FieldError, FieldGroup } from "@/components/ui/field"
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
-  InputGroup,
-  InputGroupInput,
-} from "@/components/ui/input-group"
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
 import { Separator } from "@/components/ui/separator"
 import { authClient } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
@@ -33,19 +36,20 @@ import { cn } from "@/lib/utils"
 type AuthenticationMode = "sign-in" | "sign-up"
 
 type AuthenticationFormValues = {
-  identity: {
-    email: string
-    username: string
-  }
-  credentials: {
-    password: string
-    passwordConfirmation: string
-  }
+  email: string
+  otp: string
+  username: string
+}
+
+type AuthenticationVerificationRequest = {
+  email: string
+  username: string
 }
 
 type AuthenticationFormCardProps = {
   callbackPath?: string
   className?: string
+  emailOtpEnabled: boolean
   googleEnabled: boolean
   initialErrorMessage?: string
   mode: AuthenticationMode
@@ -53,18 +57,14 @@ type AuthenticationFormCardProps = {
 
 const AUTHENTICATION_USERNAME_PATTERN = /^[A-Za-z0-9_.]+$/
 const AUTHENTICATION_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const AUTHENTICATION_OTP_PATTERN = /^\d{6}$/
 const defaultAuthenticationFormValues: AuthenticationFormValues = {
-  identity: {
-    email: "",
-    username: "",
-  },
-  credentials: {
-    password: "",
-    passwordConfirmation: "",
-  },
+  email: "",
+  otp: "",
+  username: "",
 }
 
-/** Validates username syntax shared by sign-in and sign-up forms. */
+/** Validates account username syntax during email OTP registration. */
 export function validateAuthenticationUsername(username: string) {
   const normalizedUsername = username.trim()
 
@@ -83,7 +83,7 @@ export function validateAuthenticationUsername(username: string) {
   return undefined
 }
 
-/** Validates required sign-up email syntax. */
+/** Validates email syntax before requesting an authentication code. */
 export function validateAuthenticationEmail(email: string) {
   const normalizedEmail = email.trim()
 
@@ -98,35 +98,35 @@ export function validateAuthenticationEmail(email: string) {
   return undefined
 }
 
-/** Validates Better Auth password length constraints. */
-export function validateAuthenticationPassword(password: string) {
-  if (password.length < 8 || password.length > 128) {
-    return "Password must have 8–128 characters."
+/** Validates six-digit Better Auth email one-time password codes. */
+export function validateAuthenticationOtp(otp: string) {
+  if (!AUTHENTICATION_OTP_PATTERN.test(otp)) {
+    return "Enter the 6-digit code."
   }
 
   return undefined
 }
 
-/** Validates sign-up password confirmation against password field. */
-export function validateAuthenticationPasswordConfirmation(
-  password: string,
-  passwordConfirmation: string
-) {
-  if (password !== passwordConfirmation) {
-    return "Passwords do not match."
+/** Masks authentication email local-part while keeping recipient recognizable. */
+export function maskAuthenticationEmail(email: string) {
+  const atIndex = email.lastIndexOf("@")
+
+  if (atIndex <= 0) {
+    return email
   }
 
-  return undefined
+  return `${email[0]}***${email.slice(atIndex)}`
 }
 
 function getAuthenticationFieldError(errors: unknown[]) {
   return errors.find((error): error is string => typeof error === "string")
 }
 
-/** Renders Better Auth sign-in or account-creation controls. */
+/** Renders passwordless email OTP sign-in or verified account creation. */
 export function AuthenticationFormCard({
   callbackPath = "/chat",
   className,
+  emailOtpEnabled,
   googleEnabled,
   initialErrorMessage,
   mode,
@@ -134,72 +134,121 @@ export function AuthenticationFormCard({
   const [errorMessage, setErrorMessage] = useState<string | null>(
     initialErrorMessage ?? null
   )
-  const [noticeMessage, setNoticeMessage] = useState<string | null>(null)
+  const [verificationRequest, setVerificationRequest] =
+    useState<AuthenticationVerificationRequest | null>(null)
   const [isGooglePending, setIsGooglePending] = useState(false)
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
-  const [isPasswordConfirmationVisible, setIsPasswordConfirmationVisible] =
-    useState(false)
   const isSignUp = mode === "sign-up"
-  const title = isSignUp ? "Sign Up" : "Sign In"
-  const description = isSignUp
-    ? "Choose a username, email, and password to get started."
-    : "Enter your username and password to continue."
+  const isVerificationStep = verificationRequest !== null
+  const title = isVerificationStep
+    ? "Check your email"
+    : isSignUp
+      ? "Create your account"
+      : "Welcome back"
+  const description = !emailOtpEnabled
+    ? "Email one-time password sign-in is unavailable."
+    : isVerificationStep
+      ? `A one-time password was sent to ${maskAuthenticationEmail(verificationRequest.email)}.`
+      : isSignUp
+        ? "Sign up with a one-time password"
+        : "Sign in to your account"
+
+  async function sendAuthenticationCode(email: string) {
+    try {
+      const result = await authClient.emailOtp.sendVerificationOtp({
+        email,
+        type: "sign-in",
+      })
+
+      if (result.error) {
+        setErrorMessage("Could not send a one-time password. Try again.")
+        return false
+      }
+
+      return true
+    } catch {
+      setErrorMessage("Authentication is unavailable. Try again.")
+      return false
+    }
+  }
+
   const form = useForm({
     defaultValues: defaultAuthenticationFormValues,
     onSubmit: async ({ value }) => {
-      const username = value.identity.username.trim()
-      const password = value.credentials.password
-      const callbackUrl = new URL(
-        callbackPath,
-        window.location.origin
-      ).toString()
-
       setErrorMessage(null)
-      setNoticeMessage(null)
+
+      if (!verificationRequest) {
+        const email = value.email.trim()
+        const username = value.username.trim()
+
+        if (!(await sendAuthenticationCode(email))) {
+          return
+        }
+
+        setVerificationRequest({ email, username })
+        return
+      }
 
       try {
         const result = isSignUp
-          ? await authClient.signUp.email({
-              callbackURL: callbackUrl,
-              email: value.identity.email.trim(),
-              name: username,
-              password,
-              username,
+          ? await authClient.signIn.emailOtp({
+              email: verificationRequest.email,
+              name: verificationRequest.username,
+              otp: value.otp,
+              username: verificationRequest.username,
             })
-          : await authClient.signIn.username({
-              callbackURL: callbackUrl,
-              password,
-              username,
+          : await authClient.signIn.emailOtp({
+              email: verificationRequest.email,
+              otp: value.otp,
             })
 
         if (result.error) {
-          setErrorMessage(
-            !isSignUp && result.error.status === 403
-              ? "Verify your email before signing in. We sent a new link."
-              : isSignUp
-                ? "Could not create account. Check your details or sign in."
-                : "Invalid username or password."
-          )
+          if (!isSignUp && result.error.code === "SIGN_UP_REQUIRED") {
+            resetAuthenticationRequest()
+            setErrorMessage("No account found. Sign up to create one.")
+            return
+          }
+
+          if (isSignUp && result.error.code === "USERNAME_IS_ALREADY_TAKEN") {
+            resetAuthenticationRequest()
+            setErrorMessage("Username is unavailable. Choose another.")
+            return
+          }
+
+          setErrorMessage("Code is invalid or expired. Try again.")
+          resetVerificationCode()
           return
         }
 
-        if (isSignUp && !result.data?.token) {
-          setNoticeMessage(
-            "Check for a verification link. If none arrives, try signing in."
-          )
-          return
-        }
-
+        const callbackUrl = new URL(
+          callbackPath,
+          window.location.origin
+        ).toString()
         window.location.assign(callbackUrl)
       } catch {
         setErrorMessage("Authentication is unavailable. Try again.")
+        resetVerificationCode()
       }
     },
   })
 
+  function resetVerificationCode() {
+    form.resetField("otp")
+    requestAnimationFrame(() => {
+      document.getElementById("verification-code")?.focus()
+    })
+  }
+
+  function resetAuthenticationRequest() {
+    setErrorMessage(null)
+    setVerificationRequest(null)
+    form.resetField("otp")
+    requestAnimationFrame(() => {
+      document.getElementById("email")?.focus()
+    })
+  }
+
   async function signInWithGoogle() {
     setErrorMessage(null)
-    setNoticeMessage(null)
     setIsGooglePending(true)
 
     try {
@@ -244,289 +293,40 @@ export function AuthenticationFormCard({
         className
       )}
     >
-      <CardHeader>
-        <h1 className="text-balance font-heading text-xl font-semibold tracking-tight text-foreground">
+      <CardHeader className="justify-items-center gap-2 text-center">
+        {isVerificationStep && (
+          <div
+            aria-hidden="true"
+            className="mb-2 flex size-12 items-center justify-center rounded-full bg-muted text-foreground"
+          >
+            <MailIcon className="size-5" />
+          </div>
+        )}
+        <h1 className="text-balance font-heading text-2xl font-semibold tracking-tight text-foreground">
           {title}
         </h1>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription className="text-balance">
+          {description}
+        </CardDescription>
       </CardHeader>
 
-      <Separator />
-
       <CardContent className="flex flex-col gap-6">
-        {noticeMessage && (
-          <Alert>
-            <AlertTitle>Check your email</AlertTitle>
-            <AlertDescription>{noticeMessage}</AlertDescription>
+        {!emailOtpEnabled && (
+          <Alert variant="destructive">
+            <AlertTitle>Email sign-in unavailable</AlertTitle>
+            <AlertDescription>
+              {googleEnabled
+                ? "Continue with Google or try again later."
+                : "Try again later."}
+            </AlertDescription>
           </Alert>
         )}
 
-        <form
-          className="flex flex-col gap-4"
-          noValidate
-          onSubmit={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            void form.handleSubmit()
-          }}
-        >
-          <FieldGroup className="gap-4">
-            <form.Field
-              name="identity.username"
-              validators={{
-                onChange: ({ value }) =>
-                  validateAuthenticationUsername(value),
-              }}
-            >
-              {(field) => {
-                const error = getAuthenticationFieldError(
-                  field.state.meta.errors
-                )
-                const descriptionId = isSignUp
-                  ? "username-message"
-                  : undefined
-                const errorId = "username-error"
+        <FieldError className="text-center" id="authentication-error">
+          {errorMessage}
+        </FieldError>
 
-                return (
-                  <AuthenticationField
-                    description={
-                      isSignUp
-                        ? "3–31 letters, numbers, underscores, or periods."
-                        : undefined
-                    }
-                    descriptionId={descriptionId}
-                    error={error}
-                    errorId={errorId}
-                    htmlFor="username"
-                    invalid={!field.state.meta.isValid}
-                    label="Username"
-                  >
-                    <Input
-                      aria-describedby={
-                        [descriptionId, error ? errorId : undefined]
-                          .filter(Boolean)
-                          .join(" ") || undefined
-                      }
-                      aria-invalid={!field.state.meta.isValid}
-                      autoCapitalize="none"
-                      autoComplete="username"
-                      autoCorrect="off"
-                      autoFocus
-                      className="h-11 sm:h-10"
-                      id="username"
-                      maxLength={31}
-                      minLength={3}
-                      name={field.name}
-                      onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(event.target.value)
-                      }
-                      pattern="[A-Za-z0-9_.]+"
-                      required
-                      spellCheck={false}
-                      type="text"
-                      value={field.state.value}
-                    />
-                  </AuthenticationField>
-                )
-              }}
-            </form.Field>
-
-            {isSignUp && (
-              <form.Field
-                name="identity.email"
-                validators={{
-                  onChange: ({ value }) =>
-                    validateAuthenticationEmail(value),
-                }}
-              >
-                {(field) => {
-                  const error = getAuthenticationFieldError(
-                    field.state.meta.errors
-                  )
-                  const errorId = "email-error"
-
-                  return (
-                    <AuthenticationField
-                      error={error}
-                      errorId={errorId}
-                      htmlFor="email"
-                      invalid={!field.state.meta.isValid}
-                      label="Email"
-                    >
-                      <Input
-                        aria-describedby={error ? errorId : undefined}
-                        aria-invalid={!field.state.meta.isValid}
-                        autoCapitalize="none"
-                        autoComplete="email"
-                        autoCorrect="off"
-                        className="h-11 sm:h-10"
-                        id="email"
-                        maxLength={320}
-                        name={field.name}
-                        onBlur={field.handleBlur}
-                        onChange={(event) =>
-                          field.handleChange(event.target.value)
-                        }
-                        required
-                        spellCheck={false}
-                        type="email"
-                        value={field.state.value}
-                      />
-                    </AuthenticationField>
-                  )
-                }}
-              </form.Field>
-            )}
-
-            <form.Field
-              name="credentials.password"
-              validators={{
-                onChange: ({ value }) =>
-                  validateAuthenticationPassword(value),
-              }}
-            >
-              {(field) => {
-                const error = getAuthenticationFieldError(
-                  field.state.meta.errors
-                )
-                const descriptionId = isSignUp
-                  ? "password-message"
-                  : undefined
-                const errorId = "password-error"
-
-                return (
-                  <AuthenticationField
-                    description={isSignUp ? "8–128 characters." : undefined}
-                    descriptionId={descriptionId}
-                    error={error}
-                    errorId={errorId}
-                    htmlFor="password"
-                    invalid={!field.state.meta.isValid}
-                    label="Password"
-                  >
-                    <InputGroup className="h-11 sm:h-10">
-                      <InputGroupInput
-                        aria-describedby={
-                          [descriptionId, error ? errorId : undefined]
-                            .filter(Boolean)
-                            .join(" ") || undefined
-                        }
-                        aria-invalid={!field.state.meta.isValid}
-                        autoComplete={
-                          isSignUp ? "new-password" : "current-password"
-                        }
-                        id="password"
-                        maxLength={128}
-                        minLength={8}
-                        name={field.name}
-                        onBlur={field.handleBlur}
-                        onChange={(event) =>
-                          field.handleChange(event.target.value)
-                        }
-                        required
-                        type={isPasswordVisible ? "text" : "password"}
-                        value={field.state.value}
-                      />
-                      <AuthenticationPasswordVisibilityButton
-                        inputId="password"
-                        isVisible={isPasswordVisible}
-                        label="Password"
-                        onVisibilityChange={setIsPasswordVisible}
-                      />
-                    </InputGroup>
-                  </AuthenticationField>
-                )
-              }}
-            </form.Field>
-
-            {isSignUp && (
-              <form.Field
-                name="credentials.passwordConfirmation"
-                validators={{
-                  onChangeListenTo: ["credentials.password"],
-                  onChange: ({ value, fieldApi }) =>
-                    validateAuthenticationPasswordConfirmation(
-                      fieldApi.form.getFieldValue("credentials.password"),
-                      value
-                    ),
-                }}
-              >
-                {(field) => {
-                  const error = getAuthenticationFieldError(
-                    field.state.meta.errors
-                  )
-                  const errorId = "confirm-password-error"
-
-                  return (
-                    <AuthenticationField
-                      error={error}
-                      errorId={errorId}
-                      htmlFor="confirm-password"
-                      invalid={!field.state.meta.isValid}
-                      label="Confirm password"
-                    >
-                      <InputGroup className="h-11 sm:h-10">
-                        <InputGroupInput
-                          aria-describedby={error ? errorId : undefined}
-                          aria-invalid={!field.state.meta.isValid}
-                          autoComplete="new-password"
-                          id="confirm-password"
-                          maxLength={128}
-                          minLength={8}
-                          name={field.name}
-                          onBlur={field.handleBlur}
-                          onChange={(event) =>
-                            field.handleChange(event.target.value)
-                          }
-                          required
-                          type={
-                            isPasswordConfirmationVisible
-                              ? "text"
-                              : "password"
-                          }
-                          value={field.state.value}
-                        />
-                        <AuthenticationPasswordVisibilityButton
-                          inputId="confirm-password"
-                          isVisible={isPasswordConfirmationVisible}
-                          label="Confirm password"
-                          onVisibilityChange={
-                            setIsPasswordConfirmationVisible
-                          }
-                        />
-                      </InputGroup>
-                    </AuthenticationField>
-                  )
-                }}
-              </form.Field>
-            )}
-          </FieldGroup>
-
-          <FieldError className="text-left" id="authentication-error">
-            {errorMessage}
-          </FieldError>
-
-          <form.Subscribe selector={(state) => state.isSubmitting}>
-            {(isSubmitting) => (
-              <Button
-                className="h-11 w-full touch-manipulation sm:h-10"
-                disabled={isSubmitting || isGooglePending}
-                type="submit"
-              >
-                {isSubmitting
-                  ? isSignUp
-                    ? "Creating account…"
-                    : "Signing in…"
-                  : isSignUp
-                    ? "Create Account"
-                    : "Sign In"}
-              </Button>
-            )}
-          </form.Subscribe>
-        </form>
-
-        {googleEnabled && (
+        {!isVerificationStep && googleEnabled && (
           <form.Subscribe selector={(state) => state.isSubmitting}>
             {(isSubmitting) => (
               <AuthenticationGoogleButton
@@ -536,19 +336,246 @@ export function AuthenticationFormCard({
             )}
           </form.Subscribe>
         )}
+
+        {!isVerificationStep && googleEnabled && emailOtpEnabled && (
+          <div aria-hidden="true" className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <span className="text-sm text-muted-foreground">or</span>
+            <Separator className="flex-1" />
+          </div>
+        )}
+
+        {emailOtpEnabled && (
+          <form
+            className="flex flex-col gap-6"
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              void form.handleSubmit()
+            }}
+          >
+            <FieldGroup className="gap-4">
+              {!isVerificationStep && isSignUp && (
+                <form.Field
+                  name="username"
+                  validators={{
+                    onChange: ({ value }) =>
+                      validateAuthenticationUsername(value),
+                  }}
+                >
+                  {(field) => {
+                    const error = getAuthenticationFieldError(
+                      field.state.meta.errors
+                    )
+                    const descriptionId = "username-message"
+                    const errorId = "username-error"
+
+                    return (
+                      <AuthenticationField
+                        description="3–31 letters, numbers, underscores, or periods."
+                        descriptionId={descriptionId}
+                        error={error}
+                        errorId={errorId}
+                        htmlFor="username"
+                        invalid={!field.state.meta.isValid}
+                        label="Username"
+                      >
+                        <Input
+                          aria-describedby={
+                            [descriptionId, error ? errorId : undefined]
+                              .filter(Boolean)
+                              .join(" ") || undefined
+                          }
+                          aria-invalid={!field.state.meta.isValid}
+                          autoCapitalize="none"
+                          autoComplete="username"
+                          autoCorrect="off"
+                          className="h-11"
+                          id="username"
+                          maxLength={31}
+                          minLength={3}
+                          name={field.name}
+                          onBlur={field.handleBlur}
+                          onChange={(event) =>
+                            field.handleChange(event.target.value)
+                          }
+                          pattern="[A-Za-z0-9_.]+"
+                          required
+                          spellCheck={false}
+                          type="text"
+                          value={field.state.value}
+                        />
+                      </AuthenticationField>
+                    )
+                  }}
+                </form.Field>
+              )}
+
+              {!isVerificationStep && (
+                <form.Field
+                  name="email"
+                  validators={{
+                    onChange: ({ value }) => validateAuthenticationEmail(value),
+                  }}
+                >
+                  {(field) => {
+                    const error = getAuthenticationFieldError(
+                      field.state.meta.errors
+                    )
+                    const errorId = "email-error"
+
+                    return (
+                      <AuthenticationField
+                        error={error}
+                        errorId={errorId}
+                        htmlFor="email"
+                        invalid={!field.state.meta.isValid}
+                        label="Email"
+                      >
+                        <Input
+                          aria-describedby={error ? errorId : undefined}
+                          aria-invalid={!field.state.meta.isValid}
+                          autoCapitalize="none"
+                          autoComplete="email"
+                          autoCorrect="off"
+                          className="h-11"
+                          id="email"
+                          maxLength={320}
+                          name={field.name}
+                          onBlur={field.handleBlur}
+                          onChange={(event) =>
+                            field.handleChange(event.target.value)
+                          }
+                          placeholder="m@example.com"
+                          required
+                          spellCheck={false}
+                          type="email"
+                          value={field.state.value}
+                        />
+                      </AuthenticationField>
+                    )
+                  }}
+                </form.Field>
+              )}
+
+              {isVerificationStep && (
+                <form.Field
+                  name="otp"
+                  validators={{
+                    onChange: ({ value }) => validateAuthenticationOtp(value),
+                  }}
+                >
+                  {(field) => {
+                    const error = getAuthenticationFieldError(
+                      field.state.meta.errors
+                    )
+                    const errorId = "otp-error"
+                    const invalid = !field.state.meta.isValid
+
+                    return (
+                      <form.Subscribe selector={(state) => state.isSubmitting}>
+                        {(isSubmitting) => (
+                          <Field
+                            className="items-center"
+                            data-invalid={invalid || undefined}
+                          >
+                            <FieldLabel
+                              className="sr-only"
+                              htmlFor="verification-code"
+                            >
+                              One-time password
+                            </FieldLabel>
+                            <InputOTP
+                              aria-describedby={error ? errorId : undefined}
+                              aria-invalid={invalid}
+                              autoComplete="one-time-code"
+                              autoFocus
+                              containerClassName="justify-center"
+                              disabled={isSubmitting}
+                              id="verification-code"
+                              maxLength={6}
+                              name={field.name}
+                              onBlur={field.handleBlur}
+                              onChange={field.handleChange}
+                              onComplete={() => {
+                                if (!isSubmitting) {
+                                  void form.handleSubmit()
+                                }
+                              }}
+                              pattern={REGEXP_ONLY_DIGITS}
+                              required
+                              value={field.state.value}
+                            >
+                              <InputOTPGroup>
+                                {[0, 1, 2, 3, 4, 5].map((index) => (
+                                  <InputOTPSlot
+                                    aria-invalid={invalid}
+                                    className="h-12 w-11 text-lg"
+                                    index={index}
+                                    key={index}
+                                  />
+                                ))}
+                              </InputOTPGroup>
+                            </InputOTP>
+                            <FieldError className="text-center" id={errorId}>
+                              {error}
+                            </FieldError>
+                            <span aria-live="polite" className="sr-only">
+                              {isSubmitting
+                                ? "Verifying one-time password…"
+                                : ""}
+                            </span>
+                          </Field>
+                        )}
+                      </form.Subscribe>
+                    )
+                  }}
+                </form.Field>
+              )}
+            </FieldGroup>
+
+            {!isVerificationStep && (
+              <form.Subscribe selector={(state) => state.isSubmitting}>
+                {(isSubmitting) => (
+                  <Button
+                    className="h-11 w-full touch-manipulation"
+                    disabled={isSubmitting || isGooglePending}
+                    type="submit"
+                  >
+                    {isSubmitting ? "Sending…" : "Send one-time password"}
+                  </Button>
+                )}
+              </form.Subscribe>
+            )}
+
+            {isVerificationStep && (
+              <Button
+                className="h-11 touch-manipulation"
+                onClick={resetAuthenticationRequest}
+                type="button"
+                variant="link"
+              >
+                Use a different email
+              </Button>
+            )}
+          </form>
+        )}
       </CardContent>
 
-      <CardFooter className="flex-wrap justify-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-        <span>
-          {isSignUp ? "Already have an account?" : "Don't have an account?"}
-        </span>
-        <Link
-          className="rounded-sm font-medium text-foreground underline decoration-foreground/30 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-          href={alternateAuthenticationHref}
-        >
-          {isSignUp ? "Sign In" : "Sign Up"}
-        </Link>
-      </CardFooter>
+      {!isVerificationStep && (
+        <CardFooter className="flex-wrap justify-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          <span>
+            {isSignUp ? "Already have an account?" : "Don't have an account?"}
+          </span>
+          <Link
+            className="rounded-sm font-medium text-foreground underline decoration-foreground/30 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+            href={alternateAuthenticationHref}
+          >
+            {isSignUp ? "Sign In" : "Sign Up"}
+          </Link>
+        </CardFooter>
+      )}
     </Card>
   )
 }

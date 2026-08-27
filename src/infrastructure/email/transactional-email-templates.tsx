@@ -13,15 +13,17 @@ import {
 } from "react-email"
 
 type TransactionalEmailShellProps = {
-  actionLabel: string
-  actionUrl: string
+  action?: {
+    label: string
+    url: string
+  }
   children: ReactNode
   preview: string
   title: string
 }
 
-type AuthenticationVerificationEmailProps = {
-  verificationUrl: string
+type AuthenticationOtpEmailProps = {
+  otp: string
 }
 
 type WorkspaceInvitationEmailProps = {
@@ -32,8 +34,7 @@ type WorkspaceInvitationEmailProps = {
 }
 
 function TransactionalEmailShell({
-  actionLabel,
-  actionUrl,
+  action,
   children,
   preview,
   title,
@@ -49,14 +50,19 @@ function TransactionalEmailShell({
             {title}
           </Heading>
           {children}
-          <Section style={actionStyle}>
-            <Button href={actionUrl} style={buttonStyle}>
-              {actionLabel}
-            </Button>
-          </Section>
-          <Text style={fallbackStyle}>
-            Button not working? <Link href={actionUrl}>Open this link</Link>.
-          </Text>
+          {action && (
+            <>
+              <Section style={actionStyle}>
+                <Button href={action.url} style={buttonStyle}>
+                  {action.label}
+                </Button>
+              </Section>
+              <Text style={fallbackStyle}>
+                Button not working?{" "}
+                <Link href={action.url}>Open this link</Link>.
+              </Text>
+            </>
+          )}
           <Text style={footerStyle}>
             If you were not expecting this email, you can ignore it.
           </Text>
@@ -66,21 +72,18 @@ function TransactionalEmailShell({
   )
 }
 
-/** React Email message for Better Auth email verification links. */
-export function AuthenticationVerificationEmail({
-  verificationUrl,
-}: AuthenticationVerificationEmailProps) {
+/** React Email message containing Better Auth email one-time password code. */
+export function AuthenticationOtpEmail({ otp }: AuthenticationOtpEmailProps) {
   return (
     <TransactionalEmailShell
-      actionLabel="Verify email"
-      actionUrl={verificationUrl}
-      preview="Verify your email address for AI Chat"
-      title="Verify your email"
+      preview={`Your AI Chat verification code is ${otp}`}
+      title="Your verification code"
     >
       <Text style={paragraphStyle}>
-        Confirm this email address to finish creating your account. This link
-        expires in one hour.
+        Enter this code to continue with AI Chat.
       </Text>
+      <Text style={codeStyle}>{otp}</Text>
+      <Text style={paragraphStyle}>This code expires in 5 minutes.</Text>
     </TransactionalEmailShell>
   )
 }
@@ -94,8 +97,7 @@ export function WorkspaceInvitationEmail({
 }: WorkspaceInvitationEmailProps) {
   return (
     <TransactionalEmailShell
-      actionLabel="Accept invitation"
-      actionUrl={invitationUrl}
+      action={{ label: "Accept invitation", url: invitationUrl }}
       preview={`${inviterName} invited you to join ${workspaceName}`}
       title={`Join ${workspaceName}`}
     >
@@ -112,8 +114,7 @@ export function WorkspaceInvitationEmail({
 const bodyStyle = {
   backgroundColor: "#f4f4f5",
   color: "#18181b",
-  fontFamily:
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   margin: 0,
   padding: "32px 12px",
 } satisfies CSSProperties
@@ -150,6 +151,17 @@ const paragraphStyle = {
   fontSize: "15px",
   lineHeight: "24px",
   margin: "0 0 12px",
+} satisfies CSSProperties
+
+const codeStyle = {
+  color: "#18181b",
+  fontFamily: 'ui-monospace, "SFMono-Regular", Consolas, monospace',
+  fontSize: "32px",
+  fontVariantNumeric: "tabular-nums",
+  fontWeight: 700,
+  letterSpacing: "0.18em",
+  lineHeight: "40px",
+  margin: "24px 0",
 } satisfies CSSProperties
 
 const actionStyle = {

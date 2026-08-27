@@ -1,11 +1,10 @@
 import "server-only"
 
-import { createHash } from "node:crypto"
 import type { ReactNode } from "react"
 import { Resend } from "resend"
 
 import {
-  AuthenticationVerificationEmail,
+  AuthenticationOtpEmail,
   WorkspaceInvitationEmail,
 } from "@/src/infrastructure/email/transactional-email-templates"
 
@@ -19,16 +18,15 @@ export const isResendEmailServiceEnabled = Boolean(
 )
 
 type ResendTransactionalEmailInput = {
-  idempotencyKey: string
+  idempotencyKey?: string
   react: ReactNode
   subject: string
   to: string
 }
 
-type AuthenticationVerificationEmailInput = {
+type AuthenticationOtpEmailInput = {
+  otp: string
   recipientEmail: string
-  verificationToken: string
-  verificationUrl: string
 }
 
 type WorkspaceInvitationEmailInput = {
@@ -59,7 +57,7 @@ async function sendResendTransactionalEmail({
       subject,
       to,
     },
-    { idempotencyKey }
+    idempotencyKey ? { idempotencyKey } : undefined
   )
 
   if (error) {
@@ -71,20 +69,14 @@ async function sendResendTransactionalEmail({
   }
 }
 
-/** Sends Better Auth email verification through Resend. */
-export async function sendAuthenticationVerificationEmail({
+/** Sends Better Auth email one-time password codes through Resend. */
+export async function sendAuthenticationOtpEmail({
+  otp,
   recipientEmail,
-  verificationToken,
-  verificationUrl,
-}: AuthenticationVerificationEmailInput) {
-  const tokenHash = createHash("sha256")
-    .update(verificationToken)
-    .digest("hex")
-
+}: AuthenticationOtpEmailInput) {
   await sendResendTransactionalEmail({
-    idempotencyKey: `email-verification/${tokenHash}`,
-    react: AuthenticationVerificationEmail({ verificationUrl }),
-    subject: "Verify your email address",
+    react: AuthenticationOtpEmail({ otp }),
+    subject: "Your AI Chat verification code",
     to: recipientEmail,
   })
 }

@@ -71,7 +71,7 @@ export default async function AcceptWorkspaceInvitationPage({
   const invitationPath = `/accept-invitation/${encodeURIComponent(invitationId)}`
   const session = await auth.api.getSession({ headers: requestHeaders })
 
-  if (!session) {
+  if (!session?.user.emailVerified) {
     redirect(
       `/sign-in?callbackURL=${encodeURIComponent(invitationPath)}`
     )

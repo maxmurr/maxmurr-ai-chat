@@ -2,6 +2,7 @@ import "server-only"
 
 import { drizzleAdapter } from "@better-auth/drizzle-adapter"
 import { betterAuth } from "better-auth"
+import { emailOTP } from "better-auth/plugins/email-otp"
 import { organization } from "better-auth/plugins/organization"
 import { username } from "better-auth/plugins/username"
 import { after } from "next/server"
@@ -10,22 +11,22 @@ import { appDatabase } from "@/drizzle/app-database"
 import * as appDatabaseSchema from "@/drizzle/app-schema"
 import {
   isResendEmailServiceEnabled,
-  sendAuthenticationVerificationEmail,
+  sendAuthenticationOtpEmail,
   sendWorkspaceInvitationEmail,
 } from "@/src/infrastructure/email/resend-email-service"
 
 const applicationUrl = process.env.BETTER_AUTH_URL
 const googleClientId = process.env.GOOGLE_CLIENT_ID
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
-const isTransactionalEmailEnabled = Boolean(
+
+/** Reports whether email one-time password delivery has all required configuration. */
+export const isEmailOtpAuthenticationEnabled = Boolean(
   applicationUrl && isResendEmailServiceEnabled
 )
 
 function createWorkspaceInvitationUrl(invitationId: string) {
   if (!applicationUrl) {
-    throw new Error(
-      "Workspace invitation URL missing: set BETTER_AUTH_URL"
-    )
+    throw new Error("Workspace invitation URL missing: set BETTER_AUTH_URL")
   }
 
   return new URL(
@@ -39,10 +40,10 @@ export const isGoogleAuthenticationEnabled = Boolean(
   googleClientId && googleClientSecret
 )
 
-/** Better Auth server for credential, OAuth, session, and authorization APIs. */
+/** Better Auth server for email one-time passwords, OAuth, sessions, and authorization. */
 export const auth = betterAuth({
   appName: "AI Chat",
-  advanced: isTransactionalEmailEnabled
+  advanced: isEmailOtpAuthenticationEnabled
     ? {
         backgroundTasks: {
           handler: (promise) => after(() => promise),
@@ -54,26 +55,19 @@ export const auth = betterAuth({
     schema: appDatabaseSchema,
     transaction: true,
   }),
-  emailVerification: isTransactionalEmailEnabled
-    ? {
-        autoSignInAfterVerification: true,
-        expiresIn: 60 * 60,
-        sendOnSignIn: true,
-        sendOnSignUp: true,
-        sendVerificationEmail: async ({ user, url, token }) => {
-          await sendAuthenticationVerificationEmail({
-            recipientEmail: user.email,
-            verificationToken: token,
-            verificationUrl: url,
-          })
-        },
+  user: {
+    validateUserInfo: ({ source, user }) => {
+      if (
+        source.action === "create-user" &&
+        source.method === "email-otp" &&
+        (typeof user.username !== "string" || !user.username)
+      ) {
+        return {
+          error: "SIGN_UP_REQUIRED",
+          errorDescription: "Sign up before using email OTP sign-in.",
+        }
       }
-    : undefined,
-  emailAndPassword: {
-    enabled: true,
-    minPasswordLength: 8,
-    maxPasswordLength: 128,
-    requireEmailVerification: isTransactionalEmailEnabled,
+    },
   },
   session: {
     disableSessionRefresh: true,
@@ -81,14 +75,18 @@ export const auth = betterAuth({
   account: {
     encryptOAuthTokens: true,
   },
-  disabledPaths: ["/is-username-available"],
+  disabledPaths: [
+    "/is-username-available",
+    "/sign-in/email",
+    "/sign-in/username",
+    "/sign-up/email",
+    ...(isEmailOtpAuthenticationEnabled
+      ? []
+      : ["/organization/invite-member"]),
+  ],
   rateLimit: {
     enabled: true,
     storage: "database",
-    customRules: {
-      "/sign-in/username": { window: 60, max: 5 },
-      "/sign-up/email": { window: 60, max: 3 },
-    },
   },
   socialProviders:
     googleClientId && googleClientSecret
@@ -100,10 +98,27 @@ export const auth = betterAuth({
         }
       : {},
   plugins: [
+    emailOTP({
+      expiresIn: 5 * 60,
+      otpLength: 6,
+      sendVerificationOTP: async ({ email, otp }) => {
+        await sendAuthenticationOtpEmail({
+          otp,
+          recipientEmail: email,
+        })
+      },
+      storeOTP: "encrypted",
+    }),
     organization({
-      requireEmailVerificationOnInvitation: isTransactionalEmailEnabled,
-      sendInvitationEmail: isTransactionalEmailEnabled
-        ? async ({ email, id, invitation, inviter, organization: workspace }) => {
+      requireEmailVerificationOnInvitation: true,
+      sendInvitationEmail: isEmailOtpAuthenticationEnabled
+        ? async ({
+            email,
+            id,
+            invitation,
+            inviter,
+            organization: workspace,
+          }) => {
             await sendWorkspaceInvitationEmail({
               invitationExpiresAt: invitation.expiresAt,
               invitationId: id,
