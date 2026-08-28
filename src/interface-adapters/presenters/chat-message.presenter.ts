@@ -31,6 +31,7 @@ export type ChatDisplayTool = {
 export type ChatDisplayMessage = {
   readonly attachments?: readonly ChatDisplayAttachment[]
   readonly content: string
+  readonly createdAt: string
   readonly id: string
   readonly reasoning?: ChatDisplayReasoning
   readonly role: "assistant" | "user"
@@ -38,9 +39,10 @@ export type ChatDisplayMessage = {
   readonly tools?: readonly ChatDisplayTool[]
 }
 
-/** Client metadata retained for local attachment labels. */
+/** Client metadata for message creation time and attachment labels. */
 export type ChatMessageMetadata = {
   readonly attachments?: readonly ChatDisplayAttachment[]
+  readonly createdAt?: string
 }
 
 /** AI SDK message shape shared by chat store and Mastra route. */
@@ -52,6 +54,13 @@ function getChatSourceLabel(url: string) {
   } catch {
     return url
   }
+}
+
+function getChatMessageCreatedAt(metadata?: ChatMessageMetadata) {
+  const createdAt = metadata?.createdAt
+  return createdAt && !Number.isNaN(Date.parse(createdAt))
+    ? createdAt
+    : new Date().toISOString()
 }
 
 /** Adapts AI SDK stream parts to existing chat presentation model. */
@@ -145,6 +154,7 @@ export function convertChatUiMessageToDisplayMessage(
 
   return {
     content: text,
+    createdAt: getChatMessageCreatedAt(message.metadata),
     id: message.id,
     role: message.role,
     ...(attachments.length > 0 ? { attachments } : {}),

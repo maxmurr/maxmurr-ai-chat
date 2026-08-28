@@ -26,9 +26,14 @@ function toChat(row: typeof chat.$inferSelect): Chat {
 }
 
 function toChatMessage(row: typeof chatMessage.$inferSelect): ChatMessage {
+  const metadata =
+    typeof row.metadata === "object" && row.metadata !== null
+      ? row.metadata
+      : {}
+
   return {
     id: row.id,
-    metadata: row.metadata ?? undefined,
+    metadata: { ...metadata, createdAt: row.createdAt.toISOString() },
     parts: row.parts as readonly unknown[],
     role: row.role as ChatMessage["role"],
   }

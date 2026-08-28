@@ -120,9 +120,12 @@ function ChatThreadContent({
     try {
       await sendMessage({
         text: text || "Attached files.",
-        ...(messageAttachments.length > 0
-          ? { metadata: { attachments: messageAttachments } }
-          : {}),
+        metadata: {
+          createdAt: new Date().toISOString(),
+          ...(messageAttachments.length > 0
+            ? { attachments: messageAttachments }
+            : {}),
+        },
       })
     } catch {
       setComposerAnnouncement("Could not send message.")

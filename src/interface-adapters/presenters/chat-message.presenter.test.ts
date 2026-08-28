@@ -9,6 +9,7 @@ import {
 test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", () => {
   const message: ChatUIMessage = {
     id: "assistant-response",
+    metadata: { createdAt: "2026-08-28T01:02:03.000Z" },
     role: "assistant",
     parts: [
       {
@@ -48,6 +49,7 @@ test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", (
       },
     ],
     content: "Pro costs $29.",
+    createdAt: "2026-08-28T01:02:03.000Z",
     id: "assistant-response",
     reasoning: {
       state: "completed",

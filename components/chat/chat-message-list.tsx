@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react"
+import { Fragment, useMemo, useState, useSyncExternalStore } from "react"
 import type { ChatStatus } from "ai"
 import { MessageCircleIcon } from "lucide-react"
 
@@ -33,6 +33,69 @@ const CHAT_SUGGESTIONS = [
 ] as const
 const CHAT_GREETING_SUBSCRIBE = () => () => {}
 const CHAT_GREETING_SERVER_SNAPSHOT = () => "Hello"
+const CHAT_TIME_ZONE_SUBSCRIBE = () => () => {}
+const CHAT_TIME_ZONE_SERVER_SNAPSHOT = () => "UTC"
+const MILLISECONDS_PER_DAY = 86_400_000
+
+function getBrowserTimeZone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone
+}
+
+function createChatDateFormatters(timeZone: string) {
+  return {
+    calendarDay: new Intl.DateTimeFormat("en-US", {
+      day: "numeric",
+      month: "numeric",
+      timeZone,
+      year: "numeric",
+    }),
+    date: new Intl.DateTimeFormat("en-US", {
+      day: "numeric",
+      month: "short",
+      timeZone,
+      year: "numeric",
+    }),
+    time: new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone,
+    }),
+  }
+}
+
+function getChatCalendarDay(
+  date: Date,
+  formatter: Intl.DateTimeFormat
+) {
+  const parts = formatter.formatToParts(date)
+  const day = Number(parts.find((part) => part.type === "day")?.value)
+  const month = Number(parts.find((part) => part.type === "month")?.value)
+  const year = Number(parts.find((part) => part.type === "year")?.value)
+
+  return Date.UTC(year, month - 1, day) / MILLISECONDS_PER_DAY
+}
+
+function getChatMessageDate(createdAt: string) {
+  const date = new Date(createdAt)
+  return Number.isNaN(date.getTime()) ? new Date() : date
+}
+
+function formatChatDateMarker(
+  date: Date,
+  currentDay: number,
+  formatters: ReturnType<typeof createChatDateFormatters>
+) {
+  const dayDifference =
+    currentDay - getChatCalendarDay(date, formatters.calendarDay)
+  const dateLabel =
+    dayDifference === 0
+      ? "Today"
+      : dayDifference === 1
+        ? "Yesterday"
+        : formatters.date.format(date)
+
+  return `${dateLabel} ${formatters.time.format(date)}`
+}
 
 type ChatMessageCopyStatus = {
   messageId: string
@@ -140,6 +203,27 @@ export function ChatMessageList({
     getChatGreeting,
     CHAT_GREETING_SERVER_SNAPSHOT
   )
+  const timeZone = useSyncExternalStore(
+    CHAT_TIME_ZONE_SUBSCRIBE,
+    getBrowserTimeZone,
+    CHAT_TIME_ZONE_SERVER_SNAPSHOT
+  )
+  const dateFormatters = useMemo(
+    () => createChatDateFormatters(timeZone),
+    [timeZone]
+  )
+  const currentDay = getChatCalendarDay(
+    new Date(),
+    dateFormatters.calendarDay
+  )
+  const datedMessages = messages.map((message) => {
+    const date = getChatMessageDate(message.createdAt)
+    return {
+      calendarDay: getChatCalendarDay(date, dateFormatters.calendarDay),
+      date,
+      message,
+    }
+  })
 
   async function copyChatMessage(message: ChatDisplayMessage) {
     try {
@@ -162,27 +246,42 @@ export function ChatMessageList({
               />
             ) : (
               <>
-                <MessageScrollerItem messageId="today-marker">
-                  <Marker variant="separator">
-                    <MarkerContent>Today</MarkerContent>
-                  </Marker>
-                </MessageScrollerItem>
+                {datedMessages.map(
+                  ({ calendarDay, date, message }, index) => (
+                    <Fragment key={message.id}>
+                      {(index === 0 ||
+                        calendarDay !==
+                          datedMessages[index - 1].calendarDay) && (
+                        <MessageScrollerItem
+                          messageId={`date-marker-${message.id}`}
+                        >
+                          <Marker variant="separator">
+                            <MarkerContent>
+                              {formatChatDateMarker(
+                                date,
+                                currentDay,
+                                dateFormatters
+                              )}
+                            </MarkerContent>
+                          </Marker>
+                        </MessageScrollerItem>
+                      )}
 
-                {messages.map((message) => (
-                  <ChatMessageItem
-                    copyResult={
-                      copyStatus?.messageId === message.id
-                        ? copyStatus.result
-                        : null
-                    }
-                    isGenerating={isGenerating}
-                    isStreaming={streamingMessageId === message.id}
-                    key={message.id}
-                    message={message}
-                    onCopyMessage={() => void copyChatMessage(message)}
-                    onRetryMessage={onRetryMessage}
-                  />
-                ))}
+                      <ChatMessageItem
+                        copyResult={
+                          copyStatus?.messageId === message.id
+                            ? copyStatus.result
+                            : null
+                        }
+                        isGenerating={isGenerating}
+                        isStreaming={streamingMessageId === message.id}
+                        message={message}
+                        onCopyMessage={() => void copyChatMessage(message)}
+                        onRetryMessage={onRetryMessage}
+                      />
+                    </Fragment>
+                  )
+                )}
 
                 {status === "submitted" && <ChatPendingResponse />}
               </>

@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { isToday, isYesterday, subDays } from "date-fns"
 
 import {
   ChatConversationItem,
@@ -21,37 +20,12 @@ import {
 /** Serializable chat row rendered in the sidebar history. */
 export type ChatHistoryEntry = ChatDialogEntry
 
-// ponytail: local-time grouping renders on the server too; a viewer in a
-// different timezone than the server may see a one-off hydration re-render.
-function chatDateGroupLabel(updatedAt: Date, now: Date) {
-  if (isToday(updatedAt)) {
-    return "Today"
-  }
-
-  if (isYesterday(updatedAt)) {
-    return "Yesterday"
-  }
-
-  if (updatedAt >= subDays(now, 7)) {
-    return "Previous 7 days"
-  }
-
-  if (updatedAt >= subDays(now, 30)) {
-    return "Previous 30 days"
-  }
-
-  return "Older"
-}
-
-/** Splits owned chats into a pinned section followed by recency sections. */
+/** Splits owned chats into pinned and recent sections. */
 function groupOwnChats(ownChats: ChatConversationEntry[]) {
-  const now = new Date()
   const groups: { chats: ChatConversationEntry[]; label: string }[] = []
 
   for (const chat of ownChats) {
-    const label = chat.pinned
-      ? "Pinned"
-      : chatDateGroupLabel(chat.updatedAt, now)
+    const label = chat.pinned ? "Pinned" : "Recents"
     const group = groups.find((candidate) => candidate.label === label)
 
     if (group) {

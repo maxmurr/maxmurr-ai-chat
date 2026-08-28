@@ -19,6 +19,7 @@ test("chat message composes reasoning, tools, files, sources, and actions", () =
               { filename: "report.pdf", mediaType: "application/pdf" },
             ],
             content: "Finished",
+            createdAt: "2026-08-28T01:02:03.000Z",
             id: "message-1",
             reasoning: { state: "completed", text: "Checked inputs" },
             role: "assistant",

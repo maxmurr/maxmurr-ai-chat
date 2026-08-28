@@ -132,6 +132,10 @@ export function createMastraChatStreamService(
           chunking: "word",
         }),
         mastra: mastraRuntime,
+        messageMetadata: ({ part }) =>
+          part.type === "start"
+            ? { createdAt: new Date().toISOString() }
+            : undefined,
         onError: (error) => {
           console.error(
             "Chat stream failed.",
