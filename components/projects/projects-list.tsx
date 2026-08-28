@@ -45,7 +45,12 @@ export function ProjectsList({ className }: { className?: string }) {
   )
 
   return (
-    <div className={cn("mx-auto w-full max-w-3xl p-4", className)}>
+    <div
+      className={cn(
+        "@container mx-auto w-full max-w-7xl p-4 lg:p-6",
+        className,
+      )}
+    >
       {projects.length === 0 ? (
         <Empty className="min-h-64">
           <EmptyHeader>
@@ -113,7 +118,7 @@ export function ProjectsList({ className }: { className?: string }) {
               </EmptyHeader>
             </Empty>
           ) : (
-            <ItemGroup className="grid gap-3 sm:grid-cols-2">
+            <ItemGroup className="grid gap-3 @xl:grid-cols-2 @6xl:grid-cols-3">
               {matchingProjects.map((project) => (
                 <Item
                   className="relative items-start hover:bg-muted has-[a:focus-visible]:border-ring has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50"

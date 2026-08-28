@@ -67,7 +67,12 @@ export function LibraryBrowser({ className }: { className?: string }) {
   const matchingItems = filterLibraryItems(LIBRARY_ITEMS, query, filter)
 
   return (
-    <div className={cn("mx-auto w-full max-w-3xl p-4", className)}>
+    <div
+      className={cn(
+        "@container mx-auto w-full max-w-7xl p-4 lg:p-6",
+        className,
+      )}
+    >
       <div className="mb-6 flex items-center gap-2">
         <InputGroup className="max-w-xs pointer-coarse:h-11">
           <InputGroupAddon>

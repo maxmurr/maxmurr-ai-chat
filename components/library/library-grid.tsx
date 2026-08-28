@@ -21,7 +21,7 @@ export function LibraryGrid({
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4",
+        "grid grid-cols-2 gap-3 @lg:grid-cols-3 @3xl:grid-cols-4 @5xl:grid-cols-5 @6xl:grid-cols-6",
         className,
       )}
     >

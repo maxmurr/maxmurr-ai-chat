@@ -123,6 +123,18 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@media (min-width: 2400px) and (max-resolution: 1.1dppx) {
+  html {
+    font-size: 112.5%;
+  }
+}
+
+@media (min-width: 3200px) and (max-resolution: 1.1dppx) {
+  html {
+    font-size: 137.5%;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
