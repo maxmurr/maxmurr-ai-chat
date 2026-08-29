@@ -1,23 +1,23 @@
-import "server-only"
+import "server-only";
 
-import { cache } from "react"
-import { notFound } from "next/navigation"
+import { cache } from "react";
+import { notFound } from "next/navigation";
 
-import { resolveApplicationDependency } from "@/di/application-container"
-import { applicationInjectionTokens } from "@/di/application-container.registry"
-import type { ChatUIMessage } from "@/src/interface-adapters/presenters/chat-message.presenter"
+import { resolveApplicationDependency } from "@/di/application-container";
+import { applicationInjectionTokens } from "@/di/application-container.registry";
+import type { ChatUIMessage } from "@/src/interface-adapters/presenters/chat-message.presenter";
 
 function chatLibraryController() {
   return resolveApplicationDependency(
     applicationInjectionTokens.chatLibraryController
-  )
+  );
 }
 
 /** Lists owner and workspace chats once per server render request. */
 export const getChatSidebarEntries = cache(
   async (workspaceId: string, userId: string) => {
     const { ownChats, teamChats } =
-      await chatLibraryController().listSidebarChats(workspaceId, userId)
+      await chatLibraryController().listSidebarChats(workspaceId, userId);
 
     return {
       ownChats: ownChats.map(
@@ -30,10 +30,14 @@ export const getChatSidebarEntries = cache(
           visibility,
         })
       ),
-      teamChats: teamChats.map(({ id, title }) => ({ id, title })),
-    }
+      teamChats: teamChats.map(({ id, title, updatedAt }) => ({
+        id,
+        title,
+        updatedAt,
+      })),
+    };
   }
-)
+);
 
 /** Reads one workspace-scoped chat or renders route not-found state. */
 export async function getChatPageView(
@@ -45,10 +49,10 @@ export async function getChatPageView(
     chatId,
     userId,
     workspaceId
-  )
+  );
 
   if (!view) {
-    notFound()
+    notFound();
   }
 
   return {
@@ -61,19 +65,19 @@ export async function getChatPageView(
       visibility: view.chat.visibility,
     },
     messages: view.messages as ChatUIMessage[],
-  }
+  };
 }
 
 /** Reads public chat by public-link token or renders route not-found state. */
 export async function getPublicChatView(publicToken: string) {
-  const view = await chatLibraryController().getPublicChat(publicToken)
+  const view = await chatLibraryController().getPublicChat(publicToken);
 
   if (!view) {
-    notFound()
+    notFound();
   }
 
   return {
     messages: view.messages as ChatUIMessage[],
     title: view.chat.title,
-  }
+  };
 }

@@ -1,46 +1,55 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { FolderIcon, LibraryBigIcon, PlusIcon } from "lucide-react";
+
 import {
-  FolderIcon,
-  LibraryBigIcon,
-  PlusIcon,
-  SearchIcon,
-} from "lucide-react"
-
+  ChatSearch,
+  type ChatSearchEntry,
+} from "@/features/chat/components/chat-search";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
-const primaryNavigation = [
-  { label: "New chat", href: "/chat", icon: PlusIcon },
-  { label: "Search", href: "#search", icon: SearchIcon },
+const destinationNavigation = [
   { label: "Projects", href: "/projects", icon: FolderIcon },
   { label: "Library", href: "/library", icon: LibraryBigIcon },
-]
+];
 
-/** Renders app navigation with client-derived active route. */
-export function ChatPrimaryNavigation({ className }: { className?: string }) {
-  const pathname = usePathname()
+/** Renders app navigation with client-derived active route and chat search. */
+export function ChatPrimaryNavigation({
+  chats,
+  className,
+}: {
+  chats: ChatSearchEntry[];
+  className?: string;
+}) {
+  const pathname = usePathname();
 
   return (
     <SidebarMenu className={cn(className)}>
-      {primaryNavigation.map((item) => (
-        <SidebarMenuItem
-          key={item.label}
-          id={item.href.startsWith("#") ? item.href.slice(1) : undefined}
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={pathname === "/chat"}
+          render={<Link href="/chat" />}
+          tooltip="New chat"
         >
+          <PlusIcon />
+          <span>New chat</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+
+      <ChatSearch chats={chats} />
+
+      {destinationNavigation.map((item) => (
+        <SidebarMenuItem key={item.label}>
           <SidebarMenuButton
             isActive={
-              item.href === "/chat"
-                ? pathname === "/chat"
-                : item.href.startsWith("/") &&
-                  (pathname === item.href ||
-                    pathname.startsWith(`${item.href}/`))
+              pathname === item.href || pathname.startsWith(`${item.href}/`)
             }
             render={<Link href={item.href} />}
             tooltip={item.label}
@@ -51,5 +60,5 @@ export function ChatPrimaryNavigation({ className }: { className?: string }) {
         </SidebarMenuItem>
       ))}
     </SidebarMenu>
-  )
+  );
 }
