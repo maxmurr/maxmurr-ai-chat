@@ -1,11 +1,11 @@
-import { FileTextIcon } from "lucide-react"
+import { FileTextIcon } from "lucide-react";
 
-import type { ChatCopyResult } from "@/features/chat/components/chat-copy-button"
-import { ChatMessageActions } from "@/features/chat/components/chat-message-actions"
-import { ChatMessageMarkdown } from "@/features/chat/components/chat-message-markdown"
-import { ChatMessageReasoning } from "@/features/chat/components/chat-message-reasoning"
-import { ChatMessageSources } from "@/features/chat/components/chat-message-sources"
-import { ChatMessageTool } from "@/features/chat/components/chat-message-tool"
+import type { ChatCopyResult } from "@/features/chat/components/chat-copy-button";
+import { ChatMessageActions } from "@/features/chat/components/chat-message-actions";
+import { ChatMessageMarkdown } from "@/features/chat/components/chat-message-markdown";
+import { ChatMessageReasoning } from "@/features/chat/components/chat-message-reasoning";
+import { ChatMessageSources } from "@/features/chat/components/chat-message-sources";
+import { ChatMessageTool } from "@/features/chat/components/chat-message-tool";
 import {
   Attachment,
   AttachmentContent,
@@ -14,22 +14,22 @@ import {
   AttachmentMedia,
   AttachmentTitle,
   AttachmentTrigger,
-} from "@/components/ui/attachment"
-import { Bubble, BubbleContent } from "@/components/ui/bubble"
-import { Message, MessageContent } from "@/components/ui/message"
-import { MessageScrollerItem } from "@/components/ui/message-scroller"
+} from "@/components/ui/attachment";
+import { Bubble, BubbleContent } from "@/components/ui/bubble";
+import { Message, MessageContent } from "@/components/ui/message";
+import { MessageScrollerItem } from "@/components/ui/message-scroller";
 import {
   type ChatDisplayAttachment,
   type ChatDisplayMessage,
-} from "@/src/interface-adapters/presenters/chat-message.presenter"
-import { cn } from "@/lib/utils"
+} from "@/src/interface-adapters/presenters/chat-message.presenter";
+import { cn } from "@/lib/utils";
 
 function ChatMessageAttachments({
   attachments,
   className,
 }: {
-  attachments: readonly ChatDisplayAttachment[]
-  className?: string
+  attachments: readonly ChatDisplayAttachment[];
+  className?: string;
 }) {
   return (
     <AttachmentGroup className={cn(className)}>
@@ -59,30 +59,32 @@ function ChatMessageAttachments({
         </Attachment>
       ))}
     </AttachmentGroup>
-  )
+  );
 }
 
 type ChatMessageItemProps = {
-  className?: string
-  copyResult: ChatCopyResult
-  isGenerating: boolean
-  isStreaming: boolean
-  message: ChatDisplayMessage
-  onCopyMessage: () => void
-  onRetryMessage?: (messageId: string) => void
-}
+  className?: string;
+  copyResult: ChatCopyResult;
+  feedbackChatId?: string;
+  isGenerating: boolean;
+  isStreaming: boolean;
+  message: ChatDisplayMessage;
+  onCopyMessage: () => void;
+  onRetryMessage?: (messageId: string) => void;
+};
 
 /** Renders one chat message with reasoning, tools, files, sources, and actions. */
 export function ChatMessageItem({
   className,
   copyResult,
+  feedbackChatId,
   isGenerating,
   isStreaming,
   message,
   onCopyMessage,
   onRetryMessage,
 }: ChatMessageItemProps) {
-  const isAssistant = message.role === "assistant"
+  const isAssistant = message.role === "assistant";
 
   return (
     <MessageScrollerItem
@@ -114,9 +116,7 @@ export function ChatMessageItem({
               variant={isAssistant ? "ghost" : "default"}
             >
               <BubbleContent>
-                <ChatMessageMarkdown
-                  isAnimating={isAssistant && isStreaming}
-                >
+                <ChatMessageMarkdown isAnimating={isAssistant && isStreaming}>
                   {message.content}
                 </ChatMessageMarkdown>
               </BubbleContent>
@@ -129,6 +129,8 @@ export function ChatMessageItem({
 
           <ChatMessageActions
             copyResult={copyResult}
+            feedbackChatId={feedbackChatId}
+            feedbackEnabled={message.feedbackEnabled === true}
             isAssistant={isAssistant}
             isGenerating={isGenerating}
             messageId={message.id}
@@ -138,5 +140,5 @@ export function ChatMessageItem({
         </MessageContent>
       </Message>
     </MessageScrollerItem>
-  )
+  );
 }

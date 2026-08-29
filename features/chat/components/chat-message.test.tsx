@@ -1,10 +1,10 @@
-import assert from "node:assert/strict"
-import { test } from "node:test"
-import { renderToStaticMarkup } from "react-dom/server"
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { renderToStaticMarkup } from "react-dom/server";
 
-import { ChatMessageItem } from "@/features/chat/components/chat-message"
-import { MessageScrollerProvider } from "@/components/ui/message-scroller"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { ChatMessageItem } from "@/features/chat/components/chat-message";
+import { MessageScrollerProvider } from "@/components/ui/message-scroller";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 test("chat message composes reasoning, tools, files, sources, and actions", () => {
   const markup = renderToStaticMarkup(
@@ -12,6 +12,7 @@ test("chat message composes reasoning, tools, files, sources, and actions", () =
       <MessageScrollerProvider>
         <ChatMessageItem
           copyResult={null}
+          feedbackChatId="30000000-0000-4000-8000-000000000001"
           isGenerating={false}
           isStreaming={false}
           message={{
@@ -26,6 +27,7 @@ test("chat message composes reasoning, tools, files, sources, and actions", () =
             ],
             content: "Finished",
             createdAt: "2026-08-28T01:02:03.000Z",
+            feedbackEnabled: true,
             id: "message-1",
             reasoning: { state: "completed", text: "Checked inputs" },
             role: "assistant",
@@ -50,7 +52,7 @@ test("chat message composes reasoning, tools, files, sources, and actions", () =
         />
       </MessageScrollerProvider>
     </TooltipProvider>
-  )
+  );
 
   for (const text of [
     "Reasoning",
@@ -58,8 +60,10 @@ test("chat message composes reasoning, tools, files, sources, and actions", () =
     "report.pdf",
     "Finished",
     "1 sources",
+    "Good response",
+    "Bad response",
     "Regenerate response",
   ]) {
-    assert.match(markup, new RegExp(text))
+    assert.match(markup, new RegExp(text));
   }
-})
+});

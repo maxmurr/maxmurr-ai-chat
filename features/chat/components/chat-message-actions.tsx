@@ -1,33 +1,38 @@
-import { RefreshCwIcon } from "lucide-react"
+import { RefreshCwIcon } from "lucide-react";
 
 import {
   ChatCopyButton,
   type ChatCopyResult,
-} from "@/features/chat/components/chat-copy-button"
-import { TouchTarget } from "@/components/ui/touch-target"
-import { Button } from "@/components/ui/button"
-import { MessageFooter } from "@/components/ui/message"
+} from "@/features/chat/components/chat-copy-button";
+import { ChatMessageFeedback } from "@/features/chat/components/chat-message-feedback";
+import { TouchTarget } from "@/components/ui/touch-target";
+import { Button } from "@/components/ui/button";
+import { MessageFooter } from "@/components/ui/message";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 type ChatMessageActionsProps = {
-  className?: string
-  copyResult: ChatCopyResult
-  isAssistant: boolean
-  isGenerating: boolean
-  messageId: string
-  onCopyMessage: () => void
-  onRetryMessage?: (messageId: string) => void
-}
+  className?: string;
+  copyResult: ChatCopyResult;
+  feedbackChatId?: string;
+  feedbackEnabled: boolean;
+  isAssistant: boolean;
+  isGenerating: boolean;
+  messageId: string;
+  onCopyMessage: () => void;
+  onRetryMessage?: (messageId: string) => void;
+};
 
 /** Renders copy and retry actions for one chat message. */
 export function ChatMessageActions({
   className,
   copyResult,
+  feedbackChatId,
+  feedbackEnabled,
   isAssistant,
   isGenerating,
   messageId,
@@ -61,6 +66,13 @@ export function ChatMessageActions({
               : "Copy"}
         </TooltipContent>
       </Tooltip>
+      {isAssistant && feedbackEnabled && feedbackChatId && (
+        <ChatMessageFeedback
+          chatId={feedbackChatId}
+          disabled={isGenerating}
+          messageId={messageId}
+        />
+      )}
       {isAssistant && onRetryMessage && (
         <Tooltip>
           <TooltipTrigger
@@ -83,5 +95,5 @@ export function ChatMessageActions({
         </Tooltip>
       )}
     </MessageFooter>
-  )
+  );
 }
