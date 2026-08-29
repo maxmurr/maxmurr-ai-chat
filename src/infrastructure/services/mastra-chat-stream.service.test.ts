@@ -27,7 +27,11 @@ const context: ChatRequestContext = {
 };
 const createdAt = new Date("2026-08-30T00:00:00.000Z");
 
-function createStreamFixture(instructions: string, projectId: string | null) {
+function createStreamFixture(
+  instructions: string,
+  projectId: string | null,
+  projectFolderId: string | null = null
+) {
   let chat: Chat = {
     createdAt,
     id: "30000000-0000-4000-8000-000000000001",
@@ -43,7 +47,7 @@ function createStreamFixture(instructions: string, projectId: string | null) {
   let project: Project = {
     createdAt,
     description: null,
-    folderId: null,
+    folderId: projectFolderId,
     id: "10000000-0000-4000-8000-000000000001",
     instructions,
     name: "Launch",
@@ -52,7 +56,9 @@ function createStreamFixture(instructions: string, projectId: string | null) {
     updatedAt: createdAt,
   };
   let projectReads = 0;
+  let sourceReads = 0;
   const savedMessages: ChatMessage[] = [];
+  const streamedMessages: unknown[][] = [];
   const streamedSystems: (string | undefined)[] = [];
   const chatRepository = {
     async getChatById() {
@@ -79,6 +85,28 @@ function createStreamFixture(instructions: string, projectId: string | null) {
     },
   } as ProjectRepository;
   const libraryService = {
+    async listLibrary() {
+      sourceReads += 1;
+      return {
+        files: [
+          {
+            createdAt,
+            folderId: projectFolderId,
+            id: "20000000-0000-4000-8000-000000000001",
+            mediaType: "text/plain",
+            name: "private-source.txt",
+            organizationId: context.organizationId,
+            ownerId: context.userId,
+            provenanceChatId: null,
+            provenanceChatTitle: null,
+            provenanceMessageId: null,
+            size: 20,
+          },
+        ],
+        folder: null,
+        folders: [],
+      };
+    },
     async setChatFileProvenance() {},
   } as unknown as LibraryService;
   const projectService = {
@@ -103,6 +131,7 @@ function createStreamFixture(instructions: string, projectId: string | null) {
     crashReporterService,
     instrumentationService,
     async (options) => {
+      streamedMessages.push(options.params.messages);
       streamedSystems.push(options.params.system as string | undefined);
       return new ReadableStream() as unknown as Awaited<
         ReturnType<typeof handleChatStream>
@@ -120,6 +149,9 @@ function createStreamFixture(instructions: string, projectId: string | null) {
       return projectReads;
     },
     savedMessages,
+    get sourceReads() {
+      return sourceReads;
+    },
     async sendMessage() {
       messageNumber += 1;
       return streamChat(
@@ -139,6 +171,7 @@ function createStreamFixture(instructions: string, projectId: string | null) {
     setInstructions(nextInstructions: string) {
       project = { ...project, instructions: nextInstructions };
     },
+    streamedMessages,
     streamedSystems,
   };
 }
@@ -156,6 +189,23 @@ test("Project Chat streams current Custom Instructions as non-persisted system c
     fixture.savedMessages.map(({ role }) => role),
     ["user"]
   );
+});
+
+test("Project Sources never enter model provider messages", async () => {
+  const fixture = createStreamFixture(
+    "Answer briefly.",
+    "10000000-0000-4000-8000-000000000001",
+    "40000000-0000-4000-8000-000000000001"
+  );
+
+  await fixture.sendMessage();
+
+  assert.equal(fixture.sourceReads, 0);
+  assert.doesNotMatch(
+    JSON.stringify(fixture.streamedMessages),
+    /private-source\.txt/
+  );
+  assert.match(JSON.stringify(fixture.streamedMessages), /Hello/);
 });
 
 test("Project Chat with empty Custom Instructions streams no system context", async () => {

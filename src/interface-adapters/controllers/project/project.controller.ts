@@ -40,7 +40,7 @@ export type ProjectController = ReturnType<typeof createProjectController>;
 
 type ProjectSourceLibraryService = Pick<
   LibraryService,
-  "createFolder" | "listLibrary" | "moveFile" | "uploadFiles"
+  "createFolder" | "deleteFolder" | "listLibrary" | "moveFile" | "uploadFiles"
 >;
 
 /** Creates Project and Source operations with validation and ownership guards. */
@@ -118,17 +118,36 @@ export function createProjectController(
       }
     }
 
-    // ponytail: UI serializes Source mutations; use an atomic Folder claim if
-    // concurrent multi-client uploads become supported.
     const folder = await libraryService.createFolder(ownedProject.name, scope);
-    requireOwnedProject(
-      await projectRepository.updateOwnedProjectFolderId(
-        ownedProject.id,
-        folder.id,
-        scope
-      )
+    const claimedProject = await projectRepository.claimOwnedProjectFolderId(
+      ownedProject.id,
+      ownedProject.folderId,
+      folder.id,
+      scope
     );
-    return folder;
+
+    if (claimedProject) return folder;
+
+    const winningProject = await projectRepository.getOwnedProject(
+      ownedProject.id,
+      scope
+    );
+    await libraryService.deleteFolder(folder.id, scope);
+    const winningFolderId = requireOwnedProject(winningProject).folderId;
+
+    if (winningFolderId) {
+      try {
+        const listing = await libraryService.listLibrary(
+          winningFolderId,
+          scope
+        );
+        if (listing.folder) return listing.folder;
+      } catch (error) {
+        if (!(error instanceof LibraryAccessDeniedError)) throw error;
+      }
+    }
+
+    return ensureProjectFolder(ownedProject.id, scope);
   }
 
   async function resolveChatFileFolderId(
@@ -166,11 +185,6 @@ export function createProjectController(
 
     async deleteProject(projectId: unknown, scope: ProjectOwnerScope) {
       const project = await getOwnedProject(projectId, scope);
-      const chats = await chatRepository.listChatsByProject(project.id);
-
-      for (const chat of chats) {
-        await chatRepository.deleteChat(chat.id);
-      }
 
       if (!(await projectRepository.deleteOwnedProject(project.id, scope))) {
         throw new ProjectAccessDeniedError();

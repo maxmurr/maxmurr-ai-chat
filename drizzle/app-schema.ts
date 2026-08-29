@@ -196,7 +196,7 @@ export const chat = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     projectId: text("project_id").references(() => project.id, {
-      onDelete: "set null",
+      onDelete: "cascade",
     }),
     title: text("title").default("New chat").notNull(),
     visibility: text("visibility").default("private").notNull(),

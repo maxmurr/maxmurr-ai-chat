@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 
 import { appDatabase } from "@/drizzle/app-database";
 import { project } from "@/drizzle/app-schema";
@@ -70,11 +70,23 @@ export const drizzleProjectRepository: ProjectRepository = {
     return row ?? null;
   },
 
-  async updateOwnedProjectFolderId(projectId, folderId, scope) {
+  async claimOwnedProjectFolderId(
+    projectId,
+    expectedFolderId,
+    folderId,
+    scope
+  ) {
     const [row] = await appDatabase
       .update(project)
       .set({ folderId })
-      .where(ownedProjectWhere(projectId, scope))
+      .where(
+        and(
+          ownedProjectWhere(projectId, scope),
+          expectedFolderId === null
+            ? isNull(project.folderId)
+            : eq(project.folderId, expectedFolderId)
+        )
+      )
       .returning();
     return row ?? null;
   },

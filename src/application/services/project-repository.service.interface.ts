@@ -37,8 +37,9 @@ export type ProjectRepository = {
     instructions: string,
     scope: ProjectOwnerScope
   ): Promise<Project | null>;
-  updateOwnedProjectFolderId(
+  claimOwnedProjectFolderId(
     projectId: string,
+    expectedFolderId: string | null,
     folderId: string,
     scope: ProjectOwnerScope
   ): Promise<Project | null>;

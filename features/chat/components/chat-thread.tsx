@@ -44,6 +44,15 @@ type ChatThreadProps = {
   initialMessages?: ChatUIMessage[];
 };
 
+/** Routes uploads after a Chat exists locally or has loaded from persistence. */
+export function resolveChatFileUploadDestination(
+  chatId: string,
+  hasLoadedChat: boolean,
+  localMessageCount: number
+) {
+  return hasLoadedChat || localMessageCount > 0 ? { chatId } : undefined;
+}
+
 /** Renders current live chat conversation. */
 export function ChatThread({
   chatId,
@@ -115,7 +124,11 @@ function ChatThreadContent({
         attachments.length > 0
           ? await uploadLibraryFiles(
               attachments,
-              initialMessages === undefined ? undefined : { chatId }
+              resolveChatFileUploadDestination(
+                chatId,
+                initialMessages !== undefined,
+                chatMessages.length
+              )
             )
           : [];
       const fileParts: FileUIPart[] = uploadedFiles.map((file) => ({

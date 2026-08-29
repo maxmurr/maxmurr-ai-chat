@@ -49,58 +49,68 @@ function reportUnexpectedProjectActionError(error: unknown) {
   }
 }
 
+type ProjectActionResult<T extends object> =
+  ({ ok: true } & T) | { error: string; ok: false };
+
+async function runProjectMutation<T extends object>(
+  actionName: string,
+  errorMessage: string,
+  mutation: (
+    controller: ReturnType<typeof projectController>,
+    scope: Awaited<ReturnType<typeof requireProjectOwnerScope>>
+  ) => Promise<T>
+): Promise<ProjectActionResult<T>> {
+  return traceServerAction(actionName, async () => {
+    const scope = await requireProjectOwnerScope();
+
+    try {
+      const result = await mutation(projectController(), scope);
+      refresh();
+      return { ...result, ok: true as const };
+    } catch (error) {
+      reportUnexpectedProjectActionError(error);
+      return { error: errorMessage, ok: false as const };
+    }
+  });
+}
+
 /** Attaches owner Chat to owned Project in active Workspace. */
 export async function attachChatToProjectAction(
   projectId: unknown,
   chatId: unknown
 ) {
-  return traceServerAction("attachChatToProjectAction", async () => {
-    const scope = await requireProjectOwnerScope();
-
-    try {
-      await projectController().attachChat(projectId, chatId, scope);
-      refresh();
-      return { ok: true as const };
-    } catch (error) {
-      reportUnexpectedProjectActionError(error);
-      return { error: "Could not add Chat to Project.", ok: false as const };
+  return runProjectMutation(
+    "attachChatToProjectAction",
+    "Could not add Chat to Project.",
+    async (controller, scope) => {
+      await controller.attachChat(projectId, chatId, scope);
+      return {};
     }
-  });
+  );
 }
 
 /** Detaches owner Chat from its Project in active Workspace. */
 export async function detachChatFromProjectAction(chatId: unknown) {
-  return traceServerAction("detachChatFromProjectAction", async () => {
-    const scope = await requireProjectOwnerScope();
-
-    try {
-      await projectController().detachChat(chatId, scope);
-      refresh();
-      return { ok: true as const };
-    } catch (error) {
-      reportUnexpectedProjectActionError(error);
-      return {
-        error: "Could not remove Chat from Project.",
-        ok: false as const,
-      };
+  return runProjectMutation(
+    "detachChatFromProjectAction",
+    "Could not remove Chat from Project.",
+    async (controller, scope) => {
+      await controller.detachChat(chatId, scope);
+      return {};
     }
-  });
+  );
 }
 
 /** Creates Project in current owner and active Workspace scope. */
 export async function createProjectAction(input: unknown) {
-  return traceServerAction("createProjectAction", async () => {
-    const scope = await requireProjectOwnerScope();
-
-    try {
-      const project = await projectController().createProject(input, scope);
-      refresh();
-      return { ok: true as const, projectId: project.id };
-    } catch (error) {
-      reportUnexpectedProjectActionError(error);
-      return { error: "Could not create Project.", ok: false as const };
+  return runProjectMutation(
+    "createProjectAction",
+    "Could not create Project.",
+    async (controller, scope) => {
+      const project = await controller.createProject(input, scope);
+      return { projectId: project.id };
     }
-  });
+  );
 }
 
 /** Moves one owned Library File into Project Folder as Source. */
@@ -108,18 +118,14 @@ export async function addProjectSourceAction(
   projectId: unknown,
   fileId: unknown
 ) {
-  return traceServerAction("addProjectSourceAction", async () => {
-    const scope = await requireProjectOwnerScope();
-
-    try {
-      await projectController().addProjectSource(projectId, fileId, scope);
-      refresh();
-      return { ok: true as const };
-    } catch (error) {
-      reportUnexpectedProjectActionError(error);
-      return { error: "Could not add Source.", ok: false as const };
+  return runProjectMutation(
+    "addProjectSourceAction",
+    "Could not add Source.",
+    async (controller, scope) => {
+      await controller.addProjectSource(projectId, fileId, scope);
+      return {};
     }
-  });
+  );
 }
 
 /** Moves one Source from Project Folder back to Library root. */
@@ -127,18 +133,14 @@ export async function removeProjectSourceAction(
   projectId: unknown,
   fileId: unknown
 ) {
-  return traceServerAction("removeProjectSourceAction", async () => {
-    const scope = await requireProjectOwnerScope();
-
-    try {
-      await projectController().removeProjectSource(projectId, fileId, scope);
-      refresh();
-      return { ok: true as const };
-    } catch (error) {
-      reportUnexpectedProjectActionError(error);
-      return { error: "Could not remove Source.", ok: false as const };
+  return runProjectMutation(
+    "removeProjectSourceAction",
+    "Could not remove Source.",
+    async (controller, scope) => {
+      await controller.removeProjectSource(projectId, fileId, scope);
+      return {};
     }
-  });
+  );
 }
 
 /** Updates owned Project name and optional description. */
@@ -146,18 +148,14 @@ export async function updateProjectDetailsAction(
   projectId: unknown,
   input: unknown
 ) {
-  return traceServerAction("updateProjectDetailsAction", async () => {
-    const scope = await requireProjectOwnerScope();
-
-    try {
-      await projectController().updateProjectDetails(projectId, input, scope);
-      refresh();
-      return { ok: true as const };
-    } catch (error) {
-      reportUnexpectedProjectActionError(error);
-      return { error: "Could not update Project.", ok: false as const };
+  return runProjectMutation(
+    "updateProjectDetailsAction",
+    "Could not update Project.",
+    async (controller, scope) => {
+      await controller.updateProjectDetails(projectId, input, scope);
+      return {};
     }
-  });
+  );
 }
 
 /** Persists owned Project Custom Instructions, including empty string. */
@@ -165,36 +163,28 @@ export async function updateProjectInstructionsAction(
   projectId: unknown,
   instructions: unknown
 ) {
-  return traceServerAction("updateProjectInstructionsAction", async () => {
-    const scope = await requireProjectOwnerScope();
-
-    try {
-      await projectController().updateProjectInstructions(
+  return runProjectMutation(
+    "updateProjectInstructionsAction",
+    "Could not update instructions.",
+    async (controller, scope) => {
+      await controller.updateProjectInstructions(
         projectId,
         instructions,
         scope
       );
-      refresh();
-      return { ok: true as const };
-    } catch (error) {
-      reportUnexpectedProjectActionError(error);
-      return { error: "Could not update instructions.", ok: false as const };
+      return {};
     }
-  });
+  );
 }
 
 /** Deletes owned Project and its Chats while leaving Library data untouched. */
 export async function deleteProjectAction(projectId: unknown) {
-  return traceServerAction("deleteProjectAction", async () => {
-    const scope = await requireProjectOwnerScope();
-
-    try {
-      await projectController().deleteProject(projectId, scope);
-      refresh();
-      return { ok: true as const };
-    } catch (error) {
-      reportUnexpectedProjectActionError(error);
-      return { error: "Could not delete Project.", ok: false as const };
+  return runProjectMutation(
+    "deleteProjectAction",
+    "Could not delete Project.",
+    async (controller, scope) => {
+      await controller.deleteProject(projectId, scope);
+      return {};
     }
-  });
+  );
 }

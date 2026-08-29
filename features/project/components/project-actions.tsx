@@ -31,6 +31,10 @@ import {
 } from "@/features/project/project-actions";
 import { cn } from "@/lib/utils";
 
+/** States destructive Project deletion consequences in confirmation UI. */
+export const PROJECT_DELETE_CONSEQUENCES =
+  "Chats are deleted; Library Files remain available.";
+
 type ProjectActionsItem = {
   description: string | null;
   id: string;
@@ -111,8 +115,8 @@ function ProjectDeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete project?</AlertDialogTitle>
           <AlertDialogDescription>
-            This removes “{project.name}” and its Custom Instructions. Chats and
-            Library files remain available.
+            This removes “{project.name}” and its Custom Instructions.{" "}
+            {PROJECT_DELETE_CONSEQUENCES}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

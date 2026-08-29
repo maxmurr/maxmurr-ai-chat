@@ -56,8 +56,9 @@ class InMemoryChatRepository {
 
 class InMemoryProjectSourceLibrary implements Pick<
   LibraryService,
-  "createFolder" | "listLibrary" | "moveFile" | "uploadFiles"
+  "createFolder" | "deleteFolder" | "listLibrary" | "moveFile" | "uploadFiles"
 > {
+  deletedFolderIds: string[] = [];
   files: LibraryFileSummary[] = [];
   folders: LibraryFolder[] = [];
   foldersCreated = 0;
@@ -72,6 +73,17 @@ class InMemoryProjectSourceLibrary implements Pick<
     };
     this.folders.push(folder);
     return folder;
+  }
+
+  async deleteFolder(folderId: unknown, scope: ProjectOwnerScope) {
+    const id = String(folderId);
+    const folder = this.folders.find(
+      (candidate) => candidate.id === id && this.matches(candidate, scope)
+    );
+    if (!folder) throw new LibraryAccessDeniedError();
+    this.deletedFolderIds.push(id);
+    this.folders = this.folders.filter((candidate) => candidate !== folder);
+    this.files = this.files.filter((file) => file.folderId !== id);
   }
 
   async listLibrary(folderId: unknown, scope: ProjectOwnerScope) {
@@ -145,11 +157,6 @@ class InMemoryProjectSourceLibrary implements Pick<
     return uploaded;
   }
 
-  deleteFolder(folderId: string) {
-    this.folders = this.folders.filter(({ id }) => id !== folderId);
-    this.files = this.files.filter((file) => file.folderId !== folderId);
-  }
-
   private matches(
     value: { organizationId: string; ownerId: string },
     scope: ProjectOwnerScope
@@ -207,12 +214,21 @@ class InMemoryProjectRepository implements ProjectRepository {
     return this.updateProject(id, { instructions }, scope);
   }
 
-  async updateOwnedProjectFolderId(
+  async claimOwnedProjectFolderId(
     id: string,
+    expectedFolderId: string | null,
     folderId: string,
     scope: ProjectOwnerScope
   ) {
-    return this.updateProject(id, { folderId }, scope);
+    const project = this.projects.find(
+      (candidate) => candidate.id === id && this.matches(candidate, scope)
+    );
+    if (!project || project.folderId !== expectedFolderId) return null;
+    const updated = { ...project, folderId, updatedAt };
+    this.projects = this.projects.map((candidate) =>
+      candidate === project ? updated : candidate
+    );
+    return updated;
   }
 
   private matches(project: Project, scope: ProjectOwnerScope) {
@@ -401,7 +417,7 @@ test("Project Sources lazily create, freeze, recreate, move in, and remove to ro
     firstFolder.id
   );
 
-  library.deleteFolder(firstFolder.id);
+  await library.deleteFolder(firstFolder.id, ownerScope);
   const recreatedFileId = "20000000-0000-4000-8000-000000000100";
   library.files.push({
     ...ownerScope,
@@ -435,6 +451,36 @@ test("Project Sources lazily create, freeze, recreate, move in, and remove to ro
   assert.equal(
     library.files.find(({ id }) => id === recreatedFileId)?.folderId,
     null
+  );
+});
+
+test("concurrent Sources share one claimed Project Folder", async () => {
+  const repository = new InMemoryProjectRepository();
+  const { controller, library } = createController(repository);
+  const project = await controller.createProject(
+    { description: "", name: "Launch" },
+    ownerScope
+  );
+  const inputs = ["first.txt", "second.txt"].map((name) => [
+    {
+      bytes: new TextEncoder().encode(name),
+      mediaType: "text/plain",
+      name,
+    },
+  ]);
+
+  const [[first], [second]] = await Promise.all(
+    inputs.map((input) =>
+      controller.uploadProjectSources(project.id, input, ownerScope)
+    )
+  );
+
+  assert.equal(first.folderId, second.folderId);
+  assert.equal(library.folders.length, 1);
+  assert.equal(library.deletedFolderIds.length, 1);
+  assert.equal(
+    (await controller.getProject(project.id, ownerScope)).folderId,
+    first.folderId
   );
 });
 
@@ -479,7 +525,7 @@ test("Chat uploads route to lazy Project Folder and plain Chats stay at root", a
     [projectUpload.id]
   );
 
-  library.deleteFolder(firstFolder.id);
+  await library.deleteFolder(firstFolder.id, ownerScope);
   const [recreatedUpload] = await controller.uploadChatFiles(
     projectChatId,
     input,
@@ -599,7 +645,7 @@ test("Project attaches, moves, and detaches only owner Chats in active Workspace
   );
 });
 
-test("deleting Project deletes its Chats through Chat repository", async () => {
+test("deleting Project delegates one database-cascading Project delete", async () => {
   const repository = new InMemoryProjectRepository();
   const { chats, controller } = createController(repository);
   const project = await controller.createProject(
@@ -618,10 +664,6 @@ test("deleting Project deletes its Chats through Chat repository", async () => {
 
   await controller.deleteProject(project.id, ownerScope);
 
-  assert.deepEqual(chats.deletedChatIds, projectChatIds);
-  assert.deepEqual(
-    chats.chats.map(({ id }) => id),
-    [unrelatedChatId]
-  );
+  assert.deepEqual(chats.deletedChatIds, []);
   assert.deepEqual(await controller.listProjects(ownerScope), []);
 });
