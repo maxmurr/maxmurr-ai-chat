@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { ChatHistory } from "@/features/chat/components/chat-history"
 import { SidebarProvider } from "@/components/ui/sidebar"
 
-test("chat history renders outside active chat title provider", () => {
+test("chat history renders collapsible sections outside active chat title provider", () => {
   const markup = renderToStaticMarkup(
     <SidebarProvider>
       <ChatHistory
@@ -34,6 +34,11 @@ test("chat history renders outside active chat title provider", () => {
 
   assert.match(markup, />Pinned</)
   assert.match(markup, />Recents</)
+  assert.equal(markup.match(/aria-expanded="true"/g)?.length, 2)
+  assert.match(
+    markup,
+    /group-aria-expanded\/chat-history-trigger:rotate-180/
+  )
   assert.doesNotMatch(markup, />Today</)
   assert.doesNotMatch(markup, />Yesterday</)
 })

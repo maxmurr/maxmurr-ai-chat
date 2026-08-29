@@ -2,12 +2,18 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { ChevronDownIcon } from "lucide-react"
 
 import {
   ChatConversationItem,
   type ChatConversationEntry,
 } from "@/features/chat/components/chat-conversation-item"
 import type { ChatDialogEntry } from "@/features/chat/components/chat-dialogs"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -55,18 +61,31 @@ export function ChatHistory({
           className="group-data-[collapsible=icon]:hidden"
           key={group.label}
         >
-          <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {group.chats.map((chat) => (
-                <ChatConversationItem
-                  chat={chat}
-                  isActive={pathname === `/chat/${chat.id}`}
-                  key={chat.id}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <Collapsible defaultOpen>
+            <SidebarGroupLabel
+              className="group/chat-history-trigger cursor-pointer justify-between select-none"
+              render={<CollapsibleTrigger />}
+            >
+              {group.label}
+              <ChevronDownIcon
+                aria-hidden="true"
+                className="transition-transform duration-150 ease-out group-aria-expanded/chat-history-trigger:rotate-180 motion-reduce:transition-none"
+              />
+            </SidebarGroupLabel>
+            <CollapsibleContent className="h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0 motion-reduce:transition-none">
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.chats.map((chat) => (
+                    <ChatConversationItem
+                      chat={chat}
+                      isActive={pathname === `/chat/${chat.id}`}
+                      key={chat.id}
+                    />
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
         </SidebarGroup>
       ))}
 
