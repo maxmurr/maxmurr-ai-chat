@@ -1,12 +1,13 @@
-import Link from "next/link"
-import { FileTextIcon, FolderIcon } from "lucide-react"
+import Image from "next/image";
+import Link from "next/link";
+import { FileTextIcon, FolderIcon } from "lucide-react";
 
 import type {
   LibraryFolderOption,
   LibraryItem,
   LibraryItemActions,
-} from "@/features/library/components/library-data"
-import { LibraryItemMenu } from "@/features/library/components/library-item-menu"
+} from "@/features/library/components/library-data";
+import { LibraryItemMenu } from "@/features/library/components/library-item-menu";
 import {
   Attachment,
   AttachmentActions,
@@ -15,8 +16,8 @@ import {
   AttachmentMedia,
   AttachmentTitle,
   AttachmentTrigger,
-} from "@/components/ui/attachment"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/attachment";
+import { cn } from "@/lib/utils";
 
 /** Renders Library Folders and Files as responsive attachment cards. */
 export function LibraryGrid({
@@ -27,9 +28,9 @@ export function LibraryGrid({
   onDeleteFolder,
   onMoveFile,
 }: {
-  className?: string
-  folders: readonly LibraryFolderOption[]
-  items: readonly LibraryItem[]
+  className?: string;
+  folders: readonly LibraryFolderOption[];
+  items: readonly LibraryItem[];
 } & LibraryItemActions) {
   return (
     <div
@@ -54,8 +55,23 @@ export function LibraryGrid({
               )
             }
           />
-          <AttachmentMedia>
-            {item.kind === "folder" ? <FolderIcon /> : <FileTextIcon />}
+          <AttachmentMedia
+            variant={item.category === "images" ? "image" : "icon"}
+          >
+            {item.kind === "folder" ? (
+              <FolderIcon />
+            ) : item.category === "images" ? (
+              <Image
+                alt=""
+                className="size-full object-cover"
+                height={320}
+                src={item.href}
+                unoptimized
+                width={320}
+              />
+            ) : (
+              <FileTextIcon />
+            )}
           </AttachmentMedia>
           <AttachmentContent>
             <AttachmentTitle>{item.name}</AttachmentTitle>
@@ -89,5 +105,5 @@ export function LibraryGrid({
         </Attachment>
       ))}
     </div>
-  )
+  );
 }
