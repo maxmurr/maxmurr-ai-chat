@@ -184,7 +184,7 @@ function ChatThreadContent({
       <div className="flex size-full min-w-0 flex-col">
         <ChatMessageList
           className="-mb-8"
-          feedbackChatId={chatId}
+          feedbackChatId={initialMessages ? chatId : undefined}
           isGenerating={isGenerating}
           messages={messages}
           onRetryMessage={retryChatMessage}

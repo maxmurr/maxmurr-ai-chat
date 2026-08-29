@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -188,7 +189,7 @@ export function ChatMessageFeedback({
       )}
 
       <Dialog onOpenChange={setDialogOpen} open={dialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <form className="contents" onSubmit={submitNegativeFeedback}>
             <DialogHeader>
               <DialogTitle>Share feedback</DialogTitle>
@@ -207,13 +208,14 @@ export function ChatMessageFeedback({
                   onValueChange={(values) =>
                     setReasons(values as ChatFeedbackReason[])
                   }
+                  size="lg"
                   spacing={2}
                   value={reasons}
                   variant="outline"
                 >
                   {chatFeedbackReasons.map((reason) => (
                     <ToggleGroupItem
-                      className="h-10 rounded-full px-3.5 pointer-coarse:h-11"
+                      className="rounded-full pointer-coarse:h-11"
                       key={reason}
                       value={reason}
                     >
@@ -228,26 +230,29 @@ export function ChatMessageFeedback({
                   Feedback details
                 </FieldLabel>
                 <Textarea
+                  autoComplete="off"
                   className="min-h-24"
                   disabled={isPending}
                   id={detailsId}
                   maxLength={500}
+                  name="details"
                   onChange={(event) => setDetails(event.target.value)}
-                  placeholder="Share details (optional)"
+                  placeholder="Share details (optional)…"
                   value={details}
                 />
               </Field>
-
-              <p className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-                Your conversation will be included with your feedback to help
-                improve responses.
-              </p>
             </FieldGroup>
 
-            <DialogFooter className="m-0 border-0 bg-transparent p-0">
+            <DialogDescription className="rounded-lg bg-muted p-3">
+              Your conversation will be included with your feedback to help
+              improve responses.
+            </DialogDescription>
+
+            <DialogFooter>
               <Button
-                className="h-11 sm:h-9"
+                className="pointer-coarse:h-11"
                 disabled={isPending || reasons.length === 0}
+                size="lg"
                 type="submit"
               >
                 {isPending && <Spinner data-icon="inline-start" />}
