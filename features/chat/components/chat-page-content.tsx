@@ -59,6 +59,23 @@ export function ChatPageContentSkeleton() {
           </div>
         </div>
       </div>
+      <div
+        aria-hidden="true"
+        className="mx-auto w-full max-w-3xl shrink-0 px-4"
+        data-slot="chat-loading-composer"
+      >
+        <div className="flex h-[82px] flex-col rounded-lg border border-input bg-background p-2 sm:h-[78px]">
+          <Skeleton className="mx-2 mt-1 h-4 w-28" />
+          <div className="mt-auto flex items-center gap-2">
+            <Skeleton className="size-8 rounded-lg" />
+            <Skeleton className="h-6 w-28" />
+            <Skeleton className="ml-auto size-8 rounded-lg" />
+          </div>
+        </div>
+      </div>
+      <p className="shrink-0 px-4 py-2.5 text-center text-xs text-balance text-muted-foreground">
+        AI can make mistakes. Verify important information.
+      </p>
       <p className="sr-only" role="status">
         Loading chat.
       </p>
