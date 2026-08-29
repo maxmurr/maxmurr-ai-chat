@@ -113,7 +113,7 @@ export async function createProjectAction(input: unknown) {
   );
 }
 
-/** Moves one owned Library File into Project Folder as Source. */
+/** Links one owned Library File to Project without moving it. */
 export async function addProjectSourceAction(
   projectId: unknown,
   fileId: unknown
@@ -128,7 +128,7 @@ export async function addProjectSourceAction(
   );
 }
 
-/** Moves one Source from Project Folder back to Library root. */
+/** Unlinks one Source without changing its Library location. */
 export async function removeProjectSourceAction(
   projectId: unknown,
   fileId: unknown

@@ -59,7 +59,7 @@ test("assistant-generated Files resolve Project Folder lazily and keep Provenanc
     role: "assistant",
   } satisfies UIMessage;
 
-  const savedMessage = await saveAssistantGeneratedFiles(
+  const savedResult = await saveAssistantGeneratedFiles(
     generatedMessage,
     chatId,
     libraryService,
@@ -79,11 +79,16 @@ test("assistant-generated Files resolve Project Folder lazily and keep Provenanc
     },
   ]);
   assert.equal(
-    savedMessage.parts[0].type === "file" ? savedMessage.parts[0].url : null,
+    savedResult.message.parts[0].type === "file"
+      ? savedResult.message.parts[0].url
+      : null,
     "/api/library/files/20000000-0000-4000-8000-000000000001"
   );
+  assert.deepEqual(savedResult.savedFileIds, [
+    "20000000-0000-4000-8000-000000000001",
+  ]);
 
-  await saveAssistantGeneratedFiles(
+  const textOnlyResult = await saveAssistantGeneratedFiles(
     {
       id: "text-only",
       parts: [{ text: "done", type: "text" }],
@@ -95,4 +100,5 @@ test("assistant-generated Files resolve Project Folder lazily and keep Provenanc
     scope
   );
   assert.equal(resolvedFolderCount, 1);
+  assert.deepEqual(textOnlyResult.savedFileIds, []);
 });

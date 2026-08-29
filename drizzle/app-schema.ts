@@ -284,6 +284,23 @@ export const libraryFile = pgTable(
   ]
 );
 
+export const projectSource = pgTable(
+  "project_source",
+  {
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    fileId: text("file_id")
+      .notNull()
+      .references(() => libraryFile.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.projectId, table.fileId] }),
+    index("projectSource_fileId_idx").on(table.fileId),
+  ]
+);
+
 export const rateLimit = pgTable("rate_limit", {
   id: text("id").primaryKey(),
   key: text("key").notNull().unique(),
@@ -333,6 +350,7 @@ export const projectRelations = relations(project, ({ one, many }) => ({
     references: [user.id],
   }),
   chats: many(chat),
+  sources: many(projectSource),
   folder: one(libraryFolder, {
     fields: [project.folderId],
     references: [libraryFolder.id],
@@ -389,7 +407,7 @@ export const libraryFolderRelations = relations(
   })
 );
 
-export const libraryFileRelations = relations(libraryFile, ({ one }) => ({
+export const libraryFileRelations = relations(libraryFile, ({ one, many }) => ({
   organization: one(organization, {
     fields: [libraryFile.organizationId],
     references: [organization.id],
@@ -401,6 +419,18 @@ export const libraryFileRelations = relations(libraryFile, ({ one }) => ({
   folder: one(libraryFolder, {
     fields: [libraryFile.folderId],
     references: [libraryFolder.id],
+  }),
+  projectSources: many(projectSource),
+}));
+
+export const projectSourceRelations = relations(projectSource, ({ one }) => ({
+  project: one(project, {
+    fields: [projectSource.projectId],
+    references: [project.id],
+  }),
+  file: one(libraryFile, {
+    fields: [projectSource.fileId],
+    references: [libraryFile.id],
   }),
 }));
 

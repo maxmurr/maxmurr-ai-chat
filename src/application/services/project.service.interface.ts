@@ -4,6 +4,11 @@ import type { Project, ProjectOwnerScope } from "@/src/entities/models/project";
 
 /** Owner-checked Project and Source operations exposed by Project controller. */
 export type ProjectService = {
+  addChatFilesAsProjectSources(
+    chatId: unknown,
+    fileIds: unknown,
+    scope: ProjectOwnerScope
+  ): Promise<void>;
   attachChat(
     projectId: unknown,
     chatId: unknown,

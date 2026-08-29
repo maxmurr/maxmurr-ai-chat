@@ -1,3 +1,4 @@
+import type { LibraryFileSummary } from "@/src/entities/models/library";
 import type { Project, ProjectOwnerScope } from "@/src/entities/models/project";
 
 /** Values accepted when creating one owner-scoped Project. */
@@ -15,8 +16,13 @@ export type ProjectDetailsUpdate = {
   readonly name: string;
 };
 
-/** Persists owner-private Projects scoped to user and Workspace. */
+/** Persists owner-private Projects and their Library File Source links. */
 export type ProjectRepository = {
+  addOwnedProjectSources(
+    projectId: string,
+    fileIds: readonly string[],
+    scope: ProjectOwnerScope
+  ): Promise<boolean>;
   createProject(project: NewProject): Promise<Project>;
   deleteOwnedProject(
     projectId: string,
@@ -27,6 +33,15 @@ export type ProjectRepository = {
     scope: ProjectOwnerScope
   ): Promise<Project | null>;
   listOwnedProjects(scope: ProjectOwnerScope): Promise<Project[]>;
+  listOwnedProjectSources(
+    projectId: string,
+    scope: ProjectOwnerScope
+  ): Promise<LibraryFileSummary[]>;
+  removeOwnedProjectSource(
+    projectId: string,
+    fileId: string,
+    scope: ProjectOwnerScope
+  ): Promise<boolean>;
   updateOwnedProjectDetails(
     projectId: string,
     details: ProjectDetailsUpdate,

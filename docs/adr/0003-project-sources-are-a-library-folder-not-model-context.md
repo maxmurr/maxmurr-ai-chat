@@ -1,3 +1,7 @@
+---
+status: superseded by ADR-0004
+---
+
 # Project Sources are a Library Folder, not model context
 
 A Project scopes Chats with Custom Instructions and collects files ("Sources"). The obvious design — and the one we debated first — was a reference model: a `project_file` join table linking a Project to Library Files, with every referenced file injected into the model context of every Chat in the Project (the app already inlines chat-attached files as base64/text on each request). We rejected it: Sources instead live in an ordinary Library Folder named after the Project, and are not sent to the model at all.

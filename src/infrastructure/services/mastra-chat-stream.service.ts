@@ -290,7 +290,7 @@ export function createMastraChatStreamService(
             let persistedResponse = responseMessage;
 
             try {
-              persistedResponse = await saveAssistantGeneratedFiles(
+              const savedFiles = await saveAssistantGeneratedFiles(
                 responseMessage,
                 chatId,
                 libraryService,
@@ -298,6 +298,23 @@ export function createMastraChatStreamService(
                   projectService.resolveChatFileFolderId(chatId, libraryScope),
                 libraryScope
               );
+              persistedResponse = savedFiles.message;
+
+              if (savedFiles.savedFileIds.length > 0) {
+                try {
+                  await projectService.addChatFilesAsProjectSources(
+                    chatId,
+                    savedFiles.savedFileIds,
+                    libraryScope
+                  );
+                } catch (error) {
+                  crashReporterService.report(error);
+                  console.error(
+                    "Assistant Project Source link failed.",
+                    error instanceof Error ? error.message : "Unknown error"
+                  );
+                }
+              }
             } catch (error) {
               crashReporterService.report(error);
               console.error(

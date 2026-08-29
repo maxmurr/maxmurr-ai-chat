@@ -169,7 +169,29 @@ class InMemoryProjectSourceLibrary implements Pick<
 }
 
 class InMemoryProjectRepository implements ProjectRepository {
+  getLibraryFiles: () => LibraryFileSummary[] = () => [];
   projects: Project[] = [];
+  sourceFileIdsByProject = new Map<string, Set<string>>();
+
+  async addOwnedProjectSources(
+    projectId: string,
+    fileIds: readonly string[],
+    scope: ProjectOwnerScope
+  ) {
+    const project = await this.getOwnedProject(projectId, scope);
+    const ownedFileIds = new Set(
+      this.getLibraryFiles()
+        .filter((file) => this.matches(file, scope))
+        .map(({ id }) => id)
+    );
+    if (!project || fileIds.some((id) => !ownedFileIds.has(id))) return false;
+
+    const sourceFileIds =
+      this.sourceFileIdsByProject.get(projectId) ?? new Set<string>();
+    for (const id of fileIds) sourceFileIds.add(id);
+    this.sourceFileIdsByProject.set(projectId, sourceFileIds);
+    return true;
+  }
 
   async createProject(project: NewProject) {
     const created = { ...project, createdAt, updatedAt: createdAt };
@@ -183,6 +205,7 @@ class InMemoryProjectRepository implements ProjectRepository {
     );
     if (index === -1) return false;
     this.projects.splice(index, 1);
+    this.sourceFileIdsByProject.delete(id);
     return true;
   }
 
@@ -196,6 +219,29 @@ class InMemoryProjectRepository implements ProjectRepository {
 
   async listOwnedProjects(scope: ProjectOwnerScope) {
     return this.projects.filter((project) => this.matches(project, scope));
+  }
+
+  async listOwnedProjectSources(projectId: string, scope: ProjectOwnerScope) {
+    const project = await this.getOwnedProject(projectId, scope);
+    if (!project) return [];
+
+    const sourceFileIds = this.sourceFileIdsByProject.get(projectId);
+    return sourceFileIds
+      ? this.getLibraryFiles().filter(
+          (file) => sourceFileIds.has(file.id) && this.matches(file, scope)
+        )
+      : [];
+  }
+
+  async removeOwnedProjectSource(
+    projectId: string,
+    fileId: string,
+    scope: ProjectOwnerScope
+  ) {
+    const project = await this.getOwnedProject(projectId, scope);
+    return project
+      ? (this.sourceFileIdsByProject.get(projectId)?.delete(fileId) ?? false)
+      : false;
   }
 
   async updateOwnedProjectDetails(
@@ -231,10 +277,13 @@ class InMemoryProjectRepository implements ProjectRepository {
     return updated;
   }
 
-  private matches(project: Project, scope: ProjectOwnerScope) {
+  private matches(
+    value: { organizationId: string; ownerId: string },
+    scope: ProjectOwnerScope
+  ) {
     return (
-      project.organizationId === scope.organizationId &&
-      project.ownerId === scope.ownerId
+      value.organizationId === scope.organizationId &&
+      value.ownerId === scope.ownerId
     );
   }
 
@@ -276,6 +325,7 @@ function createController(
   library = new InMemoryProjectSourceLibrary()
 ) {
   const chats = new InMemoryChatRepository();
+  repository.getLibraryFiles = () => library.files;
   return {
     chats,
     controller: createProjectController(repository, chats.repository, library),
@@ -366,7 +416,60 @@ test("Project CRUD persists details and supports setting and clearing instructio
   assert.deepEqual(await controller.listProjects(ownerScope), []);
 });
 
-test("Project Sources lazily create, freeze, recreate, move in, and remove to root", async () => {
+test("Project Source links preserve Library placement when added and removed", async () => {
+  const repository = new InMemoryProjectRepository();
+  const library = new InMemoryProjectSourceLibrary();
+  const { controller } = createController(repository, library);
+  const project = await controller.createProject(
+    { description: "", name: "Pricing revamp" },
+    ownerScope
+  );
+  const existingFolder = await library.createFolder("Research", ownerScope);
+  const fileId = "20000000-0000-4000-8000-000000000099";
+  library.files.push({
+    ...ownerScope,
+    createdAt,
+    folderId: existingFolder.id,
+    id: fileId,
+    mediaType: "application/pdf",
+    name: "research.pdf",
+    provenanceChatId: null,
+    provenanceChatTitle: null,
+    provenanceMessageId: null,
+    size: 42,
+  });
+
+  await controller.addProjectSource(project.id, fileId, ownerScope);
+
+  assert.equal(library.folders.length, 1);
+  assert.equal(
+    library.files.find(({ id }) => id === fileId)?.folderId,
+    existingFolder.id
+  );
+  assert.equal(
+    (await controller.getProject(project.id, ownerScope)).folderId,
+    null
+  );
+  assert.deepEqual(
+    (await controller.listProjectSources(project.id, ownerScope)).map(
+      ({ id }) => id
+    ),
+    [fileId]
+  );
+
+  await controller.removeProjectSource(project.id, fileId, ownerScope);
+
+  assert.equal(
+    library.files.find(({ id }) => id === fileId)?.folderId,
+    existingFolder.id
+  );
+  assert.deepEqual(
+    await controller.listProjectSources(project.id, ownerScope),
+    []
+  );
+});
+
+test("Project Source uploads lazily create, freeze, and recreate Project Folder", async () => {
   const repository = new InMemoryProjectRepository();
   const library = new InMemoryProjectSourceLibrary();
   const { controller } = createController(repository, library);
@@ -389,53 +492,35 @@ test("Project Sources lazily create, freeze, recreate, move in, and remove to ro
   const firstFolder = library.folders[0];
   assert.equal(firstFolder.name, "Pricing revamp");
   assert.equal(uploaded.folderId, firstFolder.id);
+  assert.deepEqual(
+    (await controller.listProjectSources(project.id, ownerScope)).map(
+      ({ id }) => id
+    ),
+    [uploaded.id]
+  );
 
   await controller.updateProjectDetails(
     project.id,
     { description: "", name: "Pricing launch" },
     ownerScope
   );
-  const movedFileId = "20000000-0000-4000-8000-000000000099";
-  library.files.push({
-    ...ownerScope,
-    createdAt,
-    folderId: null,
-    id: movedFileId,
-    mediaType: "application/pdf",
-    name: "research.pdf",
-    provenanceChatId: null,
-    provenanceChatTitle: null,
-    provenanceMessageId: null,
-    size: 42,
-  });
-
-  await controller.addProjectSource(project.id, movedFileId, ownerScope);
-  assert.equal(library.folders.length, 1);
-  assert.equal(library.folders[0].name, "Pricing revamp");
-  assert.equal(
-    library.files.find(({ id }) => id === movedFileId)?.folderId,
-    firstFolder.id
-  );
-
   await library.deleteFolder(firstFolder.id, ownerScope);
-  const recreatedFileId = "20000000-0000-4000-8000-000000000100";
-  library.files.push({
-    ...ownerScope,
-    createdAt,
-    folderId: null,
-    id: recreatedFileId,
-    mediaType: "text/csv",
-    name: "cohorts.csv",
-    provenanceChatId: null,
-    provenanceChatTitle: null,
-    provenanceMessageId: null,
-    size: 12,
-  });
 
-  await controller.addProjectSource(project.id, recreatedFileId, ownerScope);
+  const [recreatedUpload] = await controller.uploadProjectSources(
+    project.id,
+    [
+      {
+        bytes: new TextEncoder().encode("cohorts"),
+        mediaType: "text/csv",
+        name: "cohorts.csv",
+      },
+    ],
+    ownerScope
+  );
   const recreatedFolder = library.folders[0];
   assert.notEqual(recreatedFolder.id, firstFolder.id);
   assert.equal(recreatedFolder.name, "Pricing launch");
+  assert.equal(recreatedUpload.folderId, recreatedFolder.id);
   assert.equal(
     (await controller.getProject(project.id, ownerScope)).folderId,
     recreatedFolder.id
@@ -444,13 +529,7 @@ test("Project Sources lazily create, freeze, recreate, move in, and remove to ro
     (await controller.listProjectSources(project.id, ownerScope)).map(
       ({ id }) => id
     ),
-    [recreatedFileId]
-  );
-
-  await controller.removeProjectSource(project.id, recreatedFileId, ownerScope);
-  assert.equal(
-    library.files.find(({ id }) => id === recreatedFileId)?.folderId,
-    null
+    [recreatedUpload.id]
   );
 });
 
@@ -523,6 +602,31 @@ test("Chat uploads route to lazy Project Folder and plain Chats stay at root", a
       ({ id }) => id
     ),
     [projectUpload.id]
+  );
+
+  const generatedFileId = "20000000-0000-4000-8000-000000000099";
+  library.files.push({
+    ...ownerScope,
+    createdAt,
+    folderId: firstFolder.id,
+    id: generatedFileId,
+    mediaType: "text/plain",
+    name: "generated.txt",
+    provenanceChatId: projectChatId,
+    provenanceChatTitle: "Chat",
+    provenanceMessageId: "assistant-message",
+    size: 9,
+  });
+  await controller.addChatFilesAsProjectSources(
+    projectChatId,
+    [generatedFileId],
+    ownerScope
+  );
+  assert.deepEqual(
+    (await controller.listProjectSources(project.id, ownerScope)).map(
+      ({ id }) => id
+    ),
+    [projectUpload.id, generatedFileId]
   );
 
   await library.deleteFolder(firstFolder.id, ownerScope);

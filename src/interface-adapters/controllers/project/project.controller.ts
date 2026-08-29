@@ -12,6 +12,7 @@ import {
 import type { ProjectOwnerScope } from "@/src/entities/models/project";
 
 const projectIdSchema = z.uuid();
+const projectSourceFileIdsSchema = z.array(z.uuid()).max(100);
 const projectNameSchema = z.string().trim().min(1).max(100);
 const projectDescriptionSchema = z
   .string()
@@ -40,7 +41,7 @@ export type ProjectController = ReturnType<typeof createProjectController>;
 
 type ProjectSourceLibraryService = Pick<
   LibraryService,
-  "createFolder" | "deleteFolder" | "listLibrary" | "moveFile" | "uploadFiles"
+  "createFolder" | "deleteFolder" | "listLibrary" | "uploadFiles"
 >;
 
 /** Creates Project and Source operations with validation and ownership guards. */
@@ -79,24 +80,19 @@ export function createProjectController(
     return chat;
   }
 
-  async function listProjectSourceFiles(
-    projectId: unknown,
+  async function linkProjectSourceFiles(
+    projectId: string,
+    fileIds: readonly string[],
     scope: ProjectOwnerScope
   ) {
-    const ownedProject = await getOwnedProject(projectId, scope);
-
-    if (!ownedProject.folderId) {
-      return [];
-    }
-
-    try {
-      return (await libraryService.listLibrary(ownedProject.folderId, scope))
-        .files;
-    } catch (error) {
-      if (error instanceof LibraryAccessDeniedError) {
-        return [];
-      }
-      throw error;
+    if (
+      !(await projectRepository.addOwnedProjectSources(
+        projectId,
+        fileIds,
+        scope
+      ))
+    ) {
+      throw new ProjectAccessDeniedError();
     }
   }
 
@@ -161,6 +157,19 @@ export function createProjectController(
   }
 
   return {
+    async addChatFilesAsProjectSources(
+      chatId: unknown,
+      fileIds: unknown,
+      scope: ProjectOwnerScope
+    ) {
+      const ids = parseProjectInput(projectSourceFileIdsSchema, fileIds);
+      const chat = await requireOwnedChat(chatId, scope);
+
+      if (chat.projectId) {
+        await linkProjectSourceFiles(chat.projectId, ids, scope);
+      }
+    },
+
     async attachChat(
       projectId: unknown,
       chatId: unknown,
@@ -210,7 +219,8 @@ export function createProjectController(
     },
 
     async listProjectSources(projectId: unknown, scope: ProjectOwnerScope) {
-      return listProjectSourceFiles(projectId, scope);
+      const project = await getOwnedProject(projectId, scope);
+      return projectRepository.listOwnedProjectSources(project.id, scope);
     },
 
     async addProjectSource(
@@ -218,9 +228,9 @@ export function createProjectController(
       fileId: unknown,
       scope: ProjectOwnerScope
     ) {
+      const project = await getOwnedProject(projectId, scope);
       const id = parseProjectInput(projectIdSchema, fileId);
-      const folder = await ensureProjectFolder(projectId, scope);
-      await libraryService.moveFile(id, folder.id, scope);
+      await linkProjectSourceFiles(project.id, [id], scope);
     },
 
     async removeProjectSource(
@@ -228,14 +238,18 @@ export function createProjectController(
       fileId: unknown,
       scope: ProjectOwnerScope
     ) {
+      const project = await getOwnedProject(projectId, scope);
       const id = parseProjectInput(projectIdSchema, fileId);
-      const sources = await listProjectSourceFiles(projectId, scope);
 
-      if (!sources.some((source) => source.id === id)) {
+      if (
+        !(await projectRepository.removeOwnedProjectSource(
+          project.id,
+          id,
+          scope
+        ))
+      ) {
         throw new ProjectAccessDeniedError();
       }
-
-      await libraryService.moveFile(id, null, scope);
     },
 
     resolveChatFileFolderId,
@@ -245,8 +259,21 @@ export function createProjectController(
       input: unknown,
       scope: ProjectOwnerScope
     ) {
-      const folderId = await resolveChatFileFolderId(chatId, scope);
-      return libraryService.uploadFiles(input, scope, folderId);
+      const chat = await requireOwnedChat(chatId, scope);
+      const folderId = chat.projectId
+        ? (await ensureProjectFolder(chat.projectId, scope)).id
+        : null;
+      const files = await libraryService.uploadFiles(input, scope, folderId);
+
+      if (chat.projectId) {
+        await linkProjectSourceFiles(
+          chat.projectId,
+          files.map(({ id }) => id),
+          scope
+        );
+      }
+
+      return files;
     },
 
     async uploadProjectSources(
@@ -254,8 +281,15 @@ export function createProjectController(
       input: unknown,
       scope: ProjectOwnerScope
     ) {
-      const folder = await ensureProjectFolder(projectId, scope);
-      return libraryService.uploadFiles(input, scope, folder.id);
+      const project = await getOwnedProject(projectId, scope);
+      const folder = await ensureProjectFolder(project.id, scope);
+      const files = await libraryService.uploadFiles(input, scope, folder.id);
+      await linkProjectSourceFiles(
+        project.id,
+        files.map(({ id }) => id),
+        scope
+      );
+      return files;
     },
 
     async updateProjectDetails(

@@ -59,10 +59,8 @@ export async function getProjectPageData(projectId: string) {
   }
 }
 
-/** Lists Sources plus owned Files available to move into one Project. */
-export async function getProjectSourcesPageData(
-  project: Pick<Project, "folderId" | "id">
-) {
+/** Lists Sources plus owned Files available to link to one Project. */
+export async function getProjectSourcesPageData(project: Pick<Project, "id">) {
   const scope = await getProjectOwnerScope();
   const [sources, rootListing] = await Promise.all([
     projectController().listProjectSources(project.id, scope),
@@ -71,20 +69,21 @@ export async function getProjectSourcesPageData(
   // ponytail: one query per flat Folder; add an all-Files repository read if
   // large Libraries make this picker slow.
   const folderFiles = await Promise.all(
-    rootListing.folders
-      .filter(({ id }) => id !== project.folderId)
-      .map(async ({ id }) => {
-        try {
-          return (await libraryController().listLibrary(id, scope)).files;
-        } catch (error) {
-          if (error instanceof LibraryAccessDeniedError) return [];
-          throw error;
-        }
-      })
+    rootListing.folders.map(async ({ id }) => {
+      try {
+        return (await libraryController().listLibrary(id, scope)).files;
+      } catch (error) {
+        if (error instanceof LibraryAccessDeniedError) return [];
+        throw error;
+      }
+    })
   );
+  const sourceIds = new Set(sources.map(({ id }) => id));
 
   return {
-    availableFiles: [...rootListing.files, ...folderFiles.flat()],
+    availableFiles: [...rootListing.files, ...folderFiles.flat()].filter(
+      ({ id }) => !sourceIds.has(id)
+    ),
     sources,
   };
 }

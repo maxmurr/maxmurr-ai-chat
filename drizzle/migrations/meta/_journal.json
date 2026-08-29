@@ -71,6 +71,13 @@
       "when": 1788019426469,
       "tag": "0009_volatile_sway",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788022489863,
+      "tag": "0010_groovy_captain_universe",
+      "breakpoints": true
     }
   ]
 }

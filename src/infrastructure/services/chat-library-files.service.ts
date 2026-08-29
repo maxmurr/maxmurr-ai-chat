@@ -110,7 +110,7 @@ function generatedFileName(part: FileUIPart, index: number) {
 
 /**
  * Persists assistant-emitted data-URL file parts with Provenance, resolving
- * Project Folder only when generated Files exist.
+ * Project Folder only when generated Files exist, and returns saved File ids.
  */
 export async function saveAssistantGeneratedFiles(
   message: UIMessage,
@@ -118,7 +118,7 @@ export async function saveAssistantGeneratedFiles(
   libraryService: LibraryService,
   resolveChatFileFolderId: () => Promise<string | null>,
   scope: LibraryOwnerScope
-): Promise<UIMessage> {
+): Promise<{ message: UIMessage; savedFileIds: string[] }> {
   const generatedParts = message.parts.flatMap((part, partIndex) =>
     part.type === "file" && part.url.startsWith("data:")
       ? [{ part, partIndex }]
@@ -126,7 +126,7 @@ export async function saveAssistantGeneratedFiles(
   );
 
   if (generatedParts.length === 0) {
-    return message;
+    return { message, savedFileIds: [] };
   }
 
   const inputs = await Promise.all(
@@ -153,17 +153,20 @@ export async function saveAssistantGeneratedFiles(
   );
 
   return {
-    ...message,
-    parts: message.parts.map((part, partIndex) => {
-      const file = filesByPartIndex.get(partIndex);
-      return file
-        ? {
-            ...part,
-            filename: file.name,
-            mediaType: file.mediaType,
-            url: createLibraryFileDownloadUrl(file.id),
-          }
-        : part;
-    }),
+    message: {
+      ...message,
+      parts: message.parts.map((part, partIndex) => {
+        const file = filesByPartIndex.get(partIndex);
+        return file
+          ? {
+              ...part,
+              filename: file.name,
+              mediaType: file.mediaType,
+              url: createLibraryFileDownloadUrl(file.id),
+            }
+          : part;
+      }),
+    },
+    savedFileIds: savedFiles.map(({ id }) => id),
   };
 }

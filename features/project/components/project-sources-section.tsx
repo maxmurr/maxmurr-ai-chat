@@ -105,7 +105,7 @@ function ProjectLibrarySourceDialog({
 
   return (
     <CommandDialog
-      description="Move a File the Library already holds into this Project."
+      description="Link a Library File without changing where it is stored."
       onOpenChange={onOpenChange}
       open={open}
       title="Add from Library"
@@ -142,7 +142,7 @@ function ProjectLibrarySourceDialog({
   );
 }
 
-/** Renders real Project Sources with upload, Library move, and removal actions. */
+/** Renders Project Source links with upload, add, and unlink actions. */
 export function ProjectSourcesSection({
   availableFiles,
   className,
@@ -270,7 +270,7 @@ export function ProjectSourcesSection({
         </div>
       ) : (
         <p className="text-base text-pretty text-muted-foreground sm:text-sm">
-          No Sources yet. Upload Files or move them here from your Library.
+          No Sources yet. Upload Files or add them from your Library.
         </p>
       )}
 
