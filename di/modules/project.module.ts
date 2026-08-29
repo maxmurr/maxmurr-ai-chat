@@ -18,7 +18,8 @@ export function createProjectModule() {
     .bind(applicationInjectionTokens.projectController)
     .toFactory((resolve) =>
       createProjectController(
-        resolve(applicationInjectionTokens.projectRepository)
+        resolve(applicationInjectionTokens.projectRepository),
+        resolve(applicationInjectionTokens.chatRepository)
       )
     );
 

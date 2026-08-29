@@ -33,6 +33,8 @@ import { cn } from "@/lib/utils";
 export type ChatConversationEntry = {
   id: string;
   pinned: boolean;
+  projectId: string | null;
+  projectName: string | null;
   publicToken: string | null;
   title: string;
   updatedAt: Date;
@@ -43,6 +45,7 @@ type ChatConversationItemProps = {
   chat: ChatConversationEntry;
   className?: string;
   isActive: boolean;
+  projects: { id: string; name: string }[];
 };
 
 /** Renders one renameable conversation link and its action menu. */
@@ -50,6 +53,7 @@ export function ChatConversationItem({
   chat,
   className,
   isActive,
+  projects,
 }: ChatConversationItemProps) {
   const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -62,6 +66,9 @@ export function ChatConversationItem({
   const renameInputRef = useRef<HTMLInputElement>(null);
   const restoreLinkFocusRef = useRef(false);
   const titleViewportRef = useRef<HTMLSpanElement>(null);
+  const sidebarTitle = chat.projectName
+    ? `${chat.title} · ${chat.projectName}`
+    : chat.title;
 
   function toggleConversationPin() {
     void pinChatAction(chat.id, !chat.pinned).then((result) => {
@@ -137,7 +144,7 @@ export function ChatConversationItem({
     updateTitleOverflow();
 
     return () => resizeObserver.disconnect();
-  }, [chat.title]);
+  }, [sidebarTitle]);
 
   return (
     <SidebarMenuItem className={cn(className)}>
@@ -181,7 +188,7 @@ export function ChatConversationItem({
               href={`/chat/${chat.id}`}
             />
           }
-          title={chat.title}
+          title={sidebarTitle}
         >
           {chat.pinned && <MessageCircleIcon />}
           <span
@@ -199,7 +206,7 @@ export function ChatConversationItem({
                   "motion-safe:pointer-fine:group-hover/menu-item:invisible"
               )}
             >
-              {chat.title}
+              {sidebarTitle}
             </span>
             <span
               ref={movingTitleRef}
@@ -210,7 +217,7 @@ export function ChatConversationItem({
                   "motion-safe:pointer-fine:group-hover/menu-item:visible motion-safe:pointer-fine:group-hover/menu-item:translate-x-[calc(var(--conversation-title-visible-width)-100%)] motion-safe:pointer-fine:group-hover/menu-item:transition-transform motion-safe:pointer-fine:group-hover/menu-item:delay-300 motion-safe:pointer-fine:group-hover/menu-item:duration-[2s] motion-safe:pointer-fine:group-hover/menu-item:ease-linear"
               )}
             >
-              {chat.title}
+              {sidebarTitle}
             </span>
           </span>
         </SidebarMenuButton>
@@ -244,6 +251,7 @@ export function ChatConversationItem({
           </DropdownMenuTrigger>
           <ChatActionsMenuContent
             align="start"
+            chatId={chat.id}
             finalFocus={(closeType) =>
               renameInputRef.current ?? closeType === "keyboard"
             }
@@ -252,6 +260,8 @@ export function ChatConversationItem({
             onShare={() => setIsShareDialogOpen(true)}
             onTogglePin={toggleConversationPin}
             pinned={chat.pinned}
+            projectId={chat.projectId}
+            projects={projects}
             side="right"
           />
         </DropdownMenu>

@@ -43,6 +43,44 @@ function reportUnexpectedProjectActionError(error: unknown) {
   }
 }
 
+/** Attaches owner Chat to owned Project in active Workspace. */
+export async function attachChatToProjectAction(
+  projectId: unknown,
+  chatId: unknown
+) {
+  return traceServerAction("attachChatToProjectAction", async () => {
+    const scope = await requireProjectOwnerScope();
+
+    try {
+      await projectController().attachChat(projectId, chatId, scope);
+      refresh();
+      return { ok: true as const };
+    } catch (error) {
+      reportUnexpectedProjectActionError(error);
+      return { error: "Could not add Chat to Project.", ok: false as const };
+    }
+  });
+}
+
+/** Detaches owner Chat from its Project in active Workspace. */
+export async function detachChatFromProjectAction(chatId: unknown) {
+  return traceServerAction("detachChatFromProjectAction", async () => {
+    const scope = await requireProjectOwnerScope();
+
+    try {
+      await projectController().detachChat(chatId, scope);
+      refresh();
+      return { ok: true as const };
+    } catch (error) {
+      reportUnexpectedProjectActionError(error);
+      return {
+        error: "Could not remove Chat from Project.",
+        ok: false as const,
+      };
+    }
+  });
+}
+
 /** Creates Project in current owner and active Workspace scope. */
 export async function createProjectAction(input: unknown) {
   return traceServerAction("createProjectAction", async () => {
@@ -101,7 +139,7 @@ export async function updateProjectInstructionsAction(
   });
 }
 
-/** Deletes owned Project without touching Chat or Library data. */
+/** Deletes owned Project and its Chats while leaving Library data untouched. */
 export async function deleteProjectAction(projectId: unknown) {
   return traceServerAction("deleteProjectAction", async () => {
     const scope = await requireProjectOwnerScope();

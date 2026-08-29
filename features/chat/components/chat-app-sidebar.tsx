@@ -1,14 +1,14 @@
-import type { ChatConversationEntry } from "@/features/chat/components/chat-conversation-item"
+import type { ChatConversationEntry } from "@/features/chat/components/chat-conversation-item";
 import {
   ChatHistory,
   type ChatHistoryEntry,
-} from "@/features/chat/components/chat-history"
-import { ChatPrimaryNavigation } from "@/features/chat/components/chat-primary-navigation"
-import { ChatUserMenu } from "@/features/chat/components/chat-user-menu"
+} from "@/features/chat/components/chat-history";
+import { ChatPrimaryNavigation } from "@/features/chat/components/chat-primary-navigation";
+import { ChatUserMenu } from "@/features/chat/components/chat-user-menu";
 import {
   ChatWorkspaceSwitcher,
   type ChatWorkspaceSummary,
-} from "@/features/chat/components/chat-workspace-switcher"
+} from "@/features/chat/components/chat-workspace-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -16,23 +16,24 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarRail,
-} from "@/components/ui/sidebar"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 /** Data needed to render workspace navigation and chat history. */
 export type ChatAppSidebarProps = {
-  activeWorkspaceId: string
-  className?: string
+  activeWorkspaceId: string;
+  className?: string;
   currentUser: {
-    avatar: string
-    email: string
-    initials: string
-    name: string
-  }
-  ownChats: ChatConversationEntry[]
-  teamChats: ChatHistoryEntry[]
-  workspaces: ChatWorkspaceSummary[]
-}
+    avatar: string;
+    email: string;
+    initials: string;
+    name: string;
+  };
+  ownChats: ChatConversationEntry[];
+  projects: { id: string; name: string }[];
+  teamChats: ChatHistoryEntry[];
+  workspaces: ChatWorkspaceSummary[];
+};
 
 /** Composes server-rendered app navigation around focused client controls. */
 export function ChatAppSidebar({
@@ -40,6 +41,7 @@ export function ChatAppSidebar({
   className,
   currentUser,
   ownChats,
+  projects,
   teamChats,
   workspaces,
 }: ChatAppSidebarProps) {
@@ -56,7 +58,11 @@ export function ChatAppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        <ChatHistory ownChats={ownChats} teamChats={teamChats} />
+        <ChatHistory
+          ownChats={ownChats}
+          projects={projects}
+          teamChats={teamChats}
+        />
       </SidebarContent>
 
       <SidebarFooter>
@@ -67,5 +73,5 @@ export function ChatAppSidebar({
 
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

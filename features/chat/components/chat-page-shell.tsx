@@ -1,29 +1,38 @@
-import { ChatConversationTitle, ChatConversationTitleProvider } from "@/features/chat/components/chat-conversation-title"
-import { ChatPageHeader } from "@/features/chat/components/chat-page-header"
-import { ChatShareDialog } from "@/features/chat/components/chat-share-dialog"
-import { ChatThread } from "@/features/chat/components/chat-thread"
-import { ChatThreadActions } from "@/features/chat/components/chat-thread-actions"
-import { ChatTranscript } from "@/features/chat/components/chat-transcript"
-import type { ChatUIMessage } from "@/src/interface-adapters/presenters/chat-message.presenter"
-import type { ChatVisibility } from "@/src/entities/models/chat"
+import {
+  ChatConversationTitle,
+  ChatConversationTitleProvider,
+} from "@/features/chat/components/chat-conversation-title";
+import { ChatPageHeader } from "@/features/chat/components/chat-page-header";
+import { ChatShareDialog } from "@/features/chat/components/chat-share-dialog";
+import { ChatThread } from "@/features/chat/components/chat-thread";
+import { ChatThreadActions } from "@/features/chat/components/chat-thread-actions";
+import { ChatTranscript } from "@/features/chat/components/chat-transcript";
+import { getProjectsPageData } from "@/features/project/project-queries";
+import type { ChatUIMessage } from "@/src/interface-adapters/presenters/chat-message.presenter";
+import type { ChatVisibility } from "@/src/entities/models/chat";
 
 export type ChatPageShellChat = {
-  id: string
-  isOwner: boolean
-  pinned: boolean
-  publicToken: string | null
-  title: string
-  visibility: ChatVisibility
-}
+  id: string;
+  isOwner: boolean;
+  pinned: boolean;
+  projectId: string | null;
+  publicToken: string | null;
+  title: string;
+  visibility: ChatVisibility;
+};
 
 /** Renders current chat header and writable or read-only conversation. */
-export function ChatPageShell({
+export async function ChatPageShell({
   chat,
   initialMessages,
 }: {
-  chat: ChatPageShellChat
-  initialMessages?: ChatUIMessage[]
+  chat: ChatPageShellChat;
+  initialMessages?: ChatUIMessage[];
 }) {
+  const projects = chat.isOwner
+    ? (await getProjectsPageData()).map(({ id, name }) => ({ id, name }))
+    : [];
+
   return (
     <ChatConversationTitleProvider
       key={`${chat.id}:${chat.title}`}
@@ -38,7 +47,12 @@ export function ChatPageShell({
                 initialPublicToken={chat.publicToken}
                 initialVisibility={chat.visibility}
               />
-              <ChatThreadActions chatId={chat.id} pinned={chat.pinned} />
+              <ChatThreadActions
+                chatId={chat.id}
+                pinned={chat.pinned}
+                projectId={chat.projectId}
+                projects={projects}
+              />
             </>
           ) : undefined
         }
@@ -52,5 +66,5 @@ export function ChatPageShell({
         <ChatTranscript messages={initialMessages ?? []} title={chat.title} />
       )}
     </ChatConversationTitleProvider>
-  )
+  );
 }

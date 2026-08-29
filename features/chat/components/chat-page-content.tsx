@@ -16,6 +16,7 @@ export async function NewChatPageContent() {
         id: crypto.randomUUID(),
         isOwner: true,
         pinned: false,
+        projectId: null,
         publicToken: null,
         title: "New chat",
         visibility: "private",

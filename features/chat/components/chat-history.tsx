@@ -47,9 +47,11 @@ function groupOwnChats(ownChats: ChatConversationEntry[]) {
 /** Renders own and team chat history in the sidebar. */
 export function ChatHistory({
   ownChats,
+  projects,
   teamChats,
 }: {
   ownChats: ChatConversationEntry[];
+  projects: { id: string; name: string }[];
   teamChats: ChatHistoryEntry[];
 }) {
   const pathname = usePathname();
@@ -80,6 +82,7 @@ export function ChatHistory({
                       chat={chat}
                       isActive={pathname === `/chat/${chat.id}`}
                       key={chat.id}
+                      projects={projects}
                     />
                   ))}
                 </SidebarMenu>

@@ -55,7 +55,7 @@ export async function ProjectDetail({
             project={{ id: project.id, instructions: project.instructions }}
           />
           <ProjectSourcesSection />
-          <ProjectChatsSection />
+          <ProjectChatsSection chats={project.chats} />
         </div>
       </div>
     </div>

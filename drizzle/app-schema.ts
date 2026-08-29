@@ -192,6 +192,9 @@ export const chat = pgTable(
     ownerId: text("owner_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    projectId: text("project_id").references(() => project.id, {
+      onDelete: "set null",
+    }),
     title: text("title").default("New chat").notNull(),
     visibility: text("visibility").default("private").notNull(),
     publicToken: text("public_token"),
@@ -205,6 +208,7 @@ export const chat = pgTable(
   (table) => [
     index("chat_organizationId_idx").on(table.organizationId),
     index("chat_ownerId_idx").on(table.ownerId),
+    index("chat_projectId_idx").on(table.projectId),
     uniqueIndex("chat_publicToken_uidx").on(table.publicToken),
   ]
 );
@@ -316,7 +320,7 @@ export const organizationRelations = relations(organization, ({ many }) => ({
   libraryFiles: many(libraryFile),
 }));
 
-export const projectRelations = relations(project, ({ one }) => ({
+export const projectRelations = relations(project, ({ one, many }) => ({
   organization: one(organization, {
     fields: [project.organizationId],
     references: [organization.id],
@@ -325,6 +329,7 @@ export const projectRelations = relations(project, ({ one }) => ({
     fields: [project.ownerId],
     references: [user.id],
   }),
+  chats: many(chat),
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -346,6 +351,10 @@ export const chatRelations = relations(chat, ({ one, many }) => ({
   owner: one(user, {
     fields: [chat.ownerId],
     references: [user.id],
+  }),
+  project: one(project, {
+    fields: [chat.projectId],
+    references: [project.id],
   }),
   messages: many(chatMessage),
 }));

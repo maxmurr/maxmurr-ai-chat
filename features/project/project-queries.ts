@@ -33,10 +33,12 @@ export async function getProjectsPageData() {
 /** Loads one owned Project by id or renders resource not-found state. */
 export async function getProjectPageData(projectId: string) {
   try {
-    return await projectController().getProject(
-      projectId,
-      await getProjectOwnerScope()
-    );
+    const scope = await getProjectOwnerScope();
+    const [project, chats] = await Promise.all([
+      projectController().getProject(projectId, scope),
+      projectController().listProjectChats(projectId, scope),
+    ]);
+    return { ...project, chats };
   } catch (error) {
     if (
       error instanceof InvalidProjectRequestError ||

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface";
 import type { ProjectRepository } from "@/src/application/services/project-repository.service.interface";
 import type { ProjectService } from "@/src/application/services/project.service.interface";
 import {
@@ -37,7 +38,8 @@ export type ProjectController = ReturnType<typeof createProjectController>;
 
 /** Creates Project CRUD operations with validation and ownership guards. */
 export function createProjectController(
-  projectRepository: ProjectRepository
+  projectRepository: ProjectRepository,
+  chatRepository: ChatRepository
 ): ProjectService {
   function requireOwnedProject<T>(project: T | null): T {
     if (!project) {
@@ -47,7 +49,39 @@ export function createProjectController(
     return project;
   }
 
+  async function getOwnedProject(projectId: unknown, scope: ProjectOwnerScope) {
+    const id = parseProjectInput(projectIdSchema, projectId);
+    return requireOwnedProject(
+      await projectRepository.getOwnedProject(id, scope)
+    );
+  }
+
+  async function requireOwnedChat(chatId: unknown, scope: ProjectOwnerScope) {
+    const id = parseProjectInput(projectIdSchema, chatId);
+    const chat = await chatRepository.getChatById(id);
+
+    if (
+      !chat ||
+      chat.organizationId !== scope.organizationId ||
+      chat.ownerId !== scope.ownerId
+    ) {
+      throw new ProjectAccessDeniedError();
+    }
+
+    return chat;
+  }
+
   return {
+    async attachChat(
+      projectId: unknown,
+      chatId: unknown,
+      scope: ProjectOwnerScope
+    ) {
+      const project = await getOwnedProject(projectId, scope);
+      const chat = await requireOwnedChat(chatId, scope);
+      await chatRepository.updateChatProject(chat.id, project.id);
+    },
+
     async createProject(input: unknown, scope: ProjectOwnerScope) {
       const details = parseProjectInput(projectDetailsSchema, input);
 
@@ -60,18 +94,30 @@ export function createProjectController(
     },
 
     async deleteProject(projectId: unknown, scope: ProjectOwnerScope) {
-      const id = parseProjectInput(projectIdSchema, projectId);
+      const project = await getOwnedProject(projectId, scope);
+      const chats = await chatRepository.listChatsByProject(project.id);
 
-      if (!(await projectRepository.deleteOwnedProject(id, scope))) {
+      for (const chat of chats) {
+        await chatRepository.deleteChat(chat.id);
+      }
+
+      if (!(await projectRepository.deleteOwnedProject(project.id, scope))) {
         throw new ProjectAccessDeniedError();
       }
     },
 
+    async detachChat(chatId: unknown, scope: ProjectOwnerScope) {
+      const chat = await requireOwnedChat(chatId, scope);
+      await chatRepository.updateChatProject(chat.id, null);
+    },
+
     async getProject(projectId: unknown, scope: ProjectOwnerScope) {
-      const id = parseProjectInput(projectIdSchema, projectId);
-      return requireOwnedProject(
-        await projectRepository.getOwnedProject(id, scope)
-      );
+      return getOwnedProject(projectId, scope);
+    },
+
+    async listProjectChats(projectId: unknown, scope: ProjectOwnerScope) {
+      const project = await getOwnedProject(projectId, scope);
+      return chatRepository.listChatsByProject(project.id);
     },
 
     async listProjects(scope: ProjectOwnerScope) {
