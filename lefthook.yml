@@ -1,0 +1,7 @@
+pre-commit:
+  piped: true
+  commands:
+    lint-staged:
+      run: bunx lint-staged
+    test:
+      run: bun run test
