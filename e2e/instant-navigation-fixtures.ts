@@ -33,10 +33,10 @@ export const INSTANT_NAVIGATION_FIXTURES = {
     name: "Instant Navigation",
     slug: "instant-navigation-e2e",
   },
-} as const;
+} as const
 
 /** Ignored Playwright storage-state files generated before instant-navigation tests. */
 export const INSTANT_NAVIGATION_STORAGE_STATES = {
   active: ".scratch/instant-nav/active-storage-state.json",
   onboarding: ".scratch/instant-nav/onboarding-storage-state.json",
-} as const;
+} as const

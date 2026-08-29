@@ -5,7 +5,16 @@ import { getProjectsPageData } from "@/features/project/project-queries";
 
 /** Loads owner-scoped persisted Projects for searchable Project list. */
 export async function ProjectsList() {
-  return <ProjectsListBrowser projects={await getProjectsPageData()} />;
+  const projects = (await getProjectsPageData()).map(
+    ({ description, id, name, updatedAt }) => ({
+      description,
+      id,
+      name,
+      updatedAt: updatedAt.toISOString(),
+    })
+  );
+
+  return <ProjectsListBrowser projects={projects} />;
 }
 
 /** Reserves Project cards while authenticated Project listing loads. */

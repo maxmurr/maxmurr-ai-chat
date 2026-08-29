@@ -30,7 +30,6 @@ import {
 import { NewProjectDialog } from "@/features/project/components/new-project-dialog";
 import { ProjectActions } from "@/features/project/components/project-actions";
 import { cn } from "@/lib/utils";
-import type { Project } from "@/src/entities/models/project";
 
 const projectDateFormatter = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
@@ -38,13 +37,20 @@ const projectDateFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
+type ProjectListItem = {
+  description: string | null;
+  id: string;
+  name: string;
+  updatedAt: string;
+};
+
 /** Renders searchable persisted Project cards and creation dialog. */
 export function ProjectsListBrowser({
   className,
   projects,
 }: {
   className?: string;
-  projects: Project[];
+  projects: ProjectListItem[];
 }) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -148,8 +154,10 @@ export function ProjectsListBrowser({
                       <ItemDescription>{project.description}</ItemDescription>
                     )}
                     <ItemDescription className="pt-1">
-                      <time dateTime={project.updatedAt.toISOString()}>
-                        {projectDateFormatter.format(project.updatedAt)}
+                      <time dateTime={project.updatedAt}>
+                        {projectDateFormatter.format(
+                          new Date(project.updatedAt)
+                        )}
                       </time>
                     </ItemDescription>
                   </ItemContent>

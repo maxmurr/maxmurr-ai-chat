@@ -30,13 +30,18 @@ import {
   updateProjectDetailsAction,
 } from "@/features/project/project-actions";
 import { cn } from "@/lib/utils";
-import type { Project } from "@/src/entities/models/project";
+
+type ProjectActionsItem = {
+  description: string | null;
+  id: string;
+  name: string;
+};
 
 type ProjectDialogProps = {
   className?: string;
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  project: Project;
+  project: ProjectActionsItem;
 };
 
 function ProjectEditDetailsDialog({
@@ -129,7 +134,7 @@ function ProjectDeleteDialog({
 
 type ProjectActionsProps = {
   className?: string;
-  project: Project;
+  project: ProjectActionsItem;
   redirectAfterDelete?: boolean;
 };
 

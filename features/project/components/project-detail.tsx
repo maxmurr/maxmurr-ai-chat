@@ -24,7 +24,16 @@ export async function ProjectDetail({
       data-testid="project-detail-content"
     >
       <ProjectDetailHeader
-        actions={<ProjectActions project={project} redirectAfterDelete />}
+        actions={
+          <ProjectActions
+            project={{
+              description: project.description,
+              id: project.id,
+              name: project.name,
+            }}
+            redirectAfterDelete
+          />
+        }
         projectName={project.name}
       />
 
@@ -42,7 +51,9 @@ export async function ProjectDetail({
           </div>
 
           <ProjectChatComposer />
-          <ProjectInstructionsSection project={project} />
+          <ProjectInstructionsSection
+            project={{ id: project.id, instructions: project.instructions }}
+          />
           <ProjectSourcesSection />
           <ProjectChatsSection />
         </div>

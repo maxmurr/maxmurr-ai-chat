@@ -18,13 +18,17 @@ import { toast } from "@/components/ui/toast";
 import { ProjectSection } from "@/features/project/components/project-section";
 import { updateProjectInstructionsAction } from "@/features/project/project-actions";
 import { cn } from "@/lib/utils";
-import type { Project } from "@/src/entities/models/project";
+
+type ProjectInstructionsItem = {
+  id: string;
+  instructions: string;
+};
 
 type ProjectInstructionsDialogProps = {
   className?: string;
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  project: Project;
+  project: ProjectInstructionsItem;
 };
 
 function ProjectInstructionsDialog({
@@ -101,7 +105,7 @@ function ProjectInstructionsDialog({
 
 type ProjectInstructionsSectionProps = {
   className?: string;
-  project: Project;
+  project: ProjectInstructionsItem;
 };
 
 /** Renders persisted Project instructions with edit dialog. */
