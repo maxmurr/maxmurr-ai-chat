@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useRef, useState } from "react"
 
 import { ChatComposerToolbar } from "@/features/chat/components/chat-composer-toolbar"
@@ -49,6 +51,33 @@ type ChatComposerProps = {
   onDraftChange: (draft: string) => void
   onSendMessage: (submission: ChatComposerSubmission) => Promise<void>
   onStopResponse: () => void
+}
+
+const ignoreChatComposerLoadingAction = () => {}
+async function ignoreChatComposerLoadingSubmission() {}
+
+/** Renders normal chat composer disabled while page data loads. */
+export function ChatComposerLoading({ className }: { className?: string }) {
+  return (
+    <fieldset
+      aria-hidden="true"
+      className="contents"
+      data-slot="chat-loading-composer"
+      disabled
+    >
+      <ChatComposer
+        attachments={[]}
+        className={className}
+        draft=""
+        isGenerating={false}
+        onAnnouncementChange={ignoreChatComposerLoadingAction}
+        onAttachmentsChange={ignoreChatComposerLoadingAction}
+        onDraftChange={ignoreChatComposerLoadingAction}
+        onSendMessage={ignoreChatComposerLoadingSubmission}
+        onStopResponse={ignoreChatComposerLoadingAction}
+      />
+    </fieldset>
+  )
 }
 
 /** Renders controlled chat draft and file attachment form. */
