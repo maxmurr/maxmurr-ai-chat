@@ -25,17 +25,18 @@ export const INSTANT_NAVIGATION_FIXTURES = {
     username: "instant_nav_onboarding",
   },
   project: {
-    slug: "pricing-revamp",
+    id: "20000000-0000-4000-8000-000000000001",
+    name: "Pricing revamp",
   },
   workspace: {
     id: "instant-nav-workspace",
     name: "Instant Navigation",
     slug: "instant-navigation-e2e",
   },
-} as const
+} as const;
 
 /** Ignored Playwright storage-state files generated before instant-navigation tests. */
 export const INSTANT_NAVIGATION_STORAGE_STATES = {
   active: ".scratch/instant-nav/active-storage-state.json",
   onboarding: ".scratch/instant-nav/onboarding-storage-state.json",
-} as const
+} as const;

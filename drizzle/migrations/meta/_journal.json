@@ -43,6 +43,13 @@
       "when": 1787890171729,
       "tag": "0005_library",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788007814876,
+      "tag": "0006_projects",
+      "breakpoints": true
     }
   ]
 }

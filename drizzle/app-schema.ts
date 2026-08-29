@@ -48,7 +48,7 @@ export const session = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     activeOrganizationId: text("active_organization_id"),
   },
-  (table) => [index("session_userId_idx").on(table.userId)],
+  (table) => [index("session_userId_idx").on(table.userId)]
 );
 
 export const account = pgTable(
@@ -76,10 +76,10 @@ export const account = pgTable(
   (table) => [
     uniqueIndex("account_issuer_accountId_uidx").on(
       table.issuer,
-      table.accountId,
+      table.accountId
     ),
     index("account_userId_idx").on(table.userId),
-  ],
+  ]
 );
 
 export const verification = pgTable(
@@ -95,7 +95,7 @@ export const verification = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("verification_identifier_idx").on(table.identifier)],
+  (table) => [index("verification_identifier_idx").on(table.identifier)]
 );
 
 export const organization = pgTable(
@@ -108,7 +108,7 @@ export const organization = pgTable(
     createdAt: timestamp("created_at").notNull(),
     metadata: text("metadata"),
   },
-  (table) => [uniqueIndex("organization_slug_uidx").on(table.slug)],
+  (table) => [uniqueIndex("organization_slug_uidx").on(table.slug)]
 );
 
 export const member = pgTable(
@@ -127,10 +127,10 @@ export const member = pgTable(
   (table) => [
     uniqueIndex("member_organizationId_userId_uidx").on(
       table.organizationId,
-      table.userId,
+      table.userId
     ),
     index("member_userId_idx").on(table.userId),
-  ],
+  ]
 );
 
 export const invitation = pgTable(
@@ -152,7 +152,34 @@ export const invitation = pgTable(
   (table) => [
     index("invitation_organizationId_idx").on(table.organizationId),
     index("invitation_email_idx").on(table.email),
-  ],
+  ]
+);
+
+export const project = pgTable(
+  "project",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    instructions: text("instructions").default("").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("project_organizationId_ownerId_idx").on(
+      table.organizationId,
+      table.ownerId
+    ),
+  ]
 );
 
 export const chat = pgTable(
@@ -179,7 +206,7 @@ export const chat = pgTable(
     index("chat_organizationId_idx").on(table.organizationId),
     index("chat_ownerId_idx").on(table.ownerId),
     uniqueIndex("chat_publicToken_uidx").on(table.publicToken),
-  ],
+  ]
 );
 
 export const chatMessage = pgTable(
@@ -195,7 +222,7 @@ export const chatMessage = pgTable(
     metadata: jsonb("metadata"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [primaryKey({ columns: [table.chatId, table.id] })],
+  (table) => [primaryKey({ columns: [table.chatId, table.id] })]
 );
 
 export const libraryFolder = pgTable(
@@ -214,9 +241,9 @@ export const libraryFolder = pgTable(
   (table) => [
     index("libraryFolder_organizationId_ownerId_idx").on(
       table.organizationId,
-      table.ownerId,
+      table.ownerId
     ),
-  ],
+  ]
 );
 
 export const libraryFile = pgTable(
@@ -244,10 +271,10 @@ export const libraryFile = pgTable(
     index("libraryFile_organizationId_ownerId_folderId_idx").on(
       table.organizationId,
       table.ownerId,
-      table.folderId,
+      table.folderId
     ),
     index("libraryFile_provenanceChatId_idx").on(table.provenanceChatId),
-  ],
+  ]
 );
 
 export const rateLimit = pgTable("rate_limit", {
@@ -262,6 +289,7 @@ export const userRelations = relations(user, ({ many }) => ({
   accounts: many(account),
   members: many(member),
   invitations: many(invitation),
+  projects: many(project),
   libraryFolders: many(libraryFolder),
   libraryFiles: many(libraryFile),
 }));
@@ -283,8 +311,20 @@ export const accountRelations = relations(account, ({ one }) => ({
 export const organizationRelations = relations(organization, ({ many }) => ({
   members: many(member),
   invitations: many(invitation),
+  projects: many(project),
   libraryFolders: many(libraryFolder),
   libraryFiles: many(libraryFile),
+}));
+
+export const projectRelations = relations(project, ({ one }) => ({
+  organization: one(organization, {
+    fields: [project.organizationId],
+    references: [organization.id],
+  }),
+  owner: one(user, {
+    fields: [project.ownerId],
+    references: [user.id],
+  }),
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -329,7 +369,7 @@ export const libraryFolderRelations = relations(
       references: [user.id],
     }),
     files: many(libraryFile),
-  }),
+  })
 );
 
 export const libraryFileRelations = relations(libraryFile, ({ one }) => ({

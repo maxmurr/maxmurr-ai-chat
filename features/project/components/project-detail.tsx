@@ -1,63 +1,22 @@
-"use client";
-
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FolderXIcon } from "lucide-react";
-
+import { Skeleton } from "@/components/ui/skeleton";
+import { ProjectActions } from "@/features/project/components/project-actions";
 import { ProjectChatComposer } from "@/features/project/components/project-chat-composer";
 import { ProjectChatsSection } from "@/features/project/components/project-chats-section";
-import { ProjectActions } from "@/features/project/components/project-actions";
 import { ProjectDetailHeader } from "@/features/project/components/project-detail-header";
 import { ProjectInstructionsSection } from "@/features/project/components/project-instructions-section";
 import { ProjectSourcesSection } from "@/features/project/components/project-sources-section";
-import { useProjects } from "@/features/project/components/project-state";
-import { Button } from "@/components/ui/button";
-import { ErrorState } from "@/components/ui/error-state";
-import { Skeleton } from "@/components/ui/skeleton";
+import { getProjectPageData } from "@/features/project/project-queries";
 import { cn } from "@/lib/utils";
 
-function ProjectDetailNotFound({ className }: { className?: string }) {
-  return (
-    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
-      <ProjectDetailHeader />
-      <ErrorState
-        className="p-4"
-        description="It may have been deleted, or the link belongs to another workspace."
-        icon={<FolderXIcon aria-hidden="true" className="size-5" />}
-        id="project-not-found"
-        title="Project not found"
-      >
-        <Button
-          className="h-11 sm:h-8"
-          nativeButton={false}
-          render={<Link href="/projects" />}
-        >
-          Back to projects
-        </Button>
-      </ErrorState>
-    </div>
-  );
-}
-
-/** Renders one project workspace with instructions, sources, and chats. */
-export function ProjectDetail({
+/** Loads and renders one persisted owner-scoped Project by id. */
+export async function ProjectDetail({
   className,
-  projectSlug,
+  projectId,
 }: {
   className?: string;
-  projectSlug: string;
+  projectId: string;
 }) {
-  const router = useRouter();
-  const { getProject, isReady } = useProjects();
-  const project = getProject(projectSlug);
-
-  if (!project) {
-    return isReady ? (
-      <ProjectDetailNotFound className={className} />
-    ) : (
-      <ProjectDetailSkeleton className={className} />
-    );
-  }
+  const project = await getProjectPageData(projectId);
 
   return (
     <div
@@ -65,12 +24,7 @@ export function ProjectDetail({
       data-testid="project-detail-content"
     >
       <ProjectDetailHeader
-        actions={
-          <ProjectActions
-            onDeleted={() => router.push("/projects")}
-            project={project}
-          />
-        }
+        actions={<ProjectActions project={project} redirectAfterDelete />}
         projectName={project.name}
       />
 
@@ -89,15 +43,15 @@ export function ProjectDetail({
 
           <ProjectChatComposer />
           <ProjectInstructionsSection project={project} />
-          <ProjectSourcesSection project={project} />
-          <ProjectChatsSection project={project} />
+          <ProjectSourcesSection />
+          <ProjectChatsSection />
         </div>
       </div>
     </div>
   );
 }
 
-/** Reserves project detail structure while route and browser state load. */
+/** Reserves Project detail structure while authenticated Project loads. */
 export function ProjectDetailSkeleton({ className }: { className?: string }) {
   return (
     <div

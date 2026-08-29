@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -23,7 +23,10 @@ type ProjectDetailsDialogProps = {
   initialDescription?: string;
   initialName?: string;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (details: { description?: string; name: string }) => void;
+  onSubmit: (details: {
+    description: string;
+    name: string;
+  }) => Promise<boolean>;
   open: boolean;
   submitLabel: string;
   title: string;
@@ -44,6 +47,7 @@ export function ProjectDetailsDialog({
 }: ProjectDetailsDialogProps) {
   const [description, setDescription] = useState(initialDescription);
   const [name, setName] = useState(initialName);
+  const [isSubmitting, startSubmitting] = useTransition();
 
   function changeOpen(nextOpen: boolean) {
     setDescription(initialDescription);
@@ -57,11 +61,14 @@ export function ProjectDetailsDialog({
 
     if (!trimmedName) return;
 
-    onSubmit({
-      description: description.trim() || undefined,
-      name: trimmedName,
+    startSubmitting(async () => {
+      const saved = await onSubmit({
+        description: description.trim(),
+        name: trimmedName,
+      });
+
+      if (saved) changeOpen(false);
     });
-    changeOpen(false);
   }
 
   return (
@@ -80,6 +87,7 @@ export function ProjectDetailsDialog({
                 autoComplete="off"
                 className="h-11 sm:h-8"
                 id={`${idPrefix}-name`}
+                maxLength={100}
                 name="name"
                 onChange={(event) => setName(event.currentTarget.value)}
                 placeholder="Pricing revamp"
@@ -100,6 +108,7 @@ export function ProjectDetailsDialog({
               <Textarea
                 className="min-h-20"
                 id={`${idPrefix}-description`}
+                maxLength={500}
                 name="description"
                 onChange={(event) => setDescription(event.currentTarget.value)}
                 placeholder="What this project covers"
@@ -111,10 +120,10 @@ export function ProjectDetailsDialog({
           <DialogFooter>
             <Button
               className="h-11 sm:h-8"
-              disabled={!name.trim()}
+              disabled={!name.trim() || isSubmitting}
               type="submit"
             >
-              {submitLabel}
+              {isSubmitting ? "Saving…" : submitLabel}
             </Button>
           </DialogFooter>
         </form>

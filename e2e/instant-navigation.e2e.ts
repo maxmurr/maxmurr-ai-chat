@@ -1,17 +1,17 @@
-import { instant } from "@next/playwright"
-import { expect, test, type Locator, type Page } from "@playwright/test"
+import { instant } from "@next/playwright";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import {
   INSTANT_NAVIGATION_FIXTURES,
   INSTANT_NAVIGATION_STORAGE_STATES,
-} from "./instant-navigation-fixtures"
+} from "./instant-navigation-fixtures";
 
 function visibleTestId(page: Page, testId: string) {
-  return page.getByTestId(testId).filter({ visible: true }).first()
+  return page.getByTestId(testId).filter({ visible: true }).first();
 }
 
 function visibleTestIds(page: Page, testId: string) {
-  return page.getByTestId(testId).filter({ visible: true })
+  return page.getByTestId(testId).filter({ visible: true });
 }
 
 async function expectInstantInitialNavigation(
@@ -21,21 +21,21 @@ async function expectInstantInitialNavigation(
   shellTestId: string,
   contentTestId: string
 ) {
-  const targetUrl = new URL(path, baseURL)
+  const targetUrl = new URL(path, baseURL);
 
   await instant(
     page,
     async () => {
-      await page.goto(targetUrl.toString())
-      await expect(page).toHaveURL(targetUrl.toString())
-      await expect(visibleTestId(page, shellTestId)).toBeVisible()
-      await expect(visibleTestIds(page, contentTestId)).toHaveCount(0)
+      await page.goto(targetUrl.toString());
+      await expect(page).toHaveURL(targetUrl.toString());
+      await expect(visibleTestId(page, shellTestId)).toBeVisible();
+      await expect(visibleTestIds(page, contentTestId)).toHaveCount(0);
     },
     { baseURL: targetUrl.origin }
-  )
+  );
 
-  await page.reload()
-  await expect(visibleTestId(page, contentTestId)).toBeVisible()
+  await page.reload();
+  await expect(visibleTestId(page, contentTestId)).toBeVisible();
 }
 
 async function getSidebarLink(page: Page, name: string) {
@@ -43,14 +43,14 @@ async function getSidebarLink(page: Page, name: string) {
     .locator('[data-slot="sidebar"]')
     .getByRole("link", { exact: true, name })
     .filter({ visible: true })
-    .first()
+    .first();
 
   if (!(await link.isVisible())) {
-    await page.getByRole("button", { name: "Toggle sidebar" }).click()
+    await page.getByRole("button", { name: "Toggle sidebar" }).click();
   }
 
-  await expect(link).toBeVisible({ timeout: 20_000 })
-  return link
+  await expect(link).toBeVisible({ timeout: 20_000 });
+  return link;
 }
 
 async function expectInstantSoftNavigation({
@@ -63,38 +63,38 @@ async function expectInstantSoftNavigation({
   to,
   trigger,
 }: {
-  baseURL: string
-  contentDuringLock?: "deferred" | "present"
-  contentTestId: string
-  from: string
-  page: Page
-  shellTestId: string
-  to: string
-  trigger: (page: Page) => Locator | Promise<Locator>
+  baseURL: string;
+  contentDuringLock?: "deferred" | "present";
+  contentTestId: string;
+  from: string;
+  page: Page;
+  shellTestId: string;
+  to: string;
+  trigger: (page: Page) => Locator | Promise<Locator>;
 }) {
-  await page.goto(from)
+  await page.goto(from);
   const navigationTrigger = (await trigger(page))
     .filter({ visible: true })
-    .first()
-  await expect(navigationTrigger).toBeVisible({ timeout: 20_000 })
-  const targetUrl = new URL(to, baseURL)
+    .first();
+  await expect(navigationTrigger).toBeVisible({ timeout: 20_000 });
+  const targetUrl = new URL(to, baseURL);
 
   await instant(page, async () => {
-    await navigationTrigger.click()
-    await expect(page).toHaveURL(targetUrl.toString())
-    await expect(visibleTestId(page, shellTestId)).toBeVisible()
+    await navigationTrigger.click();
+    await expect(page).toHaveURL(targetUrl.toString());
+    await expect(visibleTestId(page, shellTestId)).toBeVisible();
 
     if (contentDuringLock === "deferred") {
-      await expect(visibleTestIds(page, contentTestId)).toHaveCount(0)
+      await expect(visibleTestIds(page, contentTestId)).toHaveCount(0);
     } else {
-      await expect(visibleTestId(page, contentTestId)).toBeVisible()
+      await expect(visibleTestId(page, contentTestId)).toBeVisible();
     }
-  })
+  });
 
-  await expect(visibleTestId(page, contentTestId)).toBeVisible()
+  await expect(visibleTestId(page, contentTestId)).toBeVisible();
 }
 
-const fixtures = INSTANT_NAVIGATION_FIXTURES
+const fixtures = INSTANT_NAVIGATION_FIXTURES;
 
 for (const [path, shellTestId, contentTestId] of [
   ["/sign-in", "sign-in-shell", "sign-in-content"],
@@ -112,8 +112,8 @@ for (const [path, shellTestId, contentTestId] of [
       path,
       shellTestId,
       contentTestId
-    )
-  })
+    );
+  });
 }
 
 test("soft sign-in to sign-up commits instantly", async ({ baseURL, page }) => {
@@ -126,8 +126,8 @@ test("soft sign-in to sign-up commits instantly", async ({ baseURL, page }) => {
     to: "/sign-up",
     trigger: (currentPage) =>
       currentPage.getByRole("link", { exact: true, name: "Sign Up" }),
-  })
-})
+  });
+});
 
 test("soft sign-up to sign-in commits instantly", async ({ baseURL, page }) => {
   await expectInstantSoftNavigation({
@@ -139,24 +139,20 @@ test("soft sign-up to sign-in commits instantly", async ({ baseURL, page }) => {
     to: "/sign-in",
     trigger: (currentPage) =>
       currentPage.getByRole("link", { exact: true, name: "Sign In" }),
-  })
-})
+  });
+});
 
 test.describe("authenticated instant navigation", () => {
-  test.use({ storageState: INSTANT_NAVIGATION_STORAGE_STATES.active })
+  test.use({ storageState: INSTANT_NAVIGATION_STORAGE_STATES.active });
 
   for (const [path, shellTestId, contentTestId] of [
     ["/chat", "chat-shell", "chat-content"],
     [`/chat/${fixtures.chat.id}`, "chat-shell", "chat-content"],
     ["/library", "library-shell", "library-content"],
-    [
-      `/library/${fixtures.folder.id}`,
-      "library-shell",
-      "library-content",
-    ],
+    [`/library/${fixtures.folder.id}`, "library-shell", "library-content"],
     ["/projects", "projects-index-content", "projects-list-content"],
     [
-      `/projects/${fixtures.project.slug}`,
+      `/projects/${fixtures.project.id}`,
       "project-detail-shell",
       "project-detail-content",
     ],
@@ -171,8 +167,8 @@ test.describe("authenticated instant navigation", () => {
         path,
         shellTestId,
         contentTestId
-      )
-    })
+      );
+    });
   }
 
   for (const navigation of [
@@ -206,10 +202,9 @@ test.describe("authenticated instant navigation", () => {
         ...navigation,
         baseURL: baseURL!,
         page,
-        trigger: (currentPage) =>
-          getSidebarLink(currentPage, navigation.name),
-      })
-    })
+        trigger: (currentPage) => getSidebarLink(currentPage, navigation.name),
+      });
+    });
   }
 
   test("soft chat fixture commits instantly", async ({ baseURL, page }) => {
@@ -221,13 +216,13 @@ test.describe("authenticated instant navigation", () => {
       shellTestId: "chat-shell",
       to: `/chat/${fixtures.chat.id}`,
       trigger: async (currentPage) => {
-        await getSidebarLink(currentPage, fixtures.chat.title)
+        await getSidebarLink(currentPage, fixtures.chat.title);
         return currentPage.locator(
           `[data-slot="sidebar"] a[href="/chat/${fixtures.chat.id}"]`
-        )
+        );
       },
-    })
-  })
+    });
+  });
 
   test("soft project detail commits instantly", async ({ baseURL, page }) => {
     await expectInstantSoftNavigation({
@@ -236,19 +231,19 @@ test.describe("authenticated instant navigation", () => {
       from: "/projects",
       page,
       shellTestId: "project-detail-shell",
-      to: `/projects/${fixtures.project.slug}`,
+      to: `/projects/${fixtures.project.id}`,
       trigger: (currentPage) =>
         currentPage.locator(
-          `#project-list a[href="/projects/${fixtures.project.slug}"]`
+          `#project-list a[href="/projects/${fixtures.project.id}"]`
         ),
-    })
-  })
+    });
+  });
 
   test("soft project index commits instantly", async ({ baseURL, page }) => {
     await expectInstantSoftNavigation({
       baseURL: baseURL!,
       contentTestId: "projects-list-content",
-      from: `/projects/${fixtures.project.slug}`,
+      from: `/projects/${fixtures.project.id}`,
       page,
       shellTestId: "projects-index-content",
       to: "/projects",
@@ -256,8 +251,8 @@ test.describe("authenticated instant navigation", () => {
         currentPage
           .locator("#main-content")
           .getByRole("link", { exact: true, name: "Projects" }),
-    })
-  })
+    });
+  });
 
   test("soft Library folder commits instantly", async ({ baseURL, page }) => {
     await expectInstantSoftNavigation({
@@ -271,8 +266,8 @@ test.describe("authenticated instant navigation", () => {
         currentPage.locator(
           `#main-content a[href="/library/${fixtures.folder.id}"]`
         ),
-    })
-  })
+    });
+  });
 
   test("soft Library root commits instantly", async ({ baseURL, page }) => {
     await expectInstantSoftNavigation({
@@ -286,12 +281,12 @@ test.describe("authenticated instant navigation", () => {
         currentPage
           .locator("#main-content")
           .getByRole("link", { exact: true, name: "Library" }),
-    })
-  })
-})
+    });
+  });
+});
 
 test.describe("no-workspace instant navigation", () => {
-  test.use({ storageState: INSTANT_NAVIGATION_STORAGE_STATES.onboarding })
+  test.use({ storageState: INSTANT_NAVIGATION_STORAGE_STATES.onboarding });
 
   test("initial onboarding shell commits instantly", async ({
     baseURL,
@@ -303,8 +298,8 @@ test.describe("no-workspace instant navigation", () => {
       "/onboarding",
       "onboarding-shell",
       "onboarding-content"
-    )
-  })
+    );
+  });
 
   test("initial invitation shell commits instantly", async ({
     baseURL,
@@ -316,6 +311,6 @@ test.describe("no-workspace instant navigation", () => {
       `/accept-invitation/${fixtures.invitation.id}`,
       "invitation-shell",
       "invitation-content"
-    )
-  })
-})
+    );
+  });
+});
