@@ -22,6 +22,7 @@ export function createChatModule() {
       applicationInjectionTokens.chatRepository,
       applicationInjectionTokens.projectRepository,
       applicationInjectionTokens.libraryController,
+      applicationInjectionTokens.projectController,
       applicationInjectionTokens.crashReporter,
       applicationInjectionTokens.instrumentation,
     ]);

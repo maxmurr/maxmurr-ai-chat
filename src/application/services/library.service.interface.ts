@@ -30,7 +30,8 @@ export type LibraryService = {
   ): Promise<void>;
   saveGeneratedFiles(
     input: unknown,
-    scope: LibraryOwnerScope
+    scope: LibraryOwnerScope,
+    targetFolderId?: string | null
   ): Promise<LibraryFileSummary[]>;
   setChatFileProvenance(
     fileIds: unknown,
@@ -40,6 +41,6 @@ export type LibraryService = {
   uploadFiles(
     input: unknown,
     scope: LibraryOwnerScope,
-    targetFolderId?: string
+    targetFolderId?: string | null
   ): Promise<LibraryFileSummary[]>;
 };

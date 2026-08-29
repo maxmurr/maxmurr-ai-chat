@@ -131,6 +131,16 @@ export function createProjectController(
     return folder;
   }
 
+  async function resolveChatFileFolderId(
+    chatId: unknown,
+    scope: ProjectOwnerScope
+  ) {
+    const chat = await requireOwnedChat(chatId, scope);
+    return chat.projectId
+      ? (await ensureProjectFolder(chat.projectId, scope)).id
+      : null;
+  }
+
   return {
     async attachChat(
       projectId: unknown,
@@ -212,6 +222,17 @@ export function createProjectController(
       }
 
       await libraryService.moveFile(id, null, scope);
+    },
+
+    resolveChatFileFolderId,
+
+    async uploadChatFiles(
+      chatId: unknown,
+      input: unknown,
+      scope: ProjectOwnerScope
+    ) {
+      const folderId = await resolveChatFileFolderId(chatId, scope);
+      return libraryService.uploadFiles(input, scope, folderId);
     },
 
     async uploadProjectSources(

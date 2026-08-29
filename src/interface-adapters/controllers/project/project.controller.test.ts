@@ -122,7 +122,7 @@ class InMemoryProjectSourceLibrary implements Pick<
   async uploadFiles(
     input: unknown,
     scope: ProjectOwnerScope,
-    targetFolderId?: string
+    targetFolderId?: string | null
   ) {
     const files = input as {
       bytes: Uint8Array;
@@ -435,6 +435,68 @@ test("Project Sources lazily create, freeze, recreate, move in, and remove to ro
   assert.equal(
     library.files.find(({ id }) => id === recreatedFileId)?.folderId,
     null
+  );
+});
+
+test("Chat uploads route to lazy Project Folder and plain Chats stay at root", async () => {
+  const repository = new InMemoryProjectRepository();
+  const { chats, controller, library } = createController(repository);
+  const project = await controller.createProject(
+    { description: "", name: "Launch" },
+    ownerScope
+  );
+  const projectChatId = "30000000-0000-4000-8000-000000000021";
+  const plainChatId = "30000000-0000-4000-8000-000000000022";
+  const foreignChatId = "30000000-0000-4000-8000-000000000023";
+  chats.chats = [
+    createChat(projectChatId, ownerScope, project.id),
+    createChat(plainChatId, ownerScope),
+    createChat(foreignChatId, otherOwnerScope, project.id),
+  ];
+  const clientChosenFolderId = "10000000-0000-4000-8000-000000000099";
+  const input = [
+    {
+      bytes: new TextEncoder().encode("notes"),
+      folderId: clientChosenFolderId,
+      mediaType: "text/plain",
+      name: "notes.txt",
+    },
+  ];
+
+  const [projectUpload] = await controller.uploadChatFiles(
+    projectChatId,
+    input,
+    ownerScope
+  );
+  const firstFolder = library.folders[0];
+  assert.equal(firstFolder.name, "Launch");
+  assert.equal(projectUpload.folderId, firstFolder.id);
+  assert.notEqual(projectUpload.folderId, clientChosenFolderId);
+  assert.deepEqual(
+    (await controller.listProjectSources(project.id, ownerScope)).map(
+      ({ id }) => id
+    ),
+    [projectUpload.id]
+  );
+
+  library.deleteFolder(firstFolder.id);
+  const [recreatedUpload] = await controller.uploadChatFiles(
+    projectChatId,
+    input,
+    ownerScope
+  );
+  assert.notEqual(recreatedUpload.folderId, firstFolder.id);
+  assert.equal(library.folders.length, 1);
+
+  const [plainUpload] = await controller.uploadChatFiles(
+    plainChatId,
+    input,
+    ownerScope
+  );
+  assert.equal(plainUpload.folderId, null);
+  await assert.rejects(
+    controller.uploadChatFiles(foreignChatId, input, ownerScope),
+    ProjectAccessDeniedError
   );
 });
 

@@ -32,6 +32,15 @@ export type ProjectService = {
     fileId: unknown,
     scope: ProjectOwnerScope
   ): Promise<void>;
+  resolveChatFileFolderId(
+    chatId: unknown,
+    scope: ProjectOwnerScope
+  ): Promise<string | null>;
+  uploadChatFiles(
+    chatId: unknown,
+    input: unknown,
+    scope: ProjectOwnerScope
+  ): Promise<LibraryFileSummary[]>;
   uploadProjectSources(
     projectId: unknown,
     input: unknown,

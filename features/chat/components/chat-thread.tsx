@@ -112,7 +112,12 @@ function ChatThreadContent({
 
     try {
       const uploadedFiles =
-        attachments.length > 0 ? await uploadLibraryFiles(attachments) : [];
+        attachments.length > 0
+          ? await uploadLibraryFiles(
+              attachments,
+              initialMessages === undefined ? undefined : { chatId }
+            )
+          : [];
       const fileParts: FileUIPart[] = uploadedFiles.map((file) => ({
         filename: file.name,
         mediaType: file.mediaType,

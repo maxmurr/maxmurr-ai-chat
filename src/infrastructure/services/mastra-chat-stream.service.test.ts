@@ -8,6 +8,7 @@ import type { CrashReporterService } from "@/src/application/services/crash-repo
 import type { InstrumentationService } from "@/src/application/services/instrumentation.service.interface";
 import type { LibraryService } from "@/src/application/services/library.service.interface";
 import type { ProjectRepository } from "@/src/application/services/project-repository.service.interface";
+import type { ProjectService } from "@/src/application/services/project.service.interface";
 import { ChatAccessDeniedError } from "@/src/entities/errors/chat-errors";
 import type { Chat, ChatMessage } from "@/src/entities/models/chat";
 import type {
@@ -80,6 +81,11 @@ function createStreamFixture(instructions: string, projectId: string | null) {
   const libraryService = {
     async setChatFileProvenance() {},
   } as unknown as LibraryService;
+  const projectService = {
+    async resolveChatFileFolderId() {
+      return null;
+    },
+  } as unknown as ProjectService;
   const crashReporterService: CrashReporterService = {
     report() {
       return "event-id";
@@ -93,6 +99,7 @@ function createStreamFixture(instructions: string, projectId: string | null) {
     chatRepository,
     projectRepository,
     libraryService,
+    projectService,
     crashReporterService,
     instrumentationService,
     async (options) => {

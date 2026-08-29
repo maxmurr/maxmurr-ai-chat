@@ -165,7 +165,7 @@ export function ProjectSourcesSection({
 
     setIsUploading(true);
     try {
-      await uploadLibraryFiles(files, null, projectId);
+      await uploadLibraryFiles(files, { projectId });
       router.refresh();
     } catch (error) {
       showProjectSourceError(

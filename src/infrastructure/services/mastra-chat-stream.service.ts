@@ -14,6 +14,7 @@ import type { CrashReporterService } from "@/src/application/services/crash-repo
 import type { InstrumentationService } from "@/src/application/services/instrumentation.service.interface";
 import type { LibraryService } from "@/src/application/services/library.service.interface";
 import type { ProjectRepository } from "@/src/application/services/project-repository.service.interface";
+import type { ProjectService } from "@/src/application/services/project.service.interface";
 import {
   ChatAccessDeniedError,
   ChatUnavailableError,
@@ -150,6 +151,7 @@ export function createMastraChatStreamService(
   chatRepository: ChatRepository,
   projectRepository: ProjectRepository,
   libraryService: LibraryService,
+  projectService: ProjectService,
   crashReporterService: CrashReporterService,
   instrumentationService: InstrumentationService,
   streamAgentChat: StreamMastraAgentChat = handleChatStream,
@@ -287,6 +289,8 @@ export function createMastraChatStreamService(
                 responseMessage,
                 chatId,
                 libraryService,
+                () =>
+                  projectService.resolveChatFileFolderId(chatId, libraryScope),
                 libraryScope
               );
             } catch (error) {

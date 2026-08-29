@@ -388,15 +388,34 @@ test("assistant-generated Files skip the upload whitelist but keep size caps", a
         provenanceMessageId: "message-1",
       },
     ],
-    ownerScope
+    ownerScope,
+    folderId
   );
 
   assert.partialDeepStrictEqual(saved, {
+    folderId,
     mediaType: "image/svg+xml",
     name: "chart.svg",
     provenanceChatId: chatId,
     provenanceMessageId: "message-1",
   });
+
+  await assert.rejects(
+    controller.saveGeneratedFiles(
+      [
+        {
+          bytes: new TextEncoder().encode("foreign"),
+          mediaType: "text/plain",
+          name: "foreign.txt",
+          provenanceChatId: chatId,
+          provenanceMessageId: "message-1",
+        },
+      ],
+      ownerScope,
+      otherFolderId
+    ),
+    LibraryAccessDeniedError
+  );
 
   await assert.rejects(
     controller.saveGeneratedFiles(

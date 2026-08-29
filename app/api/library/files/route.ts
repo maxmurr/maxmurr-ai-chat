@@ -101,6 +101,9 @@ export async function POST(request: Request) {
     const projectValue = formData.get("projectId");
     const projectId =
       typeof projectValue === "string" && projectValue ? projectValue : null;
+    const chatValue = formData.get("chatId");
+    const chatId =
+      typeof chatValue === "string" && chatValue ? chatValue : null;
     const files = formData
       .getAll("files")
       .filter((value): value is File => value instanceof File);
@@ -114,13 +117,17 @@ export async function POST(request: Request) {
         name: file.name,
       });
     }
-    const uploadedFiles = projectId
+    const uploadedFiles = chatId
       ? await resolveApplicationDependency(
           applicationInjectionTokens.projectController
-        ).uploadProjectSources(projectId, inputs, guard.scope)
-      : await resolveApplicationDependency(
-          applicationInjectionTokens.libraryController
-        ).uploadFiles(inputs, guard.scope);
+        ).uploadChatFiles(chatId, inputs, guard.scope)
+      : projectId
+        ? await resolveApplicationDependency(
+            applicationInjectionTokens.projectController
+          ).uploadProjectSources(projectId, inputs, guard.scope)
+        : await resolveApplicationDependency(
+            applicationInjectionTokens.libraryController
+          ).uploadFiles(inputs, guard.scope);
 
     return Response.json({
       files: uploadedFiles.map(({ id, mediaType, name, size }) => ({

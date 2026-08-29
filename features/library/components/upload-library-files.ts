@@ -5,11 +5,13 @@ export type UploadedLibraryFile = {
   size: number;
 };
 
-/** Uploads browser Files to owner-scoped Library route. */
+type LibraryUploadDestination =
+  { chatId: string } | { folderId: string } | { projectId: string };
+
+/** Uploads browser Files; server resolves Project Folder destinations. */
 export async function uploadLibraryFiles(
   files: readonly File[],
-  folderId: string | null = null,
-  projectId: string | null = null
+  destination?: LibraryUploadDestination
 ): Promise<UploadedLibraryFile[]> {
   const formData = new FormData();
 
@@ -17,12 +19,9 @@ export async function uploadLibraryFiles(
     formData.append("files", file);
   }
 
-  if (folderId) {
-    formData.set("folderId", folderId);
-  }
-
-  if (projectId) {
-    formData.set("projectId", projectId);
+  if (destination) {
+    const [field, id] = Object.entries(destination)[0];
+    formData.set(field, id);
   }
 
   const response = await fetch("/api/library/files", {

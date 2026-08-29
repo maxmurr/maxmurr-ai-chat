@@ -213,9 +213,21 @@ export function createLibraryController(
      * from the model provider, so the user-upload extension whitelist and
      * content sniffing do not apply; size caps still do.
      */
-    async saveGeneratedFiles(input: unknown, scope: LibraryOwnerScope) {
+    async saveGeneratedFiles(
+      input: unknown,
+      scope: LibraryOwnerScope,
+      targetFolderId?: string | null
+    ) {
       const files = parseLibraryInput(generatedLibraryFilesSchema, input);
+      const folderId =
+        targetFolderId === undefined
+          ? null
+          : parseLibraryInput(libraryFolderIdSchema, targetFolderId);
       validateUploadBatch(files);
+
+      if (folderId) {
+        await requireOwnedFolder(folderId, scope);
+      }
 
       const newFiles = files.map((file) => {
         if (file.bytes.byteLength > LIBRARY_MAX_FILE_SIZE) {
@@ -225,7 +237,7 @@ export function createLibraryController(
         return {
           ...scope,
           bytes: file.bytes,
-          folderId: null,
+          folderId,
           id: crypto.randomUUID(),
           mediaType: file.mediaType.toLowerCase().split(";", 1)[0],
           name: file.name,
@@ -242,13 +254,13 @@ export function createLibraryController(
     async uploadFiles(
       input: unknown,
       scope: LibraryOwnerScope,
-      targetFolderId?: string
+      targetFolderId?: string | null
     ) {
       const parsedFiles = parseLibraryInput(newLibraryFilesSchema, input);
       const folderId =
         targetFolderId === undefined
           ? undefined
-          : parseLibraryInput(libraryIdSchema, targetFolderId);
+          : parseLibraryInput(libraryFolderIdSchema, targetFolderId);
       const files = parsedFiles.map((file) =>
         folderId === undefined ? file : { ...file, folderId }
       );
