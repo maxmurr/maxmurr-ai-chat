@@ -47,6 +47,14 @@ function createChatRepository(): ChatRepository {
           ],
           role: "user",
         },
+        {
+          id: "assistant-message",
+          metadata: {
+            langfuseTraceId: "0123456789abcdef0123456789abcdef",
+          },
+          parts: [{ text: "Done", type: "text" }],
+          role: "assistant",
+        },
       ];
     },
     async isWorkspaceMember() {
@@ -69,7 +77,7 @@ function createChatRepository(): ChatRepository {
   };
 }
 
-test("Chat owner sees deleted Library File availability metadata", async () => {
+test("Chat owner sees File availability and resolves assistant feedback trace", async () => {
   const libraryService = {
     async findExistingFileIds() {
       return [];
@@ -103,5 +111,13 @@ test("Chat owner sees deleted Library File availability metadata", async () => {
   assert.equal(
     await controller.getChatForViewer(chat.id, chat.ownerId, "workspace-2"),
     null
+  );
+  assert.equal(
+    await controller.getOwnedAssistantMessageLangfuseTraceId(
+      chat.id,
+      chat.ownerId,
+      "assistant-message"
+    ),
+    "0123456789abcdef0123456789abcdef"
   );
 });

@@ -21,6 +21,7 @@
     "@base-ui/react": "^1.7.0",
     "@better-auth/drizzle-adapter": "1.7.1",
     "@evyweb/ioctopus": "^1.4.1",
+    "@langfuse/client": "5.11.0",
     "@mastra/ai-sdk": "1.9.1",
     "@mastra/core": "1.61.0",
     "@mastra/langfuse": "1.5.0",

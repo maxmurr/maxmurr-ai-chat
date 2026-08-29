@@ -1,15 +1,18 @@
-import assert from "node:assert/strict"
-import { test } from "node:test"
+import assert from "node:assert/strict";
+import { test } from "node:test";
 
 import {
   convertChatUiMessageToDisplayMessage,
   type ChatUIMessage,
-} from "@/src/interface-adapters/presenters/chat-message.presenter"
+} from "@/src/interface-adapters/presenters/chat-message.presenter";
 
 test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", () => {
   const message: ChatUIMessage = {
     id: "assistant-response",
-    metadata: { createdAt: "2026-08-28T01:02:03.000Z" },
+    metadata: {
+      createdAt: "2026-08-28T01:02:03.000Z",
+      langfuseTraceId: "0123456789abcdef0123456789abcdef",
+    },
     role: "assistant",
     parts: [
       {
@@ -39,7 +42,7 @@ test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", (
         url: "data:application/pdf;base64,AA==",
       },
     ],
-  }
+  };
 
   assert.deepEqual(convertChatUiMessageToDisplayMessage(message), {
     attachments: [
@@ -53,6 +56,7 @@ test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", (
     ],
     content: "Pro costs $29.",
     createdAt: "2026-08-28T01:02:03.000Z",
+    feedbackEnabled: true,
     id: "assistant-response",
     reasoning: {
       state: "completed",
@@ -77,11 +81,11 @@ test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", (
         state: "completed",
       },
     ],
-  })
-})
+  });
+});
 
 test("deleted Library File maps to unavailable Chat placeholder", () => {
-  const fileId = "20000000-0000-4000-8000-000000000001"
+  const fileId = "20000000-0000-4000-8000-000000000001";
   const message: ChatUIMessage = {
     id: "user-message",
     metadata: { libraryFileAvailability: { [fileId]: false } },
@@ -94,7 +98,7 @@ test("deleted Library File maps to unavailable Chat placeholder", () => {
         url: `/api/library/files/${fileId}`,
       },
     ],
-  }
+  };
 
   assert.deepEqual(convertChatUiMessageToDisplayMessage(message)?.attachments, [
     {
@@ -103,8 +107,8 @@ test("deleted Library File maps to unavailable Chat placeholder", () => {
       isAvailable: false,
       mediaType: "application/pdf",
     },
-  ])
-})
+  ]);
+});
 
 test("streaming reasoning maps to running chat activity", () => {
   const message: ChatUIMessage = {
@@ -117,13 +121,13 @@ test("streaming reasoning maps to running chat activity", () => {
         text: "Checking current plan.",
       },
     ],
-  }
+  };
 
   assert.deepEqual(convertChatUiMessageToDisplayMessage(message)?.reasoning, {
     state: "running",
     text: "Checking current plan.",
-  })
-})
+  });
+});
 
 test("finished reasoning without text is omitted from display", () => {
   const message: ChatUIMessage = {
@@ -133,26 +137,26 @@ test("finished reasoning without text is omitted from display", () => {
       { type: "reasoning", state: "done", text: "" },
       { type: "text", text: "pong" },
     ],
-  }
+  };
 
-  const displayMessage = convertChatUiMessageToDisplayMessage(message)
+  const displayMessage = convertChatUiMessageToDisplayMessage(message);
 
-  assert.equal(displayMessage?.reasoning, undefined)
-  assert.equal(displayMessage?.content, "pong")
-})
+  assert.equal(displayMessage?.reasoning, undefined);
+  assert.equal(displayMessage?.content, "pong");
+});
 
 test("empty streaming reasoning still shows running activity", () => {
   const message: ChatUIMessage = {
     id: "assistant-response",
     role: "assistant",
     parts: [{ type: "reasoning", state: "streaming", text: "" }],
-  }
+  };
 
   assert.deepEqual(convertChatUiMessageToDisplayMessage(message)?.reasoning, {
     state: "running",
     text: "",
-  })
-})
+  });
+});
 
 test("AI SDK 7 denied tool output maps to failed chat activity", () => {
   const message: ChatUIMessage = {
@@ -172,7 +176,7 @@ test("AI SDK 7 denied tool output maps to failed chat activity", () => {
         type: "dynamic-tool",
       },
     ],
-  }
+  };
 
   assert.deepEqual(convertChatUiMessageToDisplayMessage(message)?.tools, [
     {
@@ -184,5 +188,5 @@ test("AI SDK 7 denied tool output maps to failed chat activity", () => {
       },
       state: "failed",
     },
-  ])
-})
+  ]);
+});

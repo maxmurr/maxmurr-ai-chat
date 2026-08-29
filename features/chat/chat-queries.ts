@@ -41,7 +41,11 @@ export const getChatSidebarEntries = cache(
           visibility,
         })
       ),
-      teamChats: teamChats.map(({ id, title }) => ({ id, title })),
+      teamChats: teamChats.map(({ id, title, updatedAt }) => ({
+        id,
+        title,
+        updatedAt,
+      })),
     };
   }
 );

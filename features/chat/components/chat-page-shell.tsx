@@ -34,10 +34,7 @@ export async function ChatPageShell({
     : [];
 
   return (
-    <ChatConversationTitleProvider
-      key={`${chat.id}:${chat.title}`}
-      initialTitle={chat.title}
-    >
+    <ChatConversationTitleProvider key={chat.id} initialTitle={chat.title}>
       <ChatPageHeader
         actions={
           chat.isOwner ? (

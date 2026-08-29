@@ -23,8 +23,10 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-/** Serializable chat row rendered in the sidebar history. */
-export type ChatHistoryEntry = ChatDialogEntry;
+/** Serializable team chat row rendered in history and search. */
+export type ChatHistoryEntry = ChatDialogEntry & {
+  updatedAt: Date;
+};
 
 /** Splits owned chats into pinned and recent sections. */
 function groupOwnChats(ownChats: ChatConversationEntry[]) {

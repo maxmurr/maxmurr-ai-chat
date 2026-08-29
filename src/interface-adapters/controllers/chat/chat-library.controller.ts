@@ -19,6 +19,9 @@ import {
 
 const chatTitleSchema = z.string().trim().min(1).max(80);
 const chatVisibilitySchema = z.enum(chatVisibilities);
+const chatMessageFeedbackMetadataSchema = z.object({
+  langfuseTraceId: z.string().regex(/^[0-9a-f]{32}$/),
+});
 
 function withoutOwnerInternals(chat: Chat): Chat {
   return { ...chat, projectId: null, publicToken: null };
@@ -91,6 +94,32 @@ export function createChatLibraryController(
     async deleteChat(chatId: string, userId: string) {
       await requireOwnedChat(chatId, userId);
       await chatRepository.deleteChat(chatId);
+    },
+
+    /** Returns the Langfuse trace only for an owned assistant message. */
+    async getOwnedAssistantMessageLangfuseTraceId(
+      chatId: string,
+      userId: string,
+      messageId: string
+    ) {
+      await requireOwnedChat(chatId, userId);
+      const message = (await chatRepository.getChatMessages(chatId)).find(
+        (entry) => entry.id === messageId
+      );
+
+      if (!message || message.role !== "assistant") {
+        throw new ChatAccessDeniedError();
+      }
+
+      const metadata = chatMessageFeedbackMetadataSchema.safeParse(
+        message.metadata
+      );
+
+      if (!metadata.success) {
+        throw new InvalidChatRequestError({ cause: metadata.error });
+      }
+
+      return metadata.data.langfuseTraceId;
     },
 
     /** Returns the chat as seen by this user, or null when it must stay hidden. */

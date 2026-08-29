@@ -225,6 +225,7 @@ export function createMastraChatStreamService(
         libraryService,
         libraryScope
       );
+      const langfuseTraceId = crypto.randomUUID().replaceAll("-", "");
       const stream = await instrumentationService.startSpan(
         { name: "Stream Chat response", op: "gen_ai.chat" },
         () =>
@@ -237,7 +238,10 @@ export function createMastraChatStreamService(
             mastra: mastraRuntime,
             messageMetadata: ({ part }) =>
               part.type === "start"
-                ? { createdAt: new Date().toISOString() }
+                ? {
+                    createdAt: new Date().toISOString(),
+                    langfuseTraceId,
+                  }
                 : undefined,
             onError: (error) => {
               crashReporterService.report(error);
@@ -256,6 +260,7 @@ export function createMastraChatStreamService(
               },
               system: projectInstructions,
               tracingOptions: {
+                traceId: langfuseTraceId,
                 metadata: {
                   langfuse: { organizationId: libraryScope.organizationId },
                   sessionId: chatId,

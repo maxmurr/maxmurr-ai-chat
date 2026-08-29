@@ -178,6 +178,7 @@ function ChatPendingResponse({ className }: { className?: string }) {
 
 type ChatMessageListProps = {
   className?: string;
+  feedbackChatId?: string;
   isGenerating: boolean;
   messages: readonly ChatDisplayMessage[];
   onRetryMessage?: (messageId: string) => void;
@@ -189,6 +190,7 @@ type ChatMessageListProps = {
 /** Renders empty, active, and pending states for current chat conversation. */
 export function ChatMessageList({
   className,
+  feedbackChatId,
   isGenerating,
   messages,
   onRetryMessage,
@@ -267,6 +269,7 @@ export function ChatMessageList({
                           ? copyStatus.result
                           : null
                       }
+                      feedbackChatId={feedbackChatId}
                       isGenerating={isGenerating}
                       isStreaming={streamingMessageId === message.id}
                       message={message}
