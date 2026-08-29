@@ -17,3 +17,5 @@ Issues live as Markdown files under `.scratch/<feature>/`. See `docs/agents/issu
 ### Domain docs
 
 Single-context domain docs live in `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.
+
+Packages are deep modules: see [src/packages/README.md](./src/packages/README.md) before adding or importing one.

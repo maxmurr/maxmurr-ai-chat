@@ -36,6 +36,7 @@ const architectureElements = [
     pattern: "src/infrastructure",
     partialMatch: false,
   },
+  { type: "package", pattern: "src/packages/*", partialMatch: false },
   { type: "di", pattern: "di", partialMatch: false },
   { type: "database", pattern: "drizzle", partialMatch: false },
 ];
@@ -92,6 +93,10 @@ const architecturePolicies = [
   {
     from: { element: { type: "database" } },
     allow: { to: { element: { type: "database" } } },
+  },
+  {
+    from: { element: { type: "package" } },
+    allow: { to: { element: { type: "package" } } },
   },
 ];
 
