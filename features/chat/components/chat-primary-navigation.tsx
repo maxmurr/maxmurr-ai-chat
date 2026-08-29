@@ -33,11 +33,7 @@ export function ChatPrimaryNavigation({
   return (
     <SidebarMenu className={cn(className)}>
       <SidebarMenuItem>
-        <SidebarMenuButton
-          isActive={pathname === "/chat"}
-          render={<Link href="/chat" />}
-          tooltip="New chat"
-        >
+        <SidebarMenuButton render={<Link href="/chat" />} tooltip="New chat">
           <PlusIcon />
           <span>New chat</span>
         </SidebarMenuButton>
