@@ -1,41 +1,34 @@
 import type { Metadata } from "next"
-import { headers } from "next/headers"
-import { redirect } from "next/navigation"
+import { Suspense } from "react"
 
-import { AuthenticationFormCard } from "@/components/auth/authentication-form-card"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
 import {
-  auth,
-  isEmailOtpAuthenticationEnabled,
-  isGoogleAuthenticationEnabled,
-} from "@/di/authentication"
-import { getSafeAuthenticationCallbackPath } from "@/lib/authentication-callback"
+  AuthenticationPage,
+  AuthenticationPageSkeleton,
+} from "@/features/user/components/authentication-page"
 
 export const metadata: Metadata = {
   title: "Sign In · AI Chat",
   description: "Sign in with a one-time email code.",
 }
 
-/** Redirects active sessions or renders email one-time password sign-in. */
-export default async function SignInPage({
+/** Composes sign-in from resolved callback query values. */
+export default function SignInPage({
   searchParams,
 }: PageProps<"/sign-in">) {
-  const { callbackURL, error } = await searchParams
-  const callbackPath = getSafeAuthenticationCallbackPath(callbackURL)
-  const session = await auth.api.getSession({ headers: await headers() })
-
-  if (session?.user.emailVerified) {
-    redirect(callbackPath)
-  }
-
   return (
-    <AuthenticationFormCard
-      callbackPath={callbackPath}
-      emailOtpEnabled={isEmailOtpAuthenticationEnabled}
-      googleEnabled={isGoogleAuthenticationEnabled}
-      initialErrorMessage={
-        error ? "Could not continue with Google. Try again." : undefined
-      }
-      mode="sign-in"
-    />
+    <ErrorBoundary title="Sign in did not load">
+      <Suspense fallback={<AuthenticationPageSkeleton />}>
+        {searchParams.then(({ callbackURL, error }) => (
+          <AuthenticationPage
+            callbackValue={
+              typeof callbackURL === "string" ? callbackURL : undefined
+            }
+            hasOauthError={typeof error === "string"}
+            mode="sign-in"
+          />
+        ))}
+      </Suspense>
+    </ErrorBoundary>
   )
 }

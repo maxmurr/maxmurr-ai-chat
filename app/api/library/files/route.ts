@@ -1,4 +1,4 @@
-import { requireLibraryRouteScope } from "@/app/library/library-request-context"
+import { requireLibraryRouteScope } from "@/features/library/library-queries"
 import { resolveApplicationDependency } from "@/di/application-container"
 import { applicationInjectionTokens } from "@/di/application-container.registry"
 import {

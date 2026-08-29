@@ -5,6 +5,7 @@ import { betterAuth } from "better-auth"
 import { emailOTP } from "better-auth/plugins/email-otp"
 import { organization } from "better-auth/plugins/organization"
 import { username } from "better-auth/plugins/username"
+import { nextCookies } from "better-auth/next-js"
 import { after } from "next/server"
 
 import { appDatabase } from "@/drizzle/app-database"
@@ -136,5 +137,6 @@ export const auth = betterAuth({
       minUsernameLength: 3,
       maxUsernameLength: 31,
     }),
+    nextCookies(),
   ],
 })

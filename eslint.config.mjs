@@ -6,6 +6,7 @@ import nextTs from "eslint-config-next/typescript";
 const architectureFiles = [
   "app/**/*.{ts,tsx}",
   "components/**/*.{ts,tsx}",
+  "features/**/*.{ts,tsx}",
   "hooks/**/*.{ts,tsx}",
   "lib/**/*.{ts,tsx}",
   "src/**/*.{ts,tsx}",
@@ -16,6 +17,7 @@ const architectureFiles = [
 const architectureElements = [
   { type: "framework", pattern: "app", partialMatch: false },
   { type: "framework", pattern: "components", partialMatch: false },
+  { type: "framework", pattern: "features", partialMatch: false },
   { type: "framework", pattern: "hooks", partialMatch: false },
   { type: "framework", pattern: "lib", partialMatch: false },
   {
