@@ -7,10 +7,6 @@ import {
   LibraryPageContentSkeleton,
 } from "@/features/library/components/library-page-content"
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
-
 export const metadata: Metadata = {
   title: "Library – AI Chat",
 }
@@ -18,10 +14,15 @@ export const metadata: Metadata = {
 /** Composes authenticated Library root. */
 export default function LibraryPage() {
   return (
-    <ErrorBoundary title="Library did not load">
-      <Suspense fallback={<LibraryPageContentSkeleton />}>
-        <LibraryPageContent />
-      </Suspense>
-    </ErrorBoundary>
+    <div
+      className="flex min-h-0 flex-1 flex-col"
+      data-testid="library-shell"
+    >
+      <ErrorBoundary title="Library did not load">
+        <Suspense fallback={<LibraryPageContentSkeleton />}>
+          <LibraryPageContent />
+        </Suspense>
+      </ErrorBoundary>
+    </div>
   )
 }

@@ -42,6 +42,7 @@ export function ChatPageShell({
             </>
           ) : undefined
         }
+        data-testid="chat-content"
       >
         <ChatConversationTitle className="min-w-0" />
       </ChatPageHeader>

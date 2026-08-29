@@ -7,10 +7,6 @@ import {
   AuthenticationPageSkeleton,
 } from "@/features/user/components/authentication-page"
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
-
 export const metadata: Metadata = {
   title: "Sign Up · AI Chat",
   description: "Create an account with verified email.",
@@ -21,18 +17,20 @@ export default function SignUpPage({
   searchParams,
 }: PageProps<"/sign-up">) {
   return (
-    <ErrorBoundary title="Sign up did not load">
-      <Suspense fallback={<AuthenticationPageSkeleton />}>
-        {searchParams.then(({ callbackURL, error }) => (
-          <AuthenticationPage
-            callbackValue={
-              typeof callbackURL === "string" ? callbackURL : undefined
-            }
-            hasOauthError={typeof error === "string"}
-            mode="sign-up"
-          />
-        ))}
-      </Suspense>
-    </ErrorBoundary>
+    <div className="flex w-full max-w-md" data-testid="sign-up-shell">
+      <ErrorBoundary title="Sign up did not load">
+        <Suspense fallback={<AuthenticationPageSkeleton />}>
+          {searchParams.then(({ callbackURL, error }) => (
+            <AuthenticationPage
+              callbackValue={
+                typeof callbackURL === "string" ? callbackURL : undefined
+              }
+              hasOauthError={typeof error === "string"}
+              mode="sign-up"
+            />
+          ))}
+        </Suspense>
+      </ErrorBoundary>
+    </div>
   )
 }

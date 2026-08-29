@@ -31,7 +31,7 @@ export async function LibraryPageContent({
 
   return (
     <>
-      <ChatPageHeader>
+      <ChatPageHeader data-testid="library-content">
         <Breadcrumb>
           <BreadcrumbList>
             {currentFolder ? (

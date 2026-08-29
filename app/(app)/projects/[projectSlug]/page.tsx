@@ -7,10 +7,7 @@ import {
   ProjectDetailSkeleton,
 } from "@/features/project/components/project-detail"
 import { PROJECT_SEED } from "@/features/project/components/project-data"
-
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
+import { ProjectsWorkspace } from "@/features/project/components/projects-workspace"
 
 /** Uses seed project name for browser title when route is known. */
 export async function generateMetadata({
@@ -29,12 +26,19 @@ export default function ProjectBySlugPage({
   params,
 }: PageProps<"/projects/[projectSlug]">) {
   return (
-    <ErrorBoundary title="Project did not load">
-      <Suspense fallback={<ProjectDetailSkeleton />}>
-        {params.then(({ projectSlug }) => (
-          <ProjectDetail projectSlug={projectSlug} />
-        ))}
-      </Suspense>
-    </ErrorBoundary>
+    <div
+      className="flex min-h-0 flex-1 flex-col"
+      data-testid="project-detail-shell"
+    >
+      <ErrorBoundary title="Project did not load">
+        <Suspense fallback={<ProjectDetailSkeleton />}>
+          {params.then(({ projectSlug }) => (
+            <ProjectsWorkspace>
+              <ProjectDetail projectSlug={projectSlug} />
+            </ProjectsWorkspace>
+          ))}
+        </Suspense>
+      </ErrorBoundary>
+    </div>
   )
 }

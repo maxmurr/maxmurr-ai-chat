@@ -1,11 +1,13 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
+import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { ChatPageHeader } from "@/features/chat/components/chat-page-header"
 import { ProjectsList } from "@/features/project/components/projects-list"
-
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
+import {
+  ProjectsWorkspace,
+  ProjectsWorkspaceSkeleton,
+} from "@/features/project/components/projects-workspace"
 
 export const metadata: Metadata = {
   title: "Projects – AI Chat",
@@ -14,13 +16,24 @@ export const metadata: Metadata = {
 /** Renders searchable workspace project index. */
 export default function ProjectsPage() {
   return (
-    <>
+    <div
+      className="flex min-h-0 flex-1 flex-col"
+      data-testid="projects-shell"
+    >
       <ChatPageHeader>
-        <p className="text-sm font-medium">Projects</p>
+        <p className="text-sm font-medium" data-testid="projects-index-content">
+          Projects
+        </p>
       </ChatPageHeader>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <ProjectsList />
+        <ErrorBoundary title="Projects did not load">
+          <Suspense fallback={<ProjectsWorkspaceSkeleton />}>
+            <ProjectsWorkspace>
+              <ProjectsList />
+            </ProjectsWorkspace>
+          </Suspense>
+        </ErrorBoundary>
       </div>
-    </>
+    </div>
   )
 }

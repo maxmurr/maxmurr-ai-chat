@@ -7,10 +7,6 @@ import {
   WorkspaceInvitationSkeleton,
 } from "@/features/workspace/components/workspace-invitation"
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
-
 export const metadata: Metadata = {
   title: "Workspace Invitation · AI Chat",
   description: "Accept an AI Chat workspace invitation.",
@@ -22,17 +18,19 @@ export default function AcceptWorkspaceInvitationPage({
   searchParams,
 }: PageProps<"/accept-invitation/[invitationId]">) {
   return (
-    <ErrorBoundary title="Invitation did not load">
-      <Suspense fallback={<WorkspaceInvitationSkeleton />}>
-        {Promise.all([params, searchParams]).then(
-          ([{ invitationId }, { error }]) => (
-            <WorkspaceInvitation
-              hasError={typeof error === "string"}
-              invitationId={invitationId}
-            />
-          )
-        )}
-      </Suspense>
-    </ErrorBoundary>
+    <div className="flex w-full max-w-md" data-testid="invitation-shell">
+      <ErrorBoundary title="Invitation did not load">
+        <Suspense fallback={<WorkspaceInvitationSkeleton />}>
+          {Promise.all([params, searchParams]).then(
+            ([{ invitationId }, { error }]) => (
+              <WorkspaceInvitation
+                hasError={typeof error === "string"}
+                invitationId={invitationId}
+              />
+            )
+          )}
+        </Suspense>
+      </ErrorBoundary>
+    </div>
   )
 }

@@ -50,6 +50,7 @@ export function ProjectsList({ className }: { className?: string }) {
         "@container mx-auto w-full max-w-7xl p-4 lg:p-6",
         className,
       )}
+      data-testid="projects-list-content"
     >
       {projects.length === 0 ? (
         <Empty className="min-h-64">

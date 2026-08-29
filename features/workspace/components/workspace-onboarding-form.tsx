@@ -89,6 +89,7 @@ export function WorkspaceOnboardingForm({
     <section
       aria-labelledby="workspace-onboarding-title"
       className={cn("flex w-full max-w-xs flex-col gap-8", className)}
+      data-testid="onboarding-content"
     >
       <Progress
         aria-label={`Onboarding step ${step === "workspace" ? 1 : 2} of 2`}

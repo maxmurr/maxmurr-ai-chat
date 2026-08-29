@@ -82,6 +82,7 @@ export function AuthenticationFormCard({
     useState<AuthenticationVerificationRequest | null>(null)
   const [isGooglePending, setIsGooglePending] = useState(false)
   const isSignUp = mode === "sign-up"
+  const contentTestId = isSignUp ? "sign-up-content" : "sign-in-content"
   const isVerificationStep = verificationRequest !== null
   const title = isVerificationStep
     ? "Check your email"
@@ -205,6 +206,7 @@ export function AuthenticationFormCard({
         "w-full max-w-md [--card-spacing:--spacing(6)] dark:shadow-none dark:ring-0 dark:inset-ring dark:inset-ring-foreground/5",
         className
       )}
+      data-testid={contentTestId}
     >
       <AuthenticationFormHeader
         description={description}

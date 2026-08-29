@@ -8,7 +8,10 @@ export async function SharedChatContent({ publicToken }: { publicToken: string }
 
   return (
     <>
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+      <header
+        className="flex h-14 shrink-0 items-center gap-2 border-b px-4"
+        data-testid="shared-chat-content"
+      >
         <p className="min-w-0 flex-1 truncate text-base sm:text-sm">
           {view.title}
         </p>

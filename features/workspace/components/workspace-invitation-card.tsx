@@ -36,6 +36,7 @@ export function WorkspaceInvitationCard({
         "w-full max-w-md [--card-spacing:--spacing(6)]",
         className,
       )}
+      data-testid="invitation-content"
     >
       <CardHeader>
         <CardTitle>
