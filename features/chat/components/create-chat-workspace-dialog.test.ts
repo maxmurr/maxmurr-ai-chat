@@ -56,6 +56,7 @@ test("chat workspace invitations preserve roles and report each failure", async 
     organizationId: string
     role: "admin" | "member"
   }> = []
+  const reportedErrors: unknown[] = []
   const failedEmails = await inviteWorkspaceMembers(
     "workspace-1",
     [
@@ -75,9 +76,14 @@ test("chat workspace invitations preserve roles and report each failure", async 
       }
 
       return undefined
-    }
+    },
+    (error) => reportedErrors.push(error)
   )
 
+  assert.deepEqual(reportedErrors, [
+    new Error("Invitation rejected"),
+    new Error("Network unavailable"),
+  ])
   assert.deepEqual(sentInvitations, [
     {
       email: "admin@example.com",

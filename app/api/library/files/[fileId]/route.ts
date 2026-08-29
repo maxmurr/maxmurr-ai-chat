@@ -1,6 +1,7 @@
 import { requireLibraryRouteScope } from "@/features/library/library-queries"
 import { resolveApplicationDependency } from "@/di/application-container"
 import { applicationInjectionTokens } from "@/di/application-container.registry"
+import { reportUnexpectedServerError } from "@/lib/server-error-reporting"
 import {
   InvalidLibraryRequestError,
   LibraryAccessDeniedError,
@@ -48,6 +49,7 @@ export async function GET(
       return Response.json({ error: "File not found." }, { status: 404 })
     }
 
+    reportUnexpectedServerError(error)
     console.error(
       "Library download failed.",
       error instanceof Error ? error.message : "Unknown error"

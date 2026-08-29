@@ -1,6 +1,7 @@
 import { resolveApplicationDependency } from "@/di/application-container"
 import { auth } from "@/di/authentication"
 import { resolveActiveWorkspaceId } from "@/lib/active-workspace"
+import { reportUnexpectedServerError } from "@/lib/server-error-reporting"
 import { applicationInjectionTokens } from "@/di/application-container.registry"
 import {
   ChatAccessDeniedError,
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
 
     context = { organizationId, userId: session.user.id }
   } catch (error) {
+    reportUnexpectedServerError(error)
     console.error(
       "Chat authorization failed.",
       error instanceof Error ? error.message : "Unknown error"
@@ -72,6 +74,7 @@ export async function POST(request: Request) {
     }
 
     const cause = error instanceof ChatUnavailableError ? error.cause : error
+    reportUnexpectedServerError(cause)
     console.error(
       "Chat route setup failed.",
       cause instanceof Error ? cause.message : "Unknown error"

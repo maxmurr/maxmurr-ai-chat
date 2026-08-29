@@ -1,5 +1,6 @@
 "use client"
 
+import * as Sentry from "@sentry/nextjs"
 import { useEffect } from "react"
 import Link from "next/link"
 import { RefreshCwIcon } from "lucide-react"
@@ -15,7 +16,10 @@ export default function AppError({
   error: Error & { digest?: string }
   retry: () => void
 }) {
-  useEffect(() => console.error(error), [error])
+  useEffect(() => {
+    console.error(error)
+    Sentry.captureException(error)
+  }, [error])
 
   return (
     <ErrorState

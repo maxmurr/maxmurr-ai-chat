@@ -1,5 +1,6 @@
 "use client"
 
+import * as Sentry from "@sentry/nextjs"
 import { useEffect } from "react"
 
 /** Last-resort document shown when the root layout cannot render. */
@@ -10,7 +11,10 @@ export default function GlobalError({
   error: Error & { digest?: string }
   retry: () => void
 }) {
-  useEffect(() => console.error(error), [error])
+  useEffect(() => {
+    console.error(error)
+    Sentry.captureException(error)
+  }, [error])
 
   return (
     <html lang="en">

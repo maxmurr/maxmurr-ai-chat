@@ -21,6 +21,8 @@ export function createChatModule() {
     .toHigherOrderFunction(createMastraChatStreamService, [
       applicationInjectionTokens.chatRepository,
       applicationInjectionTokens.libraryController,
+      applicationInjectionTokens.crashReporter,
+      applicationInjectionTokens.instrumentation,
     ])
   chatModule
     .bind(applicationInjectionTokens.streamChatController)

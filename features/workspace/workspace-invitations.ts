@@ -13,7 +13,8 @@ type SendWorkspaceInvitation = (invitation: {
 export async function inviteWorkspaceMembers(
   organizationId: string,
   members: readonly WorkspaceInvitationMember[],
-  sendInvitation: SendWorkspaceInvitation
+  sendInvitation: SendWorkspaceInvitation,
+  reportFailure: (error: unknown) => void
 ) {
   const results = await Promise.all(
     members.map(async ({ email, role }) => {
@@ -26,7 +27,8 @@ export async function inviteWorkspaceMembers(
           role,
         })
         return null
-      } catch {
+      } catch (error) {
+        reportFailure(error)
         return normalizedEmail
       }
     })

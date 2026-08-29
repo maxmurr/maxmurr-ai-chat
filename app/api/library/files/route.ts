@@ -1,6 +1,7 @@
 import { requireLibraryRouteScope } from "@/features/library/library-queries"
 import { resolveApplicationDependency } from "@/di/application-container"
 import { applicationInjectionTokens } from "@/di/application-container.registry"
+import { reportUnexpectedServerError } from "@/lib/server-error-reporting"
 import {
   InvalidLibraryRequestError,
   LibraryAccessDeniedError,
@@ -56,6 +57,7 @@ function libraryUploadError(error: unknown) {
     return Response.json({ error: "Folder not found." }, { status: 404 })
   }
 
+  reportUnexpectedServerError(error)
   console.error(
     "Library upload failed.",
     error instanceof Error ? error.message : "Unknown error"

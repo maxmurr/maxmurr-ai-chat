@@ -5,6 +5,7 @@ import { notFound } from "next/navigation"
 import { resolveApplicationDependency } from "@/di/application-container"
 import { applicationInjectionTokens } from "@/di/application-container.registry"
 import { getAuthenticatedWorkspaceContext, getWorkspaceOwnerScope } from "@/features/workspace/workspace-queries"
+import { reportUnexpectedServerError } from "@/lib/server-error-reporting"
 import {
   InvalidLibraryRequestError,
   LibraryAccessDeniedError,
@@ -61,6 +62,7 @@ export async function requireLibraryRouteScope(
   try {
     context = await getLibraryRequestContext(requestHeaders)
   } catch (error) {
+    reportUnexpectedServerError(error)
     console.error(
       "Library authorization failed.",
       error instanceof Error ? error.message : "Unknown error"

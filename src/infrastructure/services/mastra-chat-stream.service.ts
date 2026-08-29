@@ -9,8 +9,10 @@ import {
 import { after } from "next/server"
 
 import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface"
-import type { LibraryService } from "@/src/application/services/library.service.interface"
 import type { StreamChatResponse } from "@/src/application/services/chat-stream.service.interface"
+import type { CrashReporterService } from "@/src/application/services/crash-reporter.service.interface"
+import type { InstrumentationService } from "@/src/application/services/instrumentation.service.interface"
+import type { LibraryService } from "@/src/application/services/library.service.interface"
 import {
   ChatAccessDeniedError,
   ChatUnavailableError,
@@ -45,6 +47,7 @@ function fallbackChatTitle(message: ChatStreamMessage) {
 
 async function generateAndSaveChatTitle(
   chatRepository: ChatRepository,
+  crashReporterService: CrashReporterService,
   chatId: string,
   userText: string
 ) {
@@ -68,6 +71,7 @@ async function generateAndSaveChatTitle(
       await chatRepository.updateChatTitle(chatId, title)
     }
   } catch (error) {
+    crashReporterService.report(error)
     console.error(
       "Chat title generation failed.",
       error instanceof Error ? error.message : "Unknown error"
@@ -78,7 +82,9 @@ async function generateAndSaveChatTitle(
 /** Creates streaming Chat service that persists turns and Library Files. */
 export function createMastraChatStreamService(
   chatRepository: ChatRepository,
-  libraryService: LibraryService
+  libraryService: LibraryService,
+  crashReporterService: CrashReporterService,
+  instrumentationService: InstrumentationService
 ): StreamChatResponse {
   return async (request, context, abortSignal) => {
     const { chatId, message, messageId, trigger } = request
@@ -118,6 +124,7 @@ export function createMastraChatStreamService(
       after(() =>
         generateAndSaveChatTitle(
           chatRepository,
+          crashReporterService,
           chatId,
           extractMessageText(message)
         )
@@ -164,44 +171,49 @@ export function createMastraChatStreamService(
         libraryService,
         libraryScope
       )
-      const stream = await handleChatStream({
-        agentId: "chat-assistant",
-        experimentalTransform: smoothStream({
-          delayInMs: 20,
-          chunking: "word",
-        }),
-        mastra: mastraRuntime,
-        messageMetadata: ({ part }) =>
-          part.type === "start"
-            ? { createdAt: new Date().toISOString() }
-            : undefined,
-        onError: (error) => {
-          console.error(
-            "Chat stream failed.",
-            error instanceof Error ? error.message : "Unknown error"
-          )
-          return "Chat response failed."
-        },
-        params: {
-          abortSignal,
-          messages: providerMessages,
-          providerOptions: {
-            // OpenAI Responses accepts text/code file_data after adapter opt-in.
-            openai: { passThroughUnsupportedFiles: true },
-          },
-          tracingOptions: {
-            metadata: {
-              langfuse: { organizationId: libraryScope.organizationId },
-              sessionId: chatId,
-              userId: context.userId,
+      const stream = await instrumentationService.startSpan(
+        { name: "Stream Chat response", op: "gen_ai.chat" },
+        () =>
+          handleChatStream({
+            agentId: "chat-assistant",
+            experimentalTransform: smoothStream({
+              delayInMs: 20,
+              chunking: "word",
+            }),
+            mastra: mastraRuntime,
+            messageMetadata: ({ part }) =>
+              part.type === "start"
+                ? { createdAt: new Date().toISOString() }
+                : undefined,
+            onError: (error) => {
+              crashReporterService.report(error)
+              console.error(
+                "Chat stream failed.",
+                error instanceof Error ? error.message : "Unknown error"
+              )
+              return "Chat response failed."
             },
-          },
-          trigger,
-        },
-        sendReasoning: true,
-        sendSources: true,
-        version: "v7",
-      })
+            params: {
+              abortSignal,
+              messages: providerMessages,
+              providerOptions: {
+                // OpenAI Responses accepts text/code file_data after adapter opt-in.
+                openai: { passThroughUnsupportedFiles: true },
+              },
+              tracingOptions: {
+                metadata: {
+                  langfuse: { organizationId: libraryScope.organizationId },
+                  sessionId: chatId,
+                  userId: context.userId,
+                },
+              },
+              trigger,
+            },
+            sendReasoning: true,
+            sendSources: true,
+            version: "v7",
+          })
+      )
 
       after(() => mastraRuntime.observability.flush())
 
@@ -225,6 +237,7 @@ export function createMastraChatStreamService(
                 libraryScope
               )
             } catch (error) {
+              crashReporterService.report(error)
               console.error(
                 "Assistant File persistence failed.",
                 error instanceof Error ? error.message : "Unknown error"
