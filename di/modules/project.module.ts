@@ -16,12 +16,11 @@ export function createProjectModule() {
     .toValue(drizzleProjectRepository);
   projectModule
     .bind(applicationInjectionTokens.projectController)
-    .toFactory((resolve) =>
-      createProjectController(
-        resolve(applicationInjectionTokens.projectRepository),
-        resolve(applicationInjectionTokens.chatRepository)
-      )
-    );
+    .toHigherOrderFunction(createProjectController, [
+      applicationInjectionTokens.projectRepository,
+      applicationInjectionTokens.chatRepository,
+      applicationInjectionTokens.libraryController,
+    ]);
 
   return projectModule;
 }

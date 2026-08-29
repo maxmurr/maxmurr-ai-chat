@@ -1,0 +1,2 @@
+ALTER TABLE "project" ADD COLUMN "folder_id" text;--> statement-breakpoint
+ALTER TABLE "project" ADD CONSTRAINT "project_folder_id_library_folder_id_fk" FOREIGN KEY ("folder_id") REFERENCES "public"."library_folder"("id") ON DELETE set null ON UPDATE no action;

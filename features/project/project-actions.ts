@@ -10,6 +10,10 @@ import { getProjectRequestContext } from "@/features/project/project-queries";
 import { reportUnexpectedServerError } from "@/lib/server-error-reporting";
 import { traceServerAction } from "@/lib/server-action-tracing";
 import {
+  InvalidLibraryRequestError,
+  LibraryAccessDeniedError,
+} from "@/src/entities/errors/library-errors";
+import {
   InvalidProjectRequestError,
   ProjectAccessDeniedError,
 } from "@/src/entities/errors/project-errors";
@@ -37,7 +41,9 @@ function projectController() {
 function reportUnexpectedProjectActionError(error: unknown) {
   if (
     !(error instanceof InvalidProjectRequestError) &&
-    !(error instanceof ProjectAccessDeniedError)
+    !(error instanceof ProjectAccessDeniedError) &&
+    !(error instanceof InvalidLibraryRequestError) &&
+    !(error instanceof LibraryAccessDeniedError)
   ) {
     reportUnexpectedServerError(error);
   }
@@ -93,6 +99,44 @@ export async function createProjectAction(input: unknown) {
     } catch (error) {
       reportUnexpectedProjectActionError(error);
       return { error: "Could not create Project.", ok: false as const };
+    }
+  });
+}
+
+/** Moves one owned Library File into Project Folder as Source. */
+export async function addProjectSourceAction(
+  projectId: unknown,
+  fileId: unknown
+) {
+  return traceServerAction("addProjectSourceAction", async () => {
+    const scope = await requireProjectOwnerScope();
+
+    try {
+      await projectController().addProjectSource(projectId, fileId, scope);
+      refresh();
+      return { ok: true as const };
+    } catch (error) {
+      reportUnexpectedProjectActionError(error);
+      return { error: "Could not add Source.", ok: false as const };
+    }
+  });
+}
+
+/** Moves one Source from Project Folder back to Library root. */
+export async function removeProjectSourceAction(
+  projectId: unknown,
+  fileId: unknown
+) {
+  return traceServerAction("removeProjectSourceAction", async () => {
+    const scope = await requireProjectOwnerScope();
+
+    try {
+      await projectController().removeProjectSource(projectId, fileId, scope);
+      refresh();
+      return { ok: true as const };
+    } catch (error) {
+      reportUnexpectedProjectActionError(error);
+      return { error: "Could not remove Source.", ok: false as const };
     }
   });
 }

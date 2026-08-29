@@ -1,7 +1,8 @@
 import type { Chat } from "@/src/entities/models/chat";
+import type { LibraryFileSummary } from "@/src/entities/models/library";
 import type { Project, ProjectOwnerScope } from "@/src/entities/models/project";
 
-/** Owner-checked Project CRUD operations exposed by Project controller. */
+/** Owner-checked Project and Source operations exposed by Project controller. */
 export type ProjectService = {
   attachChat(
     projectId: unknown,
@@ -17,6 +18,25 @@ export type ProjectService = {
     scope: ProjectOwnerScope
   ): Promise<Chat[]>;
   listProjects(scope: ProjectOwnerScope): Promise<Project[]>;
+  listProjectSources(
+    projectId: unknown,
+    scope: ProjectOwnerScope
+  ): Promise<LibraryFileSummary[]>;
+  addProjectSource(
+    projectId: unknown,
+    fileId: unknown,
+    scope: ProjectOwnerScope
+  ): Promise<void>;
+  removeProjectSource(
+    projectId: unknown,
+    fileId: unknown,
+    scope: ProjectOwnerScope
+  ): Promise<void>;
+  uploadProjectSources(
+    projectId: unknown,
+    input: unknown,
+    scope: ProjectOwnerScope
+  ): Promise<LibraryFileSummary[]>;
   updateProjectDetails(
     projectId: unknown,
     input: unknown,

@@ -57,6 +57,13 @@
       "when": 1788014484910,
       "tag": "0007_tiresome_kid_colt",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788015839666,
+      "tag": "0008_complete_kree",
+      "breakpoints": true
     }
   ]
 }

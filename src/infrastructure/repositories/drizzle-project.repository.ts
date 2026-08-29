@@ -69,4 +69,13 @@ export const drizzleProjectRepository: ProjectRepository = {
       .returning();
     return row ?? null;
   },
+
+  async updateOwnedProjectFolderId(projectId, folderId, scope) {
+    const [row] = await appDatabase
+      .update(project)
+      .set({ folderId })
+      .where(ownedProjectWhere(projectId, scope))
+      .returning();
+    return row ?? null;
+  },
 };

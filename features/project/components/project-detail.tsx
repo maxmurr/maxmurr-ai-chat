@@ -5,7 +5,10 @@ import { ProjectChatsSection } from "@/features/project/components/project-chats
 import { ProjectDetailHeader } from "@/features/project/components/project-detail-header";
 import { ProjectInstructionsSection } from "@/features/project/components/project-instructions-section";
 import { ProjectSourcesSection } from "@/features/project/components/project-sources-section";
-import { getProjectPageData } from "@/features/project/project-queries";
+import {
+  getProjectPageData,
+  getProjectSourcesPageData,
+} from "@/features/project/project-queries";
 import { cn } from "@/lib/utils";
 
 /** Loads and renders one persisted owner-scoped Project by id. */
@@ -17,6 +20,13 @@ export async function ProjectDetail({
   projectId: string;
 }) {
   const project = await getProjectPageData(projectId);
+  const sourceData = await getProjectSourcesPageData(project);
+  const toSourceItem = ({
+    id,
+    mediaType,
+    name,
+    size,
+  }: (typeof sourceData.sources)[number]) => ({ id, mediaType, name, size });
 
   return (
     <div
@@ -54,7 +64,11 @@ export async function ProjectDetail({
           <ProjectInstructionsSection
             project={{ id: project.id, instructions: project.instructions }}
           />
-          <ProjectSourcesSection />
+          <ProjectSourcesSection
+            availableFiles={sourceData.availableFiles.map(toSourceItem)}
+            projectId={project.id}
+            sources={sourceData.sources.map(toSourceItem)}
+          />
           <ProjectChatsSection chats={project.chats} />
         </div>
       </div>

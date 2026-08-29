@@ -168,6 +168,9 @@ export const project = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     instructions: text("instructions").default("").notNull(),
+    folderId: text("folder_id").references(() => libraryFolder.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -330,6 +333,10 @@ export const projectRelations = relations(project, ({ one, many }) => ({
     references: [user.id],
   }),
   chats: many(chat),
+  folder: one(libraryFolder, {
+    fields: [project.folderId],
+    references: [libraryFolder.id],
+  }),
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -378,6 +385,7 @@ export const libraryFolderRelations = relations(
       references: [user.id],
     }),
     files: many(libraryFile),
+    projects: many(project),
   })
 );
 

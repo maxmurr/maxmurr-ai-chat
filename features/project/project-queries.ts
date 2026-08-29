@@ -8,14 +8,22 @@ import {
   getAuthenticatedWorkspaceContext,
   getWorkspaceOwnerScope,
 } from "@/features/workspace/workspace-queries";
+import { LibraryAccessDeniedError } from "@/src/entities/errors/library-errors";
 import {
   InvalidProjectRequestError,
   ProjectAccessDeniedError,
 } from "@/src/entities/errors/project-errors";
+import type { Project } from "@/src/entities/models/project";
 
 function projectController() {
   return resolveApplicationDependency(
     applicationInjectionTokens.projectController
+  );
+}
+
+function libraryController() {
+  return resolveApplicationDependency(
+    applicationInjectionTokens.libraryController
   );
 }
 
@@ -49,6 +57,36 @@ export async function getProjectPageData(projectId: string) {
 
     throw error;
   }
+}
+
+/** Lists Sources plus owned Files available to move into one Project. */
+export async function getProjectSourcesPageData(
+  project: Pick<Project, "folderId" | "id">
+) {
+  const scope = await getProjectOwnerScope();
+  const [sources, rootListing] = await Promise.all([
+    projectController().listProjectSources(project.id, scope),
+    libraryController().listLibrary(null, scope),
+  ]);
+  // ponytail: one query per flat Folder; add an all-Files repository read if
+  // large Libraries make this picker slow.
+  const folderFiles = await Promise.all(
+    rootListing.folders
+      .filter(({ id }) => id !== project.folderId)
+      .map(async ({ id }) => {
+        try {
+          return (await libraryController().listLibrary(id, scope)).files;
+        } catch (error) {
+          if (error instanceof LibraryAccessDeniedError) return [];
+          throw error;
+        }
+      })
+  );
+
+  return {
+    availableFiles: [...rootListing.files, ...folderFiles.flat()],
+    sources,
+  };
 }
 
 /** Resolves session-derived Project owner scope from request headers. */

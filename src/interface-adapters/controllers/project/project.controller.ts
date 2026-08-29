@@ -2,7 +2,9 @@ import { z } from "zod";
 
 import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface";
 import type { ProjectRepository } from "@/src/application/services/project-repository.service.interface";
+import type { LibraryService } from "@/src/application/services/library.service.interface";
 import type { ProjectService } from "@/src/application/services/project.service.interface";
+import { LibraryAccessDeniedError } from "@/src/entities/errors/library-errors";
 import {
   InvalidProjectRequestError,
   ProjectAccessDeniedError,
@@ -36,10 +38,16 @@ function parseProjectInput<T>(schema: z.ZodType<T>, input: unknown): T {
 /** Validated owner-scoped Project controller resolved by composition root. */
 export type ProjectController = ReturnType<typeof createProjectController>;
 
-/** Creates Project CRUD operations with validation and ownership guards. */
+type ProjectSourceLibraryService = Pick<
+  LibraryService,
+  "createFolder" | "listLibrary" | "moveFile" | "uploadFiles"
+>;
+
+/** Creates Project and Source operations with validation and ownership guards. */
 export function createProjectController(
   projectRepository: ProjectRepository,
-  chatRepository: ChatRepository
+  chatRepository: ChatRepository,
+  libraryService: ProjectSourceLibraryService
 ): ProjectService {
   function requireOwnedProject<T>(project: T | null): T {
     if (!project) {
@@ -71,6 +79,58 @@ export function createProjectController(
     return chat;
   }
 
+  async function listProjectSourceFiles(
+    projectId: unknown,
+    scope: ProjectOwnerScope
+  ) {
+    const ownedProject = await getOwnedProject(projectId, scope);
+
+    if (!ownedProject.folderId) {
+      return [];
+    }
+
+    try {
+      return (await libraryService.listLibrary(ownedProject.folderId, scope))
+        .files;
+    } catch (error) {
+      if (error instanceof LibraryAccessDeniedError) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async function ensureProjectFolder(
+    projectId: unknown,
+    scope: ProjectOwnerScope
+  ) {
+    const ownedProject = await getOwnedProject(projectId, scope);
+
+    if (ownedProject.folderId) {
+      try {
+        const listing = await libraryService.listLibrary(
+          ownedProject.folderId,
+          scope
+        );
+        if (listing.folder) return listing.folder;
+      } catch (error) {
+        if (!(error instanceof LibraryAccessDeniedError)) throw error;
+      }
+    }
+
+    // ponytail: UI serializes Source mutations; use an atomic Folder claim if
+    // concurrent multi-client uploads become supported.
+    const folder = await libraryService.createFolder(ownedProject.name, scope);
+    requireOwnedProject(
+      await projectRepository.updateOwnedProjectFolderId(
+        ownedProject.id,
+        folder.id,
+        scope
+      )
+    );
+    return folder;
+  }
+
   return {
     async attachChat(
       projectId: unknown,
@@ -88,6 +148,7 @@ export function createProjectController(
       return projectRepository.createProject({
         ...details,
         ...scope,
+        folderId: null,
         id: crypto.randomUUID(),
         instructions: "",
       });
@@ -122,6 +183,44 @@ export function createProjectController(
 
     async listProjects(scope: ProjectOwnerScope) {
       return projectRepository.listOwnedProjects(scope);
+    },
+
+    async listProjectSources(projectId: unknown, scope: ProjectOwnerScope) {
+      return listProjectSourceFiles(projectId, scope);
+    },
+
+    async addProjectSource(
+      projectId: unknown,
+      fileId: unknown,
+      scope: ProjectOwnerScope
+    ) {
+      const id = parseProjectInput(projectIdSchema, fileId);
+      const folder = await ensureProjectFolder(projectId, scope);
+      await libraryService.moveFile(id, folder.id, scope);
+    },
+
+    async removeProjectSource(
+      projectId: unknown,
+      fileId: unknown,
+      scope: ProjectOwnerScope
+    ) {
+      const id = parseProjectInput(projectIdSchema, fileId);
+      const sources = await listProjectSourceFiles(projectId, scope);
+
+      if (!sources.some((source) => source.id === id)) {
+        throw new ProjectAccessDeniedError();
+      }
+
+      await libraryService.moveFile(id, null, scope);
+    },
+
+    async uploadProjectSources(
+      projectId: unknown,
+      input: unknown,
+      scope: ProjectOwnerScope
+    ) {
+      const folder = await ensureProjectFolder(projectId, scope);
+      return libraryService.uploadFiles(input, scope, folder.id);
     },
 
     async updateProjectDetails(

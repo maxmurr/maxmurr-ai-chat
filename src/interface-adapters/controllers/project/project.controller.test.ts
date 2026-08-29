@@ -2,13 +2,19 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface";
+import type { LibraryService } from "@/src/application/services/library.service.interface";
 import type {
   NewProject,
   ProjectDetailsUpdate,
   ProjectRepository,
 } from "@/src/application/services/project-repository.service.interface";
+import { LibraryAccessDeniedError } from "@/src/entities/errors/library-errors";
 import { ProjectAccessDeniedError } from "@/src/entities/errors/project-errors";
 import type { Chat } from "@/src/entities/models/chat";
+import type {
+  LibraryFileSummary,
+  LibraryFolder,
+} from "@/src/entities/models/library";
 import type { Project, ProjectOwnerScope } from "@/src/entities/models/project";
 import { createProjectController } from "@/src/interface-adapters/controllers/project/project.controller";
 
@@ -46,6 +52,113 @@ class InMemoryChatRepository {
       );
     },
   } as ChatRepository;
+}
+
+class InMemoryProjectSourceLibrary implements Pick<
+  LibraryService,
+  "createFolder" | "listLibrary" | "moveFile" | "uploadFiles"
+> {
+  files: LibraryFileSummary[] = [];
+  folders: LibraryFolder[] = [];
+  foldersCreated = 0;
+
+  async createFolder(name: unknown, scope: ProjectOwnerScope) {
+    this.foldersCreated += 1;
+    const folder = {
+      ...scope,
+      createdAt,
+      id: `10000000-0000-4000-8000-${String(this.foldersCreated).padStart(12, "0")}`,
+      name: String(name),
+    };
+    this.folders.push(folder);
+    return folder;
+  }
+
+  async listLibrary(folderId: unknown, scope: ProjectOwnerScope) {
+    const id = folderId === null ? null : String(folderId);
+    const folder = id
+      ? (this.folders.find(
+          (candidate) => candidate.id === id && this.matches(candidate, scope)
+        ) ?? null)
+      : null;
+
+    if (id && !folder) throw new LibraryAccessDeniedError();
+
+    return {
+      files: this.files.filter(
+        (file) => file.folderId === id && this.matches(file, scope)
+      ),
+      folder,
+      folders: this.folders.filter((candidate) =>
+        this.matches(candidate, scope)
+      ),
+    };
+  }
+
+  async moveFile(fileId: unknown, folderId: unknown, scope: ProjectOwnerScope) {
+    const file = this.files.find(
+      (candidate) =>
+        candidate.id === String(fileId) && this.matches(candidate, scope)
+    );
+    if (!file) throw new LibraryAccessDeniedError();
+
+    const targetFolderId = folderId === null ? null : String(folderId);
+    if (
+      targetFolderId &&
+      !this.folders.some(
+        (folder) => folder.id === targetFolderId && this.matches(folder, scope)
+      )
+    ) {
+      throw new LibraryAccessDeniedError();
+    }
+
+    this.files = this.files.map((candidate) =>
+      candidate === file
+        ? { ...candidate, folderId: targetFolderId }
+        : candidate
+    );
+  }
+
+  async uploadFiles(
+    input: unknown,
+    scope: ProjectOwnerScope,
+    targetFolderId?: string
+  ) {
+    const files = input as {
+      bytes: Uint8Array;
+      mediaType: string;
+      name: string;
+    }[];
+    const uploaded = files.map((file, index): LibraryFileSummary => ({
+      ...scope,
+      createdAt,
+      folderId: targetFolderId ?? null,
+      id: `20000000-0000-4000-8000-${String(this.files.length + index + 1).padStart(12, "0")}`,
+      mediaType: file.mediaType,
+      name: file.name,
+      provenanceChatId: null,
+      provenanceChatTitle: null,
+      provenanceMessageId: null,
+      size: file.bytes.byteLength,
+    }));
+    this.files.push(...uploaded);
+    return uploaded;
+  }
+
+  deleteFolder(folderId: string) {
+    this.folders = this.folders.filter(({ id }) => id !== folderId);
+    this.files = this.files.filter((file) => file.folderId !== folderId);
+  }
+
+  private matches(
+    value: { organizationId: string; ownerId: string },
+    scope: ProjectOwnerScope
+  ) {
+    return (
+      value.organizationId === scope.organizationId &&
+      value.ownerId === scope.ownerId
+    );
+  }
 }
 
 class InMemoryProjectRepository implements ProjectRepository {
@@ -94,6 +207,14 @@ class InMemoryProjectRepository implements ProjectRepository {
     return this.updateProject(id, { instructions }, scope);
   }
 
+  async updateOwnedProjectFolderId(
+    id: string,
+    folderId: string,
+    scope: ProjectOwnerScope
+  ) {
+    return this.updateProject(id, { folderId }, scope);
+  }
+
   private matches(project: Project, scope: ProjectOwnerScope) {
     return (
       project.organizationId === scope.organizationId &&
@@ -134,11 +255,15 @@ function createChat(
   };
 }
 
-function createController(repository: InMemoryProjectRepository) {
+function createController(
+  repository: InMemoryProjectRepository,
+  library = new InMemoryProjectSourceLibrary()
+) {
   const chats = new InMemoryChatRepository();
   return {
     chats,
-    controller: createProjectController(repository, chats.repository),
+    controller: createProjectController(repository, chats.repository, library),
+    library,
   };
 }
 
@@ -148,6 +273,7 @@ function seedForeignProjects(repository: InMemoryProjectRepository) {
       ...otherOwnerScope,
       createdAt,
       description: null,
+      folderId: null,
       id: "10000000-0000-4000-8000-000000000001",
       instructions: "Other owner",
       name: "Other owner's Project",
@@ -157,6 +283,7 @@ function seedForeignProjects(repository: InMemoryProjectRepository) {
       ...otherWorkspaceScope,
       createdAt,
       description: null,
+      folderId: null,
       id: "10000000-0000-4000-8000-000000000002",
       instructions: "Other workspace",
       name: "Other Workspace Project",
@@ -221,6 +348,94 @@ test("Project CRUD persists details and supports setting and clearing instructio
 
   await controller.deleteProject(project.id, ownerScope);
   assert.deepEqual(await controller.listProjects(ownerScope), []);
+});
+
+test("Project Sources lazily create, freeze, recreate, move in, and remove to root", async () => {
+  const repository = new InMemoryProjectRepository();
+  const library = new InMemoryProjectSourceLibrary();
+  const { controller } = createController(repository, library);
+  const project = await controller.createProject(
+    { description: "", name: "Pricing revamp" },
+    ownerScope
+  );
+
+  const [uploaded] = await controller.uploadProjectSources(
+    project.id,
+    [
+      {
+        bytes: new TextEncoder().encode("brief"),
+        mediaType: "text/plain",
+        name: "brief.txt",
+      },
+    ],
+    ownerScope
+  );
+  const firstFolder = library.folders[0];
+  assert.equal(firstFolder.name, "Pricing revamp");
+  assert.equal(uploaded.folderId, firstFolder.id);
+
+  await controller.updateProjectDetails(
+    project.id,
+    { description: "", name: "Pricing launch" },
+    ownerScope
+  );
+  const movedFileId = "20000000-0000-4000-8000-000000000099";
+  library.files.push({
+    ...ownerScope,
+    createdAt,
+    folderId: null,
+    id: movedFileId,
+    mediaType: "application/pdf",
+    name: "research.pdf",
+    provenanceChatId: null,
+    provenanceChatTitle: null,
+    provenanceMessageId: null,
+    size: 42,
+  });
+
+  await controller.addProjectSource(project.id, movedFileId, ownerScope);
+  assert.equal(library.folders.length, 1);
+  assert.equal(library.folders[0].name, "Pricing revamp");
+  assert.equal(
+    library.files.find(({ id }) => id === movedFileId)?.folderId,
+    firstFolder.id
+  );
+
+  library.deleteFolder(firstFolder.id);
+  const recreatedFileId = "20000000-0000-4000-8000-000000000100";
+  library.files.push({
+    ...ownerScope,
+    createdAt,
+    folderId: null,
+    id: recreatedFileId,
+    mediaType: "text/csv",
+    name: "cohorts.csv",
+    provenanceChatId: null,
+    provenanceChatTitle: null,
+    provenanceMessageId: null,
+    size: 12,
+  });
+
+  await controller.addProjectSource(project.id, recreatedFileId, ownerScope);
+  const recreatedFolder = library.folders[0];
+  assert.notEqual(recreatedFolder.id, firstFolder.id);
+  assert.equal(recreatedFolder.name, "Pricing launch");
+  assert.equal(
+    (await controller.getProject(project.id, ownerScope)).folderId,
+    recreatedFolder.id
+  );
+  assert.deepEqual(
+    (await controller.listProjectSources(project.id, ownerScope)).map(
+      ({ id }) => id
+    ),
+    [recreatedFileId]
+  );
+
+  await controller.removeProjectSource(project.id, recreatedFileId, ownerScope);
+  assert.equal(
+    library.files.find(({ id }) => id === recreatedFileId)?.folderId,
+    null
+  );
 });
 
 test("Project rejects same-Workspace access by another owner", async () => {

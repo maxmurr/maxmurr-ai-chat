@@ -3,6 +3,7 @@ import type { Project, ProjectOwnerScope } from "@/src/entities/models/project";
 /** Values accepted when creating one owner-scoped Project. */
 export type NewProject = ProjectOwnerScope & {
   readonly description: string | null;
+  readonly folderId: string | null;
   readonly id: string;
   readonly instructions: string;
   readonly name: string;
@@ -34,6 +35,11 @@ export type ProjectRepository = {
   updateOwnedProjectInstructions(
     projectId: string,
     instructions: string,
+    scope: ProjectOwnerScope
+  ): Promise<Project | null>;
+  updateOwnedProjectFolderId(
+    projectId: string,
+    folderId: string,
     scope: ProjectOwnerScope
   ): Promise<Project | null>;
 };
