@@ -20,7 +20,11 @@ import {
 } from "@/src/entities/errors/chat-errors";
 import { LibraryAccessDeniedError } from "@/src/entities/errors/library-errors";
 import type { ChatMessage } from "@/src/entities/models/chat";
-import type { ChatStreamMessage } from "@/src/entities/models/chat-stream-request";
+import type {
+  ChatRequestContext,
+  ChatStreamMessage,
+  ChatStreamRequest,
+} from "@/src/entities/models/chat-stream-request";
 import { getMessageLibraryFileIds } from "@/src/entities/models/library";
 import { mastraRuntime } from "@/src/infrastructure/ai/mastra/mastra-runtime";
 import {
@@ -84,6 +88,63 @@ async function generateAndSaveChatTitle(
   }
 }
 
+type StreamChatRepository = Pick<
+  ChatRepository,
+  "createChat" | "getChatById" | "isWorkspaceMember"
+>;
+type StreamProjectRepository = Pick<ProjectRepository, "getOwnedProject">;
+
+/** Authorizes stream access and binds only a new Chat to an owned Project. */
+export async function authorizeAndCreateStreamChat(
+  chatRepository: StreamChatRepository,
+  projectRepository: StreamProjectRepository,
+  request: ChatStreamRequest,
+  context: ChatRequestContext
+) {
+  const existingChat = await chatRepository.getChatById(request.chatId);
+  const isWorkspaceMember = await chatRepository.isWorkspaceMember(
+    context.organizationId,
+    context.userId
+  );
+
+  if (existingChat) {
+    if (
+      existingChat.ownerId !== context.userId ||
+      existingChat.organizationId !== context.organizationId ||
+      !isWorkspaceMember ||
+      (request.projectId !== undefined &&
+        request.projectId !== existingChat.projectId)
+    ) {
+      throw new ChatAccessDeniedError();
+    }
+
+    return { chat: existingChat, created: false };
+  }
+
+  if (!isWorkspaceMember) {
+    throw new ChatAccessDeniedError();
+  }
+
+  if (
+    request.projectId &&
+    !(await projectRepository.getOwnedProject(request.projectId, {
+      organizationId: context.organizationId,
+      ownerId: context.userId,
+    }))
+  ) {
+    throw new ChatAccessDeniedError();
+  }
+
+  const chat = await chatRepository.createChat({
+    id: request.chatId,
+    organizationId: context.organizationId,
+    ownerId: context.userId,
+    projectId: request.projectId ?? null,
+    title: fallbackChatTitle(request.message),
+  });
+  return { chat, created: true };
+}
+
 /** Creates streaming Chat service that persists turns and Library Files. */
 export function createMastraChatStreamService(
   chatRepository: ChatRepository,
@@ -96,41 +157,14 @@ export function createMastraChatStreamService(
 ): StreamChatResponse {
   return async (request, context, abortSignal) => {
     const { chatId, message, messageId, trigger } = request;
-    const existingChat = await chatRepository.getChatById(chatId);
+    const { chat: activeChat, created } = await authorizeAndCreateStreamChat(
+      chatRepository,
+      projectRepository,
+      request,
+      context
+    );
 
-    if (existingChat) {
-      const isActiveWorkspaceMember = await chatRepository.isWorkspaceMember(
-        context.organizationId,
-        context.userId
-      );
-
-      if (
-        existingChat.ownerId !== context.userId ||
-        existingChat.organizationId !== context.organizationId ||
-        !isActiveWorkspaceMember
-      ) {
-        throw new ChatAccessDeniedError();
-      }
-    }
-
-    let activeChat = existingChat;
-
-    if (!activeChat) {
-      const isMember = await chatRepository.isWorkspaceMember(
-        context.organizationId,
-        context.userId
-      );
-
-      if (!isMember) {
-        throw new ChatAccessDeniedError();
-      }
-
-      activeChat = await chatRepository.createChat({
-        id: chatId,
-        organizationId: context.organizationId,
-        ownerId: context.userId,
-        title: fallbackChatTitle(message),
-      });
+    if (created) {
       defer(() =>
         generateAndSaveChatTitle(
           chatRepository,

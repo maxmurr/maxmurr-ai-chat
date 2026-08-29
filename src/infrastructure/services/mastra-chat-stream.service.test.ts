@@ -8,11 +8,22 @@ import type { CrashReporterService } from "@/src/application/services/crash-repo
 import type { InstrumentationService } from "@/src/application/services/instrumentation.service.interface";
 import type { LibraryService } from "@/src/application/services/library.service.interface";
 import type { ProjectRepository } from "@/src/application/services/project-repository.service.interface";
+import { ChatAccessDeniedError } from "@/src/entities/errors/chat-errors";
 import type { Chat, ChatMessage } from "@/src/entities/models/chat";
+import type {
+  ChatRequestContext,
+  ChatStreamRequest,
+} from "@/src/entities/models/chat-stream-request";
 import type { Project } from "@/src/entities/models/project";
-import { createMastraChatStreamService } from "@/src/infrastructure/services/mastra-chat-stream.service";
+import {
+  authorizeAndCreateStreamChat,
+  createMastraChatStreamService,
+} from "@/src/infrastructure/services/mastra-chat-stream.service";
 
-const context = { organizationId: "workspace-1", userId: "user-1" };
+const context: ChatRequestContext = {
+  organizationId: "workspace-1",
+  userId: "user-1",
+};
 const createdAt = new Date("2026-08-30T00:00:00.000Z");
 
 function createStreamFixture(instructions: string, projectId: string | null) {
@@ -179,4 +190,143 @@ test("Project instruction edits and Chat detach apply on next stream request", a
     undefined,
   ]);
   assert.equal(fixture.projectReads, 2);
+});
+
+const chatId = "6f1f429e-84f3-4a10-9f2c-58a1a7a8f001";
+const projectId = "7f1f429e-84f3-4a10-9f2c-58a1a7a8f002";
+const request: ChatStreamRequest = {
+  chatId,
+  message: {
+    id: "message-1",
+    parts: [{ text: "Plan launch", type: "text" }],
+    role: "user",
+  },
+  projectId,
+};
+
+function createProject(overrides: Partial<Project> = {}): Project {
+  return {
+    createdAt,
+    description: null,
+    folderId: null,
+    id: projectId,
+    instructions: "",
+    name: "Launch",
+    organizationId: context.organizationId,
+    ownerId: context.userId,
+    updatedAt: createdAt,
+    ...overrides,
+  };
+}
+
+function createChat(overrides: Partial<Chat> = {}): Chat {
+  return {
+    createdAt,
+    id: chatId,
+    organizationId: context.organizationId,
+    ownerId: context.userId,
+    pinned: false,
+    projectId: null,
+    publicToken: null,
+    title: "Plan launch",
+    updatedAt: createdAt,
+    visibility: "private",
+    ...overrides,
+  };
+}
+
+function createRepositories(options?: {
+  existingChat?: Chat;
+  project?: Project;
+}) {
+  const createdChats: Parameters<ChatRepository["createChat"]>[0][] = [];
+  const chatRepository = {
+    async createChat(input: Parameters<ChatRepository["createChat"]>[0]) {
+      createdChats.push(input);
+      return createChat(input);
+    },
+    async getChatById() {
+      return options?.existingChat ?? null;
+    },
+    async isWorkspaceMember() {
+      return true;
+    },
+  };
+  const projectRepository = {
+    async getOwnedProject(
+      id: string,
+      scope: { organizationId: string; ownerId: string }
+    ) {
+      const project = options?.project;
+      return project &&
+        project.id === id &&
+        project.organizationId === scope.organizationId &&
+        project.ownerId === scope.ownerId
+        ? project
+        : null;
+    },
+  };
+
+  return { chatRepository, createdChats, projectRepository };
+}
+
+test("new stream Chat binds to owned Project in active Workspace", async () => {
+  const repositories = createRepositories({ project: createProject() });
+
+  const result = await authorizeAndCreateStreamChat(
+    repositories.chatRepository,
+    repositories.projectRepository,
+    request,
+    context
+  );
+
+  assert.equal(result.created, true);
+  assert.equal(result.chat.projectId, projectId);
+  assert.deepEqual(repositories.createdChats, [
+    {
+      id: chatId,
+      organizationId: context.organizationId,
+      ownerId: context.userId,
+      projectId,
+      title: "Plan launch",
+    },
+  ]);
+});
+
+test("new stream Chat rejects unowned or wrong-Workspace Project before create", async () => {
+  for (const project of [
+    createProject({ ownerId: "user-2" }),
+    createProject({ organizationId: "workspace-2" }),
+  ]) {
+    const repositories = createRepositories({ project });
+
+    await assert.rejects(
+      authorizeAndCreateStreamChat(
+        repositories.chatRepository,
+        repositories.projectRepository,
+        request,
+        context
+      ),
+      ChatAccessDeniedError
+    );
+    assert.deepEqual(repositories.createdChats, []);
+  }
+});
+
+test("existing stream Chat cannot bind to different Project", async () => {
+  const repositories = createRepositories({
+    existingChat: createChat(),
+    project: createProject(),
+  });
+
+  await assert.rejects(
+    authorizeAndCreateStreamChat(
+      repositories.chatRepository,
+      repositories.projectRepository,
+      request,
+      context
+    ),
+    ChatAccessDeniedError
+  );
+  assert.deepEqual(repositories.createdChats, []);
 });

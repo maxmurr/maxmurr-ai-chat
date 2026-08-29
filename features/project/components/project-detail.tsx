@@ -60,7 +60,7 @@ export async function ProjectDetail({
             )}
           </div>
 
-          <ProjectChatComposer />
+          <ProjectChatComposer projectId={project.id} />
           <ProjectInstructionsSection
             project={{ id: project.id, instructions: project.instructions }}
           />

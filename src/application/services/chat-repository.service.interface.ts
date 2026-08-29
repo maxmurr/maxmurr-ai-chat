@@ -11,6 +11,7 @@ export type ChatRepository = {
     id: string;
     organizationId: string;
     ownerId: string;
+    projectId: string | null;
     title: string;
   }): Promise<Chat>;
   deleteChat(chatId: string): Promise<void>;
