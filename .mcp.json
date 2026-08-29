@@ -7,6 +7,10 @@
     "sentry": {
       "type": "http",
       "url": "https://mcp.sentry.dev/mcp/maxmurr/maxmurr-ai-chat"
+    },
+    "langfuse": {
+      "command": "bun",
+      "args": ["scripts/start-langfuse-mcp.mjs"]
     }
   }
 }
