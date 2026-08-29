@@ -41,6 +41,7 @@ type ProjectListItem = {
   description: string | null;
   id: string;
   name: string;
+  pinned: boolean;
   updatedAt: string;
 };
 

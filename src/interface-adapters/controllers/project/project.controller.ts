@@ -21,6 +21,7 @@ const projectDescriptionSchema = z
   .optional()
   .transform((description) => description || null);
 const projectInstructionsSchema = z.string().trim().max(10_000);
+const projectPinnedSchema = z.boolean();
 const projectDetailsSchema = z.object({
   description: projectDescriptionSchema,
   name: projectNameSchema,
@@ -189,6 +190,7 @@ export function createProjectController(
         folderId: null,
         id: crypto.randomUUID(),
         instructions: "",
+        pinned: false,
       });
     },
 
@@ -221,6 +223,18 @@ export function createProjectController(
     async listProjectSources(projectId: unknown, scope: ProjectOwnerScope) {
       const project = await getOwnedProject(projectId, scope);
       return projectRepository.listOwnedProjectSources(project.id, scope);
+    },
+
+    async pinProject(
+      projectId: unknown,
+      pinned: unknown,
+      scope: ProjectOwnerScope
+    ) {
+      const id = parseProjectInput(projectIdSchema, projectId);
+      const value = parseProjectInput(projectPinnedSchema, pinned);
+      return requireOwnedProject(
+        await projectRepository.updateOwnedProjectPinned(id, value, scope)
+      );
     },
 
     async addProjectSource(

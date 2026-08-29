@@ -143,6 +143,18 @@ export async function removeProjectSourceAction(
   );
 }
 
+/** Pins or unpins owned Project in sidebar navigation. */
+export async function pinProjectAction(projectId: unknown, pinned: unknown) {
+  return runProjectMutation(
+    "pinProjectAction",
+    "Could not update Project pin.",
+    async (controller, scope) => {
+      await controller.pinProject(projectId, pinned, scope);
+      return {};
+    }
+  );
+}
+
 /** Updates owned Project name and optional description. */
 export async function updateProjectDetailsAction(
   projectId: unknown,

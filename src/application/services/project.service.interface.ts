@@ -27,6 +27,11 @@ export type ProjectService = {
     projectId: unknown,
     scope: ProjectOwnerScope
   ): Promise<LibraryFileSummary[]>;
+  pinProject(
+    projectId: unknown,
+    pinned: unknown,
+    scope: ProjectOwnerScope
+  ): Promise<Project>;
   addProjectSource(
     projectId: unknown,
     fileId: unknown,

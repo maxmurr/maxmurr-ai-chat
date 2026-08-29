@@ -2,57 +2,149 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { ChatHistory } from "@/features/chat/components/chat-history";
+import type { ChatConversationEntry } from "@/features/chat/components/chat-conversation-item";
+import {
+  ChatHistory,
+  groupOwnChats,
+} from "@/features/chat/components/chat-history";
+import type { ProjectActionsEntry } from "@/features/project/components/project-actions";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
-test("chat history renders collapsible sections outside active chat title provider", () => {
+const ownChats: ChatConversationEntry[] = [
+  {
+    id: "project-chat",
+    pinned: false,
+    projectId: "project-1",
+    projectName: "Launch",
+    publicToken: null,
+    title: "Project chat",
+    updatedAt: new Date("2025-01-02T00:00:00Z"),
+    visibility: "private",
+  },
+  {
+    id: "pinned-project-chat",
+    pinned: true,
+    projectId: "project-1",
+    projectName: "Launch",
+    publicToken: null,
+    title: "Pinned project chat",
+    updatedAt: new Date("2025-01-01T00:00:00Z"),
+    visibility: "private",
+  },
+  {
+    id: "pinned-chat",
+    pinned: true,
+    projectId: null,
+    projectName: null,
+    publicToken: null,
+    title: "Standalone pinned",
+    updatedAt: new Date("2025-01-01T00:00:00Z"),
+    visibility: "private",
+  },
+  {
+    id: "project-recent-chat",
+    pinned: false,
+    projectId: "project-2",
+    projectName: "Backlog",
+    publicToken: null,
+    title: "Backlog chat",
+    updatedAt: new Date("2025-01-01T00:00:00Z"),
+    visibility: "private",
+  },
+  {
+    id: "recent-chat",
+    pinned: false,
+    projectId: null,
+    projectName: null,
+    publicToken: null,
+    title: "Recent chat",
+    updatedAt: new Date("2025-01-01T00:00:00Z"),
+    visibility: "private",
+  },
+];
+
+const projects: ProjectActionsEntry[] = [
+  {
+    description: null,
+    id: "project-1",
+    name: "Launch",
+    pinned: true,
+  },
+  {
+    description: null,
+    id: "project-2",
+    name: "Backlog",
+    pinned: false,
+  },
+];
+
+test("chat grouping keeps pinned Project Chats inside and outside their folder", () => {
+  const [pinnedSection, recentSection] = groupOwnChats(ownChats, projects);
+
+  assert.deepEqual(
+    pinnedSection?.projects[0]?.chats.map(({ id }) => id),
+    ["project-chat", "pinned-project-chat"]
+  );
+  assert.deepEqual(
+    pinnedSection?.chats.map(({ id }) => id),
+    ["pinned-project-chat", "pinned-chat"]
+  );
+  assert.deepEqual(
+    recentSection?.chats.map(({ id }) => id),
+    ["project-recent-chat", "recent-chat"]
+  );
+});
+
+test("chat history defaults pinned Project folders closed", () => {
   const markup = renderToStaticMarkup(
     <SidebarProvider>
-      <ChatHistory
-        ownChats={[
-          {
-            id: "pinned-chat",
-            pinned: true,
-            projectId: "project-1",
-            projectName: "Launch",
-            publicToken: null,
-            title: "Pinned chat",
-            updatedAt: new Date(),
-            visibility: "private",
-          },
-          {
-            id: "recent-chat",
-            pinned: false,
-            projectId: null,
-            projectName: null,
-            publicToken: null,
-            title: "Recent chat",
-            updatedAt: new Date(),
-            visibility: "private",
-          },
-        ]}
-        projects={[{ id: "project-1", name: "Launch" }]}
-        teamChats={[]}
-      />
+      <ChatHistory ownChats={ownChats} projects={projects} teamChats={[]} />
     </SidebarProvider>
   );
 
-  assert.match(markup, />Pinned</);
-  assert.match(markup, />Recents</);
-  assert.match(markup, /title="Pinned chat · Launch"/);
-  assert.doesNotMatch(markup, />Pinned chat · Launch</);
+  const pinnedSectionIndex = markup.indexOf(">Pinned<");
+  const pinnedProjectChatIndex = markup.indexOf(">Pinned project chat<");
+  const recentSectionIndex = markup.indexOf(">Recents<");
+  const backlogChatIndex = markup.indexOf(">Backlog chat<");
+
+  assert.ok(pinnedSectionIndex >= 0);
+  assert.ok(pinnedProjectChatIndex > pinnedSectionIndex);
+  assert.ok(recentSectionIndex > pinnedProjectChatIndex);
+  assert.ok(backlogChatIndex > recentSectionIndex);
+  assert.match(markup, />Launch</);
+  assert.doesNotMatch(markup, /aria-label="Project chat"/);
+  assert.doesNotMatch(markup, /group\/menu-item relative pl-6/);
   assert.match(
     markup,
-    /class="[^"]*motion-reduce:transition-none[^"]*lg:pointer-fine:translate-x-12[^"]*lg:pointer-fine:group-hover\/menu-item:translate-x-0[^"]*">Launch<\/span>/
+    /lucide-folder[^\"]*group-data-panel-open\/menu-button:hidden/
   );
   assert.match(
     markup,
-    /Launch<\/span><div class="[^"]*lg:pointer-fine:opacity-0[^"]*lg:pointer-fine:group-hover\/menu-item:opacity-100[^"]*"><button[^>]*aria-label="Unpin Pinned chat"/
+    /lucide-folder-open[^\"]*group-not-data-panel-open\/menu-button:hidden/
+  );
+  assert.match(markup, /aria-label="Open Launch project"/);
+  assert.match(markup, /href="\/projects\/project-1"/);
+  assert.match(markup, /lucide-square-pen/);
+  assert.equal(markup.match(/aria-label="Pinned project chat"/g)?.length, 1);
+  assert.equal(
+    markup.match(/aria-label="Unpin Pinned project chat"/g)?.length,
+    1
+  );
+  assert.match(markup, /aria-label="Unpin Standalone pinned"/);
+  assert.equal(markup.match(/lucide-message-circle/g)?.length, 2);
+
+  assert.match(markup, /title="Backlog chat · Backlog"/);
+  assert.doesNotMatch(markup, />Backlog chat · Backlog</);
+  assert.match(
+    markup,
+    /class="[^"]*motion-reduce:transition-none[^"]*lg:pointer-fine:translate-x-12[^"]*lg:pointer-fine:group-hover\/menu-item:translate-x-0[^"]*">Backlog<\/span>/
   );
   assert.match(markup, /bg-\[var\(--conversation-actions-background\)\]/);
   assert.match(markup, />Recent chat</);
   assert.doesNotMatch(markup, /Recent chat ·/);
+
   assert.equal(markup.match(/aria-expanded="true"/g)?.length, 2);
+  assert.match(markup, /aria-expanded="false"/);
   assert.match(markup, /lucide-chevron-right/);
   assert.match(
     markup,

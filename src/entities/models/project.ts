@@ -12,5 +12,6 @@ export type Project = ProjectOwnerScope & {
   readonly id: string;
   readonly instructions: string;
   readonly name: string;
+  readonly pinned: boolean;
   readonly updatedAt: Date;
 };

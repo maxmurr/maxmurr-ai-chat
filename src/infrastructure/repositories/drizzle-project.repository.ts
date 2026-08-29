@@ -170,6 +170,15 @@ export const drizzleProjectRepository: ProjectRepository = {
     return row ?? null;
   },
 
+  async updateOwnedProjectPinned(projectId, pinned, scope) {
+    const [row] = await appDatabase
+      .update(project)
+      .set({ pinned })
+      .where(ownedProjectWhere(projectId, scope))
+      .returning();
+    return row ?? null;
+  },
+
   async claimOwnedProjectFolderId(
     projectId,
     expectedFolderId,

@@ -53,6 +53,7 @@ function createStreamFixture(
     name: "Launch",
     organizationId: context.organizationId,
     ownerId: context.userId,
+    pinned: false,
     updatedAt: createdAt,
   };
   let projectReads = 0;
@@ -271,6 +272,7 @@ function createProject(overrides: Partial<Project> = {}): Project {
     name: "Launch",
     organizationId: context.organizationId,
     ownerId: context.userId,
+    pinned: false,
     updatedAt: createdAt,
     ...overrides,
   };

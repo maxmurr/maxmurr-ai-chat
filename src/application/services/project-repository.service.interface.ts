@@ -8,6 +8,7 @@ export type NewProject = ProjectOwnerScope & {
   readonly id: string;
   readonly instructions: string;
   readonly name: string;
+  readonly pinned: boolean;
 };
 
 /** Values accepted by atomic owner-scoped Project detail updates. */
@@ -50,6 +51,11 @@ export type ProjectRepository = {
   updateOwnedProjectInstructions(
     projectId: string,
     instructions: string,
+    scope: ProjectOwnerScope
+  ): Promise<Project | null>;
+  updateOwnedProjectPinned(
+    projectId: string,
+    pinned: boolean,
     scope: ProjectOwnerScope
   ): Promise<Project | null>;
   claimOwnedProjectFolderId(

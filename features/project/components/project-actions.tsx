@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import {
+  MoreHorizontalIcon,
+  PencilIcon,
+  PinIcon,
+  PinOffIcon,
+  Trash2Icon,
+} from "lucide-react";
 
 import {
   AlertDialog,
@@ -27,6 +33,7 @@ import { TouchTarget } from "@/components/ui/touch-target";
 import { ProjectDetailsDialog } from "@/features/project/components/project-details-dialog";
 import {
   deleteProjectAction,
+  pinProjectAction,
   updateProjectDetailsAction,
 } from "@/features/project/project-actions";
 import { cn } from "@/lib/utils";
@@ -35,17 +42,19 @@ import { cn } from "@/lib/utils";
 export const PROJECT_DELETE_CONSEQUENCES =
   "Chats are deleted; Library Files remain available.";
 
-type ProjectActionsItem = {
+/** Serializable Project fields required by its action menu. */
+export type ProjectActionsEntry = {
   description: string | null;
   id: string;
   name: string;
+  pinned: boolean;
 };
 
 type ProjectDialogProps = {
   className?: string;
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  project: ProjectActionsItem;
+  project: ProjectActionsEntry;
 };
 
 function ProjectEditDetailsDialog({
@@ -138,18 +147,30 @@ function ProjectDeleteDialog({
 
 type ProjectActionsProps = {
   className?: string;
-  project: ProjectActionsItem;
-  redirectAfterDelete?: boolean;
+  deleteRedirect?: "/chat" | "/projects";
+  project: ProjectActionsEntry;
 };
 
-/** Renders persisted Project edit and delete controls. */
+/** Renders persisted Project pin, edit, and delete controls. */
 export function ProjectActions({
   className,
+  deleteRedirect,
   project,
-  redirectAfterDelete = false,
 }: ProjectActionsProps) {
   const [openDialog, setOpenDialog] = useState<"delete" | "edit" | null>(null);
   const router = useRouter();
+
+  function toggleProjectPin() {
+    void pinProjectAction(project.id, !project.pinned).then((result) => {
+      if (!result.ok) {
+        toast.add({
+          description: result.error,
+          title: "Project pin failed",
+          type: "error",
+        });
+      }
+    });
+  }
 
   return (
     <>
@@ -170,6 +191,10 @@ export function ProjectActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44">
           <DropdownMenuGroup>
+            <DropdownMenuItem onClick={toggleProjectPin}>
+              {project.pinned ? <PinOffIcon /> : <PinIcon />}
+              {project.pinned ? "Unpin" : "Pin"}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setOpenDialog("edit")}>
               <PencilIcon />
               Edit details
@@ -198,7 +223,7 @@ export function ProjectActions({
       {openDialog === "delete" && (
         <ProjectDeleteDialog
           onDeleted={
-            redirectAfterDelete ? () => router.push("/projects") : undefined
+            deleteRedirect ? () => router.push(deleteRedirect) : undefined
           }
           onOpenChange={(nextOpen) => !nextOpen && setOpenDialog(null)}
           open

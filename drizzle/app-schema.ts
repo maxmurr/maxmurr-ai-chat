@@ -168,6 +168,7 @@ export const project = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     instructions: text("instructions").default("").notNull(),
+    pinned: boolean("pinned").default(false).notNull(),
     folderId: text("folder_id").references(() => libraryFolder.id, {
       onDelete: "set null",
     }),

@@ -37,12 +37,13 @@ export async function ProjectDetail({
       <ProjectDetailHeader
         actions={
           <ProjectActions
+            deleteRedirect="/projects"
             project={{
               description: project.description,
               id: project.id,
               name: project.name,
+              pinned: project.pinned,
             }}
-            redirectAfterDelete
           />
         }
         projectName={project.name}

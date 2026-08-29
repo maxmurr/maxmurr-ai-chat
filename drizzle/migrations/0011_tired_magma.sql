@@ -1,0 +1,1 @@
+ALTER TABLE "project" ADD COLUMN "pinned" boolean DEFAULT false NOT NULL;

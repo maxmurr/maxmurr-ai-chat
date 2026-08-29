@@ -23,7 +23,12 @@ export async function AuthenticatedChatSidebar() {
       activeWorkspaceId={workspace.activeWorkspaceId}
       currentUser={workspace.currentUser}
       ownChats={chats.ownChats}
-      projects={projects.map(({ id, name }) => ({ id, name }))}
+      projects={projects.map(({ description, id, name, pinned }) => ({
+        description,
+        id,
+        name,
+        pinned,
+      }))}
       teamChats={chats.teamChats}
       workspaces={workspace.workspaces}
     />

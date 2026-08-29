@@ -46,6 +46,9 @@ type ChatConversationItemProps = {
   className?: string;
   isActive: boolean;
   projects: { id: string; name: string }[];
+  showPinAction?: boolean;
+  showPinnedChatIcon?: boolean;
+  showProjectName?: boolean;
 };
 
 /** Renders one renameable conversation link and its action menu. */
@@ -54,6 +57,9 @@ export function ChatConversationItem({
   className,
   isActive,
   projects,
+  showPinAction = true,
+  showPinnedChatIcon = true,
+  showProjectName = true,
 }: ChatConversationItemProps) {
   const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -66,9 +72,10 @@ export function ChatConversationItem({
   const renameInputRef = useRef<HTMLInputElement>(null);
   const restoreLinkFocusRef = useRef(false);
   const titleViewportRef = useRef<HTMLSpanElement>(null);
-  const sidebarTitle = chat.projectName
-    ? `${chat.title} · ${chat.projectName}`
-    : chat.title;
+  const sidebarTitle =
+    showProjectName && chat.projectName
+      ? `${chat.title} · ${chat.projectName}`
+      : chat.title;
 
   function toggleConversationPin() {
     void pinChatAction(chat.id, !chat.pinned).then((result) => {
@@ -150,7 +157,7 @@ export function ChatConversationItem({
     <SidebarMenuItem className={cn(className)}>
       {isRenaming ? (
         <SidebarMenuButton className="bg-transparent! pr-2!" render={<div />}>
-          {chat.pinned && <MessageCircleIcon />}
+          {showPinnedChatIcon && chat.pinned && <MessageCircleIcon />}
           <Input
             ref={renameInputRef}
             aria-label={`Rename ${chat.title}`}
@@ -185,12 +192,13 @@ export function ChatConversationItem({
             <Link
               ref={conversationLinkRef}
               aria-current={isActive ? "page" : undefined}
+              aria-label={chat.title}
               href={`/chat/${chat.id}`}
             />
           }
           title={sidebarTitle}
         >
-          {chat.pinned && <MessageCircleIcon />}
+          {showPinnedChatIcon && chat.pinned && <MessageCircleIcon />}
           <span
             ref={titleViewportRef}
             className={cn(
@@ -230,20 +238,22 @@ export function ChatConversationItem({
           isRenaming && "invisible"
         )}
       >
-        {chat.projectName && (
+        {showProjectName && chat.projectName && (
           <span className="max-w-24 truncate bg-[linear-gradient(to_right,transparent,var(--conversation-actions-background)_1.5rem)] pl-6 text-xs text-muted-foreground transition-transform duration-150 ease-in-out motion-reduce:transition-none lg:pointer-fine:translate-x-12 lg:pointer-fine:group-hover/menu-item:translate-x-0 lg:group-has-focus-visible/menu-item:translate-x-0">
             {chat.projectName}
           </span>
         )}
 
         <div className="pointer-events-auto flex items-center gap-1 bg-[var(--conversation-actions-background)] pl-1 transition-opacity duration-150 ease-in-out motion-reduce:transition-none lg:pointer-fine:pointer-events-none lg:pointer-fine:opacity-0 lg:pointer-fine:group-hover/menu-item:pointer-events-auto lg:pointer-fine:group-hover/menu-item:opacity-100 lg:group-has-focus-visible/menu-item:pointer-events-auto lg:group-has-focus-visible/menu-item:opacity-100">
-          <SidebarMenuAction
-            aria-label={`${chat.pinned ? "Unpin" : "Pin"} ${chat.title}`}
-            className="static! hidden cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! lg:flex"
-            onClick={toggleConversationPin}
-          >
-            {chat.pinned ? <PinOffIcon /> : <PinIcon />}
-          </SidebarMenuAction>
+          {showPinAction && (
+            <SidebarMenuAction
+              aria-label={`${chat.pinned ? "Unpin" : "Pin"} ${chat.title}`}
+              className="static! hidden cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! lg:flex"
+              onClick={toggleConversationPin}
+            >
+              {chat.pinned ? <PinOffIcon /> : <PinIcon />}
+            </SidebarMenuAction>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger

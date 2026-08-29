@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull, ne, or, sql } from "drizzle-orm";
 
 import { appDatabase } from "@/drizzle/app-database";
 import { chat, chatMessage, member, project } from "@/drizzle/app-schema";
@@ -126,16 +126,35 @@ export const drizzleChatRepository: ChatRepository = {
   },
 
   async listOwnChats(organizationId, ownerId) {
-    const rows = await appDatabase
-      .select({ chat, projectName: project.name })
-      .from(chat)
-      .leftJoin(project, eq(chat.projectId, project.id))
-      .where(
-        and(eq(chat.organizationId, organizationId), eq(chat.ownerId, ownerId))
-      )
-      .orderBy(desc(chat.pinned), desc(chat.updatedAt))
-      .limit(CHAT_LIST_LIMIT);
-    return rows.map((row) => ({
+    const ownerFilter = and(
+      eq(chat.organizationId, organizationId),
+      eq(chat.ownerId, ownerId)
+    );
+    // Keep every pinned Project Chat even when it falls outside sidebar cap.
+    const [limitedRows, pinnedProjectRows] = await Promise.all([
+      appDatabase
+        .select({ chat, projectName: project.name })
+        .from(chat)
+        .leftJoin(project, eq(chat.projectId, project.id))
+        .where(
+          and(
+            ownerFilter,
+            or(isNull(project.pinned), eq(project.pinned, false))
+          )
+        )
+        .orderBy(desc(chat.pinned), desc(chat.updatedAt))
+        .limit(CHAT_LIST_LIMIT),
+      appDatabase
+        .select({ chat, projectName: project.name })
+        .from(chat)
+        .innerJoin(project, eq(chat.projectId, project.id))
+        .where(and(ownerFilter, eq(project.pinned, true)))
+        .orderBy(desc(chat.updatedAt)),
+    ]);
+    const rowsByChatId = new Map(
+      [...limitedRows, ...pinnedProjectRows].map((row) => [row.chat.id, row])
+    );
+    return [...rowsByChatId.values()].map((row) => ({
       ...toChat(row.chat),
       projectName: row.projectName,
     }));

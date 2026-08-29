@@ -9,7 +9,10 @@ import type {
   ProjectRepository,
 } from "@/src/application/services/project-repository.service.interface";
 import { LibraryAccessDeniedError } from "@/src/entities/errors/library-errors";
-import { ProjectAccessDeniedError } from "@/src/entities/errors/project-errors";
+import {
+  InvalidProjectRequestError,
+  ProjectAccessDeniedError,
+} from "@/src/entities/errors/project-errors";
 import type { Chat } from "@/src/entities/models/chat";
 import type {
   LibraryFileSummary,
@@ -260,6 +263,14 @@ class InMemoryProjectRepository implements ProjectRepository {
     return this.updateProject(id, { instructions }, scope);
   }
 
+  async updateOwnedProjectPinned(
+    id: string,
+    pinned: boolean,
+    scope: ProjectOwnerScope
+  ) {
+    return this.updateProject(id, { pinned }, scope);
+  }
+
   async claimOwnedProjectFolderId(
     id: string,
     expectedFolderId: string | null,
@@ -343,6 +354,7 @@ function seedForeignProjects(repository: InMemoryProjectRepository) {
       id: "10000000-0000-4000-8000-000000000001",
       instructions: "Other owner",
       name: "Other owner's Project",
+      pinned: false,
       updatedAt: createdAt,
     },
     {
@@ -353,6 +365,7 @@ function seedForeignProjects(repository: InMemoryProjectRepository) {
       id: "10000000-0000-4000-8000-000000000002",
       instructions: "Other workspace",
       name: "Other Workspace Project",
+      pinned: false,
       updatedAt: createdAt,
     },
   ];
@@ -371,6 +384,7 @@ test("Project CRUD persists details and supports setting and clearing instructio
     description: null,
     instructions: "",
     name: "Pricing revamp",
+    pinned: false,
   });
   assert.deepEqual(
     (await controller.listProjects(ownerScope)).map(({ id }) => id),
@@ -404,6 +418,17 @@ test("Project CRUD persists details and supports setting and clearing instructio
     ownerScope
   );
   assert.equal(cleared.instructions, "");
+
+  const pinned = await controller.pinProject(project.id, true, ownerScope);
+  assert.equal(pinned.pinned, true);
+  assert.equal(
+    (await controller.pinProject(project.id, false, ownerScope)).pinned,
+    false
+  );
+  await assert.rejects(
+    controller.pinProject(project.id, "yes", ownerScope),
+    InvalidProjectRequestError
+  );
 
   const withoutDescription = await controller.updateProjectDetails(
     project.id,
@@ -667,6 +692,10 @@ test("Project rejects same-Workspace access by another owner", async () => {
       { description: "stolen", name: "stolen" },
       ownerScope
     ),
+    ProjectAccessDeniedError
+  );
+  await assert.rejects(
+    controller.pinProject(foreignProjectId, true, ownerScope),
     ProjectAccessDeniedError
   );
   await assert.rejects(

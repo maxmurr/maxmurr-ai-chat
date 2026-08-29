@@ -6,10 +6,11 @@ import { getProjectsPageData } from "@/features/project/project-queries";
 /** Loads owner-scoped persisted Projects for searchable Project list. */
 export async function ProjectsList() {
   const projects = (await getProjectsPageData()).map(
-    ({ description, id, name, updatedAt }) => ({
+    ({ description, id, name, pinned, updatedAt }) => ({
       description,
       id,
       name,
+      pinned,
       updatedAt: updatedAt.toISOString(),
     })
   );
