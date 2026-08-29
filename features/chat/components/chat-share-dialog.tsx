@@ -1,11 +1,12 @@
 "use client"
 
 import { useId, useState, useSyncExternalStore, useTransition } from "react"
-import { Share2Icon } from "lucide-react"
+import { CircleAlertIcon, Share2Icon } from "lucide-react"
 
 import { updateChatSharingAction } from "@/features/chat/chat-actions"
 import { ChatShareLinkField } from "@/features/chat/components/chat-share-link-field"
 import { TouchTarget } from "@/components/ui/touch-target"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -187,9 +188,10 @@ export function ChatShareDialogContent({
       </FieldSet>
 
       {shareError && (
-        <p className="text-sm text-destructive" role="alert">
-          {shareError}
-        </p>
+        <Alert variant="destructive">
+          <CircleAlertIcon />
+          <AlertDescription>{shareError}</AlertDescription>
+        </Alert>
       )}
 
       {shareAccess !== "private" && !shareError && (

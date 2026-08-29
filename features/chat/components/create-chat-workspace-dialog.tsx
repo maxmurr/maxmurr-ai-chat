@@ -1,7 +1,7 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
-import { PlusIcon, Trash2Icon } from "lucide-react"
+import { CircleAlertIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 
 import {
@@ -13,6 +13,7 @@ import {
   validateChatWorkspaceMembers,
   validateChatWorkspaceName,
 } from "@/features/workspace/workspace-creation-validation"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -365,7 +366,12 @@ export function CreateChatWorkspaceDialog({
             </form.Field>
           </FieldGroup>
 
-          <FieldError className="mt-5">{submissionError}</FieldError>
+          {submissionError && (
+            <Alert className="mt-5" variant="destructive">
+              <CircleAlertIcon />
+              <AlertDescription>{submissionError}</AlertDescription>
+            </Alert>
+          )}
 
           <DialogFooter className="mt-5">
             <Button

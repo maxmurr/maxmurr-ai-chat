@@ -1,6 +1,7 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
+import { CircleAlertIcon } from "lucide-react"
 import { useState } from "react"
 
 import { AuthenticationField } from "@/features/user/components/authentication-field"
@@ -25,7 +26,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { FieldError, FieldGroup } from "@/components/ui/field"
+import { FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -214,6 +215,7 @@ export function AuthenticationFormCard({
       <CardContent className="flex flex-col gap-6">
         {!emailOtpEnabled && (
           <Alert variant="destructive">
+            <CircleAlertIcon />
             <AlertTitle>Email sign-in unavailable</AlertTitle>
             <AlertDescription>
               {googleEnabled
@@ -223,9 +225,14 @@ export function AuthenticationFormCard({
           </Alert>
         )}
 
-        <FieldError className="text-center" id="authentication-error">
-          {errorMessage}
-        </FieldError>
+        {errorMessage && (
+          <Alert variant="destructive">
+            <CircleAlertIcon />
+            <AlertDescription id="authentication-error">
+              {errorMessage}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {!isVerificationStep && googleEnabled && (
           <form.Subscribe selector={(state) => state.isSubmitting}>

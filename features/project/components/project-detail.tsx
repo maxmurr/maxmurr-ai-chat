@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { FolderXIcon } from "lucide-react"
 
@@ -12,11 +13,13 @@ import { ProjectSourcesSection } from "@/features/project/components/project-sou
 import { useProjects } from "@/features/project/components/project-state"
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -39,6 +42,15 @@ function ProjectDetailNotFound({ className }: { className?: string }) {
               workspace.
             </EmptyDescription>
           </EmptyHeader>
+          <EmptyContent>
+            <Button
+              className="h-11 sm:h-8"
+              nativeButton={false}
+              render={<Link href="/projects" />}
+            >
+              Back to projects
+            </Button>
+          </EmptyContent>
         </Empty>
       </section>
     </div>

@@ -15,9 +15,11 @@ import { ChatMessageList } from "@/features/chat/components/chat-message-list"
 import { uploadLibraryFiles } from "@/features/library/components/upload-library-files"
 import {
   Alert,
+  AlertAction,
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import {
   convertChatUiMessageToDisplayMessage,
   type ChatUIMessage,
@@ -195,8 +197,19 @@ function ChatThreadContent({
               <CircleAlertIcon />
               <AlertTitle>Could not generate response</AlertTitle>
               <AlertDescription>
-                Check model credentials, then send again or retry.
+                Something interrupted the response. Try again.
               </AlertDescription>
+              <AlertAction>
+                <Button
+                  className="h-11 sm:h-7"
+                  onClick={() => void regenerate()}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  Try again
+                </Button>
+              </AlertAction>
             </Alert>
           </div>
         )}

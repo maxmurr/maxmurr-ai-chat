@@ -1,3 +1,5 @@
+import { CircleAlertIcon } from "lucide-react"
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -41,6 +43,7 @@ export async function WorkspaceInvitation({
     >
       {hasError && (
         <Alert variant="destructive">
+          <CircleAlertIcon />
           <AlertTitle>Invitation not accepted</AlertTitle>
           <AlertDescription>
             Try again. Link may have expired.

@@ -1,24 +1,71 @@
 "use client"
 
 import { catchError, type ErrorInfo } from "next/error"
+import { RefreshCwIcon } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { ErrorState } from "@/components/ui/error-state"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarRail,
+} from "@/components/ui/sidebar"
+
+type ErrorFallbackProps = {
+  description?: string
+  title: string
+  variant?: "default" | "sidebar"
+}
+
+function RetryButton({ retry }: { retry: () => void }) {
+  return (
+    <Button className="h-11 sm:h-8" onClick={retry} type="button">
+      <RefreshCwIcon data-icon="inline-start" />
+      Try again
+    </Button>
+  )
+}
 
 function ErrorFallback(
-  { title }: { title: string },
+  {
+    description = "Try again. If the problem continues, refresh the page.",
+    title,
+    variant = "default",
+  }: ErrorFallbackProps,
   { retry }: ErrorInfo
 ) {
+  if (variant === "sidebar") {
+    return (
+      <Sidebar collapsible="icon" variant="floating">
+        <SidebarContent className="p-2">
+          <ErrorState
+            className="p-3 group-data-[collapsible=icon]:hidden"
+            description={description}
+            role="alert"
+            title={title}
+          >
+            <RetryButton retry={retry} />
+          </ErrorState>
+          <div className="hidden min-h-0 flex-1 items-center justify-center group-data-[collapsible=icon]:flex">
+            <Button
+              aria-label="Try again"
+              onClick={retry}
+              size="icon-sm"
+              type="button"
+            >
+              <RefreshCwIcon />
+            </Button>
+          </div>
+        </SidebarContent>
+        <SidebarRail />
+      </Sidebar>
+    )
+  }
+
   return (
-    <Alert className="m-4" variant="destructive">
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription className="flex items-center justify-between gap-4">
-        <span>Try loading this section again.</span>
-        <Button onClick={() => retry()} size="sm" variant="outline">
-          Retry
-        </Button>
-      </AlertDescription>
-    </Alert>
+    <ErrorState description={description} role="alert" title={title}>
+      <RetryButton retry={retry} />
+    </ErrorState>
   )
 }
 

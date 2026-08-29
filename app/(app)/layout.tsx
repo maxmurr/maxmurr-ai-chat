@@ -14,7 +14,7 @@ export default function AuthenticatedAppLayout({
   return (
     <ChatAppFrame
       sidebar={
-        <ErrorBoundary title="Navigation did not load">
+        <ErrorBoundary title="Navigation did not load" variant="sidebar">
           <Suspense fallback={<AuthenticatedChatSidebarSkeleton />}>
             <AuthenticatedChatSidebar />
           </Suspense>

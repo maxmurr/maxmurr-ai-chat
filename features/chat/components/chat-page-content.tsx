@@ -34,21 +34,34 @@ export async function ChatByIdPageContent({ chatId }: { chatId: string }) {
   return <ChatPageShell chat={view.chat} initialMessages={view.messages} />
 }
 
-/** Reserves chat header, transcript, and composer while chat data loads. */
+/** Reserves chat header and top of transcript while chat data loads. */
 export function ChatPageContentSkeleton() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div aria-busy="true" className="flex min-h-0 flex-1 flex-col">
       <ChatPageHeader>
         <Skeleton className="h-4 w-40" />
       </ChatPageHeader>
-      <div className="flex min-h-0 flex-1 flex-col justify-end gap-4 px-4 pb-4">
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
-          <Skeleton className="h-16 w-4/5" />
-          <Skeleton className="ml-auto h-12 w-3/5" />
-          <Skeleton className="h-24 w-4/5" />
-          <Skeleton className="h-24 w-full" />
+      <div
+        aria-hidden="true"
+        className="min-h-0 flex-1 overflow-hidden px-4 py-6"
+        data-slot="chat-loading-transcript"
+      >
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
+          <div className="flex w-4/5 flex-col gap-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+          <Skeleton className="ml-auto h-12 w-2/5 rounded-xl" />
+          <div className="flex w-4/5 flex-col gap-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+          </div>
         </div>
       </div>
+      <p className="sr-only" role="status">
+        Loading chat.
+      </p>
     </div>
   )
 }
