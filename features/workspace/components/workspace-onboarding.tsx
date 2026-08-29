@@ -1,11 +1,11 @@
-import { Skeleton } from "@/components/ui/skeleton"
-import { WorkspaceOnboardingForm } from "@/features/workspace/components/workspace-onboarding-form"
-import { getWorkspaceOnboardingState } from "@/features/workspace/workspace-queries"
+import { Skeleton } from "@/components/ui/skeleton";
+import { WorkspaceOnboardingForm } from "@/features/workspace/components/workspace-onboarding-form";
+import { getWorkspaceOnboardingState } from "@/features/workspace/workspace-queries";
 
 /** Verifies first-workspace state before rendering onboarding form. */
 export async function WorkspaceOnboarding() {
-  await getWorkspaceOnboardingState()
-  return <WorkspaceOnboardingForm />
+  await getWorkspaceOnboardingState();
+  return <WorkspaceOnboardingForm />;
 }
 
 /** Reserves onboarding progress and form while workspace state loads. */
@@ -14,7 +14,7 @@ export function WorkspaceOnboardingSkeleton() {
     <div
       aria-busy="true"
       aria-label="Loading workspace onboarding"
-      className="flex w-full min-w-0 max-w-xs flex-col gap-8"
+      className="flex w-full max-w-xs min-w-0 flex-col gap-8"
     >
       <Skeleton className="h-2 w-16" />
       <div className="flex min-w-0 flex-col gap-6">
@@ -27,5 +27,5 @@ export function WorkspaceOnboardingSkeleton() {
         <Skeleton className="ml-auto h-11 w-20 sm:h-8" />
       </div>
     </div>
-  )
+  );
 }

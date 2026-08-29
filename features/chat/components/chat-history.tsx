@@ -1,19 +1,19 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { ChevronRightIcon } from "lucide-react"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ChevronRightIcon } from "lucide-react";
 
 import {
   ChatConversationItem,
   type ChatConversationEntry,
-} from "@/features/chat/components/chat-conversation-item"
-import type { ChatDialogEntry } from "@/features/chat/components/chat-dialogs"
+} from "@/features/chat/components/chat-conversation-item";
+import type { ChatDialogEntry } from "@/features/chat/components/chat-dialogs";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from "@/components/ui/collapsible";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -21,27 +21,27 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 /** Serializable chat row rendered in the sidebar history. */
-export type ChatHistoryEntry = ChatDialogEntry
+export type ChatHistoryEntry = ChatDialogEntry;
 
 /** Splits owned chats into pinned and recent sections. */
 function groupOwnChats(ownChats: ChatConversationEntry[]) {
-  const groups: { chats: ChatConversationEntry[]; label: string }[] = []
+  const groups: { chats: ChatConversationEntry[]; label: string }[] = [];
 
   for (const chat of ownChats) {
-    const label = chat.pinned ? "Pinned" : "Recents"
-    const group = groups.find((candidate) => candidate.label === label)
+    const label = chat.pinned ? "Pinned" : "Recents";
+    const group = groups.find((candidate) => candidate.label === label);
 
     if (group) {
-      group.chats.push(chat)
+      group.chats.push(chat);
     } else {
-      groups.push({ chats: [chat], label })
+      groups.push({ chats: [chat], label });
     }
   }
 
-  return groups
+  return groups;
 }
 
 /** Renders own and team chat history in the sidebar. */
@@ -49,10 +49,10 @@ export function ChatHistory({
   ownChats,
   teamChats,
 }: {
-  ownChats: ChatConversationEntry[]
-  teamChats: ChatHistoryEntry[]
+  ownChats: ChatConversationEntry[];
+  teamChats: ChatHistoryEntry[];
 }) {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <>
@@ -63,7 +63,7 @@ export function ChatHistory({
         >
           <Collapsible defaultOpen>
             <SidebarGroupLabel
-              className="group/chat-history-trigger cursor-pointer justify-start select-none aria-expanded:pointer-fine:not-hover:not-focus-visible:[&>svg]:opacity-0 [&>svg]:size-4 lg:[&>svg]:size-3.5"
+              className="group/chat-history-trigger cursor-pointer justify-start select-none [&>svg]:size-4 lg:[&>svg]:size-3.5 aria-expanded:pointer-fine:not-hover:not-focus-visible:[&>svg]:opacity-0"
               render={<CollapsibleTrigger />}
             >
               {group.label}
@@ -110,5 +110,5 @@ export function ChatHistory({
         </SidebarGroup>
       )}
     </>
-  )
+  );
 }

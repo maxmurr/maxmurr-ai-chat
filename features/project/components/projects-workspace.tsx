@@ -29,7 +29,7 @@ export function ProjectsWorkspaceSkeleton() {
     >
       <div className="flex min-w-0 flex-col gap-6">
         <div className="flex min-w-0 items-center justify-between gap-2">
-          <Skeleton className="h-11 min-w-0 max-w-xs flex-1 sm:h-8" />
+          <Skeleton className="h-11 max-w-xs min-w-0 flex-1 sm:h-8" />
           <Skeleton className="h-11 w-24 shrink-0 sm:h-8" />
         </div>
         <div className="grid gap-3 @xl:grid-cols-2 @6xl:grid-cols-3">

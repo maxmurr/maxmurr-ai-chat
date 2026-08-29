@@ -81,7 +81,7 @@ export function LibraryPageContentSkeleton() {
       <div className="min-h-0 flex-1 overflow-y-auto">
         <AppPageContainer className="mx-auto">
           <div className="mb-6 flex min-w-0 items-center gap-2">
-            <Skeleton className="h-11 min-w-0 max-w-xs flex-1 sm:h-8" />
+            <Skeleton className="h-11 max-w-xs min-w-0 flex-1 sm:h-8" />
             <Skeleton className="ml-auto h-11 w-16 shrink-0 sm:h-8" />
           </div>
           <div className="mb-4 flex min-w-0 items-center gap-2 overflow-hidden">
