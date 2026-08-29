@@ -69,15 +69,33 @@ export async function LibraryPageContent({
 /** Reserves Library header, controls, and item grid while data loads. */
 export function LibraryPageContentSkeleton() {
   return (
-    <>
+    <div
+      aria-busy="true"
+      aria-label="Loading Library"
+      className="flex min-h-0 min-w-0 flex-1 flex-col"
+    >
       <ChatPageHeader>
-        <Skeleton className="h-4 w-28" />
+        <Skeleton className="h-5 w-28 max-w-full sm:h-4" />
       </ChatPageHeader>
-      <div className="mx-auto grid w-full max-w-7xl gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3 lg:p-6">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <Skeleton className="h-24 w-full" key={index} />
-        ))}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="@container mx-auto w-full max-w-7xl p-4 lg:p-6">
+          <div className="mb-6 flex min-w-0 items-center gap-2">
+            <Skeleton className="h-11 min-w-0 max-w-xs flex-1 sm:h-8" />
+            <Skeleton className="ml-auto h-11 w-16 shrink-0 sm:h-8" />
+          </div>
+          <div className="mb-4 flex min-w-0 items-center gap-2 overflow-hidden">
+            <Skeleton className="h-11 w-14 shrink-0 sm:h-8" />
+            <Skeleton className="h-11 w-20 shrink-0 sm:h-8" />
+            <Skeleton className="h-11 w-24 shrink-0 sm:h-8" />
+            <Skeleton className="ml-auto h-11 w-20 shrink-0 sm:h-8" />
+          </div>
+          <div className="grid grid-cols-2 gap-3 @lg:grid-cols-3 @3xl:grid-cols-4 @5xl:grid-cols-5 @6xl:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Skeleton className="aspect-4/5-full min-w-0" key={index} />
+            ))}
+          </div>
+        </div>
       </div>
-    </>
+    </div>
   )
 }

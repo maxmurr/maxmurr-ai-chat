@@ -31,22 +31,27 @@ export async function AuthenticatedChatSidebar() {
 /** Reserves authenticated app sidebar while workspace data loads. */
 export function AuthenticatedChatSidebarSkeleton() {
   return (
-    <Sidebar collapsible="icon" variant="floating">
+    <Sidebar
+      aria-busy="true"
+      aria-label="Loading navigation"
+      collapsible="icon"
+      variant="floating"
+    >
       <SidebarHeader className="gap-3 p-2">
-        <Skeleton className="h-12 w-full" />
-        <div className="flex flex-col gap-1">
+        <Skeleton className="h-14 w-full lg:h-12" />
+        <div className="flex min-w-0 flex-col gap-1">
           {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton className="h-8 w-full" key={index} />
+            <Skeleton className="h-12 w-full lg:h-8" key={index} />
           ))}
         </div>
       </SidebarHeader>
       <SidebarContent className="gap-2 p-2">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton className="h-8 w-full" key={index} />
+          <Skeleton className="h-12 w-full lg:h-8" key={index} />
         ))}
       </SidebarContent>
       <SidebarFooter className="p-2">
-        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-14 w-full lg:h-12" />
       </SidebarFooter>
     </Sidebar>
   )

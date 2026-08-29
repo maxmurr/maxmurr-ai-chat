@@ -118,12 +118,49 @@ export function ProjectDetail({
 /** Reserves project detail structure while route and browser state load. */
 export function ProjectDetailSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
+    <div
+      aria-busy="true"
+      aria-label="Loading project"
+      className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}
+    >
       <ProjectDetailHeader projectName="Loading…" />
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
-        <Skeleton className="h-7 w-44" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-28 w-full" />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-4 pb-12">
+          <div className="flex min-w-0 flex-col gap-2">
+            <Skeleton className="h-7 w-2/3 max-w-44" />
+            <Skeleton className="h-5 w-full max-w-xl sm:h-4" />
+          </div>
+
+          <Skeleton className="h-20 w-full" />
+
+          <div className="flex min-w-0 flex-col gap-3">
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <Skeleton className="h-5 w-24 sm:h-4" />
+              <Skeleton className="h-11 w-16 shrink-0 sm:h-7" />
+            </div>
+            <Skeleton className="h-5 w-full sm:h-4" />
+            <Skeleton className="h-5 w-4/5 sm:h-4" />
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-3">
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <Skeleton className="h-5 w-20 sm:h-4" />
+              <Skeleton className="h-11 w-28 shrink-0 sm:h-7" />
+            </div>
+            <div className="@container">
+              <div className="grid gap-2 @sm:grid-cols-2">
+                {Array.from({ length: 2 }).map((_, index) => (
+                  <Skeleton className="h-16 w-full min-w-0" key={index} />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-3">
+            <Skeleton className="h-5 w-16 sm:h-4" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        </div>
       </div>
     </div>
   )

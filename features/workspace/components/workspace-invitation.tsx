@@ -2,7 +2,12 @@ import { CircleAlertIcon } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { WorkspaceInvitationCard } from "@/features/workspace/components/workspace-invitation-card"
 import { acceptWorkspaceInvitationAction } from "@/features/workspace/workspace-actions"
@@ -71,13 +76,24 @@ function WorkspaceInvitationUnavailable() {
 /** Reserves workspace invitation card while session and invitation load. */
 export function WorkspaceInvitationSkeleton() {
   return (
-    <Card className="w-full max-w-md">
-      <CardContent className="flex flex-col gap-4 p-6">
-        <Skeleton className="h-7 w-48" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-11 w-full" />
+    <Card
+      aria-busy="true"
+      aria-label="Loading workspace invitation"
+      className="w-full max-w-md [--card-spacing:--spacing(6)]"
+    >
+      <CardHeader className="gap-2">
+        <Skeleton className="h-6 w-2/3 max-w-48" />
+        <div className="flex w-full flex-col gap-2">
+          <Skeleton className="h-5 w-full sm:h-4" />
+          <Skeleton className="h-5 w-3/4 sm:h-4" />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-5 w-3/4 sm:h-4" />
       </CardContent>
+      <CardFooter>
+        <Skeleton className="h-11 w-full" />
+      </CardFooter>
     </Card>
   )
 }

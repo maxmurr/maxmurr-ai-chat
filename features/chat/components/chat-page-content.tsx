@@ -38,25 +38,29 @@ export async function ChatByIdPageContent({ chatId }: { chatId: string }) {
 /** Reserves chat header and top of transcript while chat data loads. */
 export function ChatPageContentSkeleton() {
   return (
-    <div aria-busy="true" className="flex min-h-0 flex-1 flex-col">
+    <div
+      aria-busy="true"
+      aria-label="Loading chat"
+      className="flex min-h-0 min-w-0 flex-1 flex-col"
+    >
       <ChatPageHeader>
-        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-5 w-2/3 max-w-40 sm:h-4" />
       </ChatPageHeader>
       <div
         aria-hidden="true"
         className="min-h-0 flex-1 overflow-hidden px-4 py-6"
         data-slot="chat-loading-transcript"
       >
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-          <div className="flex w-4/5 flex-col gap-2">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 sm:gap-8">
+          <div className="flex w-4/5 min-w-0 flex-col gap-2">
+            <Skeleton className="h-5 w-3/4 sm:h-4" />
+            <Skeleton className="h-5 w-full sm:h-4" />
+            <Skeleton className="h-5 w-2/3 sm:h-4" />
           </div>
-          <Skeleton className="ml-auto h-12 w-2/5 rounded-xl" />
-          <div className="flex w-4/5 flex-col gap-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="ml-auto h-12 w-3/5 max-w-sm rounded-xl sm:w-2/5" />
+          <div className="flex w-4/5 min-w-0 flex-col gap-2">
+            <Skeleton className="h-5 w-full sm:h-4" />
+            <Skeleton className="h-5 w-5/6 sm:h-4" />
           </div>
         </div>
       </div>

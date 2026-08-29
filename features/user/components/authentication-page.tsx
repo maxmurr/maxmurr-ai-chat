@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation"
 
-import { Card, CardContent } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   isEmailOtpAuthenticationEnabled,
@@ -48,16 +53,24 @@ export async function AuthenticationPage({
 /** Reserves authentication card while session state loads. */
 export function AuthenticationPageSkeleton() {
   return (
-    <Card className="w-full max-w-md">
-      <CardContent className="flex flex-col gap-6 p-6">
-        <div className="flex flex-col items-center gap-2">
-          <Skeleton className="h-7 w-40" />
-          <Skeleton className="h-4 w-56" />
-        </div>
+    <Card
+      aria-busy="true"
+      aria-label="Loading authentication"
+      className="w-full max-w-md [--card-spacing:--spacing(6)]"
+    >
+      <CardHeader className="justify-items-center gap-2">
+        <Skeleton className="h-8 w-2/3 max-w-40" />
+        <Skeleton className="h-5 w-4/5 max-w-56 sm:h-4" />
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6">
         <Skeleton className="h-11 w-full" />
         <Skeleton className="h-11 w-full" />
         <Skeleton className="h-11 w-full" />
       </CardContent>
+      <CardFooter className="justify-center gap-2">
+        <Skeleton className="h-5 w-32 max-w-[50%] sm:h-4" />
+        <Skeleton className="h-5 w-12 sm:h-4" />
+      </CardFooter>
     </Card>
   )
 }

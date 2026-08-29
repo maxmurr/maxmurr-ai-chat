@@ -11,13 +11,20 @@ export async function WorkspaceOnboarding() {
 /** Reserves onboarding progress and form while workspace state loads. */
 export function WorkspaceOnboardingSkeleton() {
   return (
-    <div className="flex w-full max-w-xs flex-col gap-8">
+    <div
+      aria-busy="true"
+      aria-label="Loading workspace onboarding"
+      className="flex w-full min-w-0 max-w-xs flex-col gap-8"
+    >
       <Skeleton className="h-2 w-16" />
-      <div className="flex flex-col gap-4">
-        <Skeleton className="h-7 w-48" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-11 w-full" />
-        <Skeleton className="h-11 w-full" />
+      <div className="flex min-w-0 flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-2">
+          <Skeleton className="h-8 w-2/3 max-w-48" />
+          <Skeleton className="h-5 w-full sm:h-4" />
+          <Skeleton className="h-5 w-4/5 sm:h-4" />
+        </div>
+        <Skeleton className="h-11 w-full sm:h-8" />
+        <Skeleton className="ml-auto h-11 w-20 sm:h-8" />
       </div>
     </div>
   )
