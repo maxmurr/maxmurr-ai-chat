@@ -1,0 +1,49 @@
+export type PendingProjectChat = {
+  readonly projectId: string;
+  readonly text: string;
+};
+
+const PENDING_PROJECT_CHAT_STORAGE_KEY = "pending-project-chat";
+
+/** Stores first Project Chat turn until normal Chat page mounts. */
+export function storePendingProjectChat(
+  storage: Pick<Storage, "setItem">,
+  pendingChat: PendingProjectChat
+) {
+  storage.setItem(
+    PENDING_PROJECT_CHAT_STORAGE_KEY,
+    JSON.stringify(pendingChat)
+  );
+}
+
+/** Takes pending first Project Chat turn once, removing malformed values too. */
+export function takePendingProjectChat(
+  storage: Pick<Storage, "getItem" | "removeItem">
+): PendingProjectChat | null {
+  const value = storage.getItem(PENDING_PROJECT_CHAT_STORAGE_KEY);
+  storage.removeItem(PENDING_PROJECT_CHAT_STORAGE_KEY);
+
+  if (!value) return null;
+
+  try {
+    const pendingChat: unknown = JSON.parse(value);
+    if (
+      typeof pendingChat === "object" &&
+      pendingChat !== null &&
+      "projectId" in pendingChat &&
+      typeof pendingChat.projectId === "string" &&
+      "text" in pendingChat &&
+      typeof pendingChat.text === "string" &&
+      pendingChat.text.trim()
+    ) {
+      return {
+        projectId: pendingChat.projectId,
+        text: pendingChat.text.trim(),
+      };
+    }
+  } catch {
+    // Malformed browser state is discarded above.
+  }
+
+  return null;
+}

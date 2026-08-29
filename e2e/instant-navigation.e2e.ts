@@ -156,7 +156,7 @@ test.describe("authenticated instant navigation", () => {
     ],
     ["/projects", "projects-index-content", "projects-list-content"],
     [
-      `/projects/${fixtures.project.slug}`,
+      `/projects/${fixtures.project.id}`,
       "project-detail-shell",
       "project-detail-content",
     ],
@@ -236,10 +236,10 @@ test.describe("authenticated instant navigation", () => {
       from: "/projects",
       page,
       shellTestId: "project-detail-shell",
-      to: `/projects/${fixtures.project.slug}`,
+      to: `/projects/${fixtures.project.id}`,
       trigger: (currentPage) =>
         currentPage.locator(
-          `#project-list a[href="/projects/${fixtures.project.slug}"]`
+          `#project-list a[href="/projects/${fixtures.project.id}"]`
         ),
     })
   })
@@ -248,7 +248,7 @@ test.describe("authenticated instant navigation", () => {
     await expectInstantSoftNavigation({
       baseURL: baseURL!,
       contentTestId: "projects-list-content",
-      from: `/projects/${fixtures.project.slug}`,
+      from: `/projects/${fixtures.project.id}`,
       page,
       shellTestId: "projects-index-content",
       to: "/projects",

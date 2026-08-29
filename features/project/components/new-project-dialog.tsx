@@ -2,8 +2,9 @@
 
 import { useRouter } from "next/navigation";
 
+import { toast } from "@/components/ui/toast";
 import { ProjectDetailsDialog } from "@/features/project/components/project-details-dialog";
-import { useProjects } from "@/features/project/components/project-state";
+import { createProjectAction } from "@/features/project/project-actions";
 
 type NewProjectDialogProps = {
   className?: string;
@@ -11,13 +12,12 @@ type NewProjectDialogProps = {
   open: boolean;
 };
 
-/** Creates a browser-local project and opens its detail route. */
+/** Creates persisted Project and opens its id-backed detail route. */
 export function NewProjectDialog({
   className,
   onOpenChange,
   open,
 }: NewProjectDialogProps) {
-  const { createProject } = useProjects();
   const router = useRouter();
 
   return (
@@ -26,9 +26,20 @@ export function NewProjectDialog({
       dialogDescription="Name it and say what it covers. Instructions and files come later."
       idPrefix="project"
       onOpenChange={onOpenChange}
-      onSubmit={({ description, name }) => {
-        const project = createProject(name, description);
-        router.push(`/projects/${project.slug}`);
+      onSubmit={async (details) => {
+        const result = await createProjectAction(details);
+
+        if (!result.ok) {
+          toast.add({
+            description: result.error,
+            title: "Project creation failed",
+            type: "error",
+          });
+          return false;
+        }
+
+        router.push(`/projects/${result.projectId}`);
+        return true;
       }}
       open={open}
       submitLabel="Create project"

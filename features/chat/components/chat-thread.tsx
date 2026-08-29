@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type FileUIPart } from "ai";
@@ -13,6 +13,7 @@ import {
 import { useChatConversationTitle } from "@/features/chat/components/chat-conversation-title";
 import { ChatFooterNotice } from "@/features/chat/components/chat-footer-notice";
 import { ChatMessageList } from "@/features/chat/components/chat-message-list";
+import { takePendingProjectChat } from "@/features/chat/pending-project-chat";
 import { uploadLibraryFiles } from "@/features/library/components/upload-library-files";
 import {
   Alert,
@@ -32,8 +33,8 @@ import { createLibraryFileDownloadUrl } from "@/src/entities/models/library";
 const CHAT_TRANSPORT = new DefaultChatTransport<ChatUIMessage>({
   api: "/api/chat",
   // The server owns chat history; each request carries only the new turn.
-  prepareSendMessagesRequest: ({ id, messageId, messages, trigger }) => ({
-    body: { id, message: messages.at(-1), messageId, trigger },
+  prepareSendMessagesRequest: ({ body, id, messageId, messages, trigger }) => ({
+    body: { ...body, id, message: messages.at(-1), messageId, trigger },
   }),
 });
 
@@ -42,6 +43,15 @@ type ChatThreadProps = {
   className?: string;
   initialMessages?: ChatUIMessage[];
 };
+
+/** Routes uploads after a Chat exists locally or has loaded from persistence. */
+export function resolveChatFileUploadDestination(
+  chatId: string,
+  hasLoadedChat: boolean,
+  localMessageCount: number
+) {
+  return hasLoadedChat || localMessageCount > 0 ? { chatId } : undefined;
+}
 
 /** Renders current live chat conversation. */
 export function ChatThread({
@@ -98,10 +108,10 @@ function ChatThreadContent({
   const streamingMessageId =
     status === "streaming" ? chatMessages.at(-1)?.id : undefined;
 
-  async function sendChatMessage({
-    attachments,
-    text,
-  }: ChatComposerSubmission) {
+  async function sendChatMessage(
+    { attachments, text }: ChatComposerSubmission,
+    projectId?: string
+  ) {
     if (isGenerating || (!text && attachments.length === 0)) {
       return;
     }
@@ -111,7 +121,16 @@ function ChatThreadContent({
 
     try {
       const uploadedFiles =
-        attachments.length > 0 ? await uploadLibraryFiles(attachments) : [];
+        attachments.length > 0
+          ? await uploadLibraryFiles(
+              attachments,
+              resolveChatFileUploadDestination(
+                chatId,
+                initialMessages !== undefined,
+                chatMessages.length
+              )
+            )
+          : [];
       const fileParts: FileUIPart[] = uploadedFiles.map((file) => ({
         filename: file.name,
         mediaType: file.mediaType,
@@ -129,15 +148,18 @@ function ChatThreadContent({
       setAttachments([]);
       setDraft("");
 
-      await sendMessage({
-        id: messageId,
-        metadata: { createdAt: new Date().toISOString() },
-        parts: [
-          ...fileParts,
-          ...(text ? [{ text, type: "text" as const }] : []),
-        ],
-        role: "user",
-      });
+      await sendMessage(
+        {
+          id: messageId,
+          metadata: { createdAt: new Date().toISOString() },
+          parts: [
+            ...fileParts,
+            ...(text ? [{ text, type: "text" as const }] : []),
+          ],
+          role: "user",
+        },
+        projectId ? { body: { projectId } } : undefined
+      );
     } catch (error) {
       const description =
         error instanceof Error ? error.message : "Could not send message.";
@@ -149,6 +171,22 @@ function ChatThreadContent({
       });
     }
   }
+
+  const sendPendingProjectChat = useEffectEvent(
+    (pendingProjectChat: { projectId: string; text: string }) =>
+      void sendChatMessage(
+        { attachments: [], text: pendingProjectChat.text },
+        pendingProjectChat.projectId
+      )
+  );
+
+  useEffect(() => {
+    const sendTimer = window.setTimeout(() => {
+      const pendingProjectChat = takePendingProjectChat(window.sessionStorage);
+      if (pendingProjectChat) sendPendingProjectChat(pendingProjectChat);
+    });
+    return () => window.clearTimeout(sendTimer);
+  }, []);
 
   function retryChatMessage(messageId: string) {
     clearError();

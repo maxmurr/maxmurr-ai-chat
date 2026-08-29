@@ -43,6 +43,48 @@
       "when": 1787890171729,
       "tag": "0005_library",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788007814876,
+      "tag": "0006_projects",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788014484910,
+      "tag": "0007_tiresome_kid_colt",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788015839666,
+      "tag": "0008_complete_kree",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788019426469,
+      "tag": "0009_volatile_sway",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788022489863,
+      "tag": "0010_groovy_captain_universe",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788024003495,
+      "tag": "0011_tired_magma",
+      "breakpoints": true
     }
   ]
 }

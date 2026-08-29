@@ -149,7 +149,10 @@ export function LibraryBrowser({
 
     setIsUploading(true);
     try {
-      await uploadLibraryFiles(files, activeFolderId);
+      await uploadLibraryFiles(
+        files,
+        activeFolderId ? { folderId: activeFolderId } : undefined
+      );
       router.refresh();
     } catch (error) {
       showLibraryError(

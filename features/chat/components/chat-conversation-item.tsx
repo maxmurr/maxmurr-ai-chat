@@ -33,6 +33,8 @@ import { cn } from "@/lib/utils";
 export type ChatConversationEntry = {
   id: string;
   pinned: boolean;
+  projectId: string | null;
+  projectName: string | null;
   publicToken: string | null;
   title: string;
   updatedAt: Date;
@@ -43,6 +45,10 @@ type ChatConversationItemProps = {
   chat: ChatConversationEntry;
   className?: string;
   isActive: boolean;
+  projects: { id: string; name: string }[];
+  showPinAction?: boolean;
+  showPinnedChatIcon?: boolean;
+  showProjectName?: boolean;
 };
 
 /** Renders one renameable conversation link and its action menu. */
@@ -50,6 +56,10 @@ export function ChatConversationItem({
   chat,
   className,
   isActive,
+  projects,
+  showPinAction = true,
+  showPinnedChatIcon = true,
+  showProjectName = true,
 }: ChatConversationItemProps) {
   const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -62,6 +72,10 @@ export function ChatConversationItem({
   const renameInputRef = useRef<HTMLInputElement>(null);
   const restoreLinkFocusRef = useRef(false);
   const titleViewportRef = useRef<HTMLSpanElement>(null);
+  const sidebarTitle =
+    showProjectName && chat.projectName
+      ? `${chat.title} · ${chat.projectName}`
+      : chat.title;
 
   function toggleConversationPin() {
     void pinChatAction(chat.id, !chat.pinned).then((result) => {
@@ -143,7 +157,7 @@ export function ChatConversationItem({
     <SidebarMenuItem className={cn(className)}>
       {isRenaming ? (
         <SidebarMenuButton className="bg-transparent! pr-2!" render={<div />}>
-          {chat.pinned && <MessageCircleIcon />}
+          {showPinnedChatIcon && chat.pinned && <MessageCircleIcon />}
           <Input
             ref={renameInputRef}
             aria-label={`Rename ${chat.title}`}
@@ -178,12 +192,13 @@ export function ChatConversationItem({
             <Link
               ref={conversationLinkRef}
               aria-current={isActive ? "page" : undefined}
+              aria-label={chat.title}
               href={`/chat/${chat.id}`}
             />
           }
-          title={chat.title}
+          title={sidebarTitle}
         >
-          {chat.pinned && <MessageCircleIcon />}
+          {showPinnedChatIcon && chat.pinned && <MessageCircleIcon />}
           <span
             ref={titleViewportRef}
             className={cn(
@@ -219,42 +234,55 @@ export function ChatConversationItem({
       <div
         ref={conversationActionsRef}
         className={cn(
-          "pointer-events-none absolute inset-y-0 right-1 flex items-center gap-1 pl-4 opacity-100 lg:opacity-0 lg:[background:linear-gradient(to_right,transparent,var(--sidebar-accent)_1rem)] lg:group-hover/menu-item:opacity-100 lg:group-has-focus-visible/menu-item:opacity-100",
+          "pointer-events-none absolute inset-y-0 right-1 flex items-center [--conversation-actions-background:var(--sidebar)] peer-data-active/menu-button:[--conversation-actions-background:var(--sidebar-accent)] pointer-fine:group-hover/menu-item:[--conversation-actions-background:var(--sidebar-accent)] group-has-focus-visible/menu-item:[--conversation-actions-background:var(--sidebar-accent)]",
           isRenaming && "invisible"
         )}
       >
-        <SidebarMenuAction
-          aria-label={`${chat.pinned ? "Unpin" : "Pin"} ${chat.title}`}
-          className="pointer-events-auto static! hidden cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! lg:flex"
-          onClick={toggleConversationPin}
-        >
-          {chat.pinned ? <PinOffIcon /> : <PinIcon />}
-        </SidebarMenuAction>
+        {showProjectName && chat.projectName && (
+          <span className="max-w-24 truncate bg-[linear-gradient(to_right,transparent,var(--conversation-actions-background)_1.5rem)] pl-6 text-xs text-muted-foreground transition-transform duration-150 ease-in-out motion-reduce:transition-none lg:pointer-fine:translate-x-12 lg:pointer-fine:group-hover/menu-item:translate-x-0 lg:group-has-focus-visible/menu-item:translate-x-0">
+            {chat.projectName}
+          </span>
+        )}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <SidebarMenuAction
-                aria-label={`Open chat actions for ${chat.title}`}
-                className="pointer-events-auto static! cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground!"
-              />
-            }
-          >
-            <EllipsisIcon />
-          </DropdownMenuTrigger>
-          <ChatActionsMenuContent
-            align="start"
-            finalFocus={(closeType) =>
-              renameInputRef.current ?? closeType === "keyboard"
-            }
-            onDelete={() => setIsDeleteDialogOpen(true)}
-            onRename={() => setIsRenaming(true)}
-            onShare={() => setIsShareDialogOpen(true)}
-            onTogglePin={toggleConversationPin}
-            pinned={chat.pinned}
-            side="right"
-          />
-        </DropdownMenu>
+        <div className="pointer-events-auto flex items-center gap-1 bg-[var(--conversation-actions-background)] pl-1 transition-opacity duration-150 ease-in-out motion-reduce:transition-none lg:pointer-fine:pointer-events-none lg:pointer-fine:opacity-0 lg:pointer-fine:group-hover/menu-item:pointer-events-auto lg:pointer-fine:group-hover/menu-item:opacity-100 lg:group-has-focus-visible/menu-item:pointer-events-auto lg:group-has-focus-visible/menu-item:opacity-100">
+          {showPinAction && (
+            <SidebarMenuAction
+              aria-label={`${chat.pinned ? "Unpin" : "Pin"} ${chat.title}`}
+              className="static! hidden cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! lg:flex"
+              onClick={toggleConversationPin}
+            >
+              {chat.pinned ? <PinOffIcon /> : <PinIcon />}
+            </SidebarMenuAction>
+          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <SidebarMenuAction
+                  aria-label={`Open chat actions for ${chat.title}`}
+                  className="static! cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground!"
+                />
+              }
+            >
+              <EllipsisIcon />
+            </DropdownMenuTrigger>
+            <ChatActionsMenuContent
+              align="start"
+              chatId={chat.id}
+              finalFocus={(closeType) =>
+                renameInputRef.current ?? closeType === "keyboard"
+              }
+              onDelete={() => setIsDeleteDialogOpen(true)}
+              onRename={() => setIsRenaming(true)}
+              onShare={() => setIsShareDialogOpen(true)}
+              onTogglePin={toggleConversationPin}
+              pinned={chat.pinned}
+              projectId={chat.projectId}
+              projects={projects}
+              side="right"
+            />
+          </DropdownMenu>
+        </div>
       </div>
 
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>

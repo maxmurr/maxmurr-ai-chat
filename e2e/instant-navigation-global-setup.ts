@@ -153,6 +153,16 @@ export default async function instantNavigationGlobalSetup() {
         updatedAt: now,
         visibility: "public",
       })
+      await transaction.insert(schema.project).values({
+        createdAt: now,
+        description: "Persisted Project fixture",
+        id: fixtures.project.id,
+        instructions: "",
+        name: fixtures.project.name,
+        organizationId: fixtures.workspace.id,
+        ownerId: fixtures.activeUser.id,
+        updatedAt: now,
+      })
       await transaction.insert(schema.libraryFolder).values({
         createdAt: now,
         id: fixtures.folder.id,

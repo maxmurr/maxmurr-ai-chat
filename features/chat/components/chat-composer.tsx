@@ -44,6 +44,7 @@ export function validateChatComposerMessage(
 
 type ChatComposerProps = {
   attachments: File[];
+  attachmentsEnabled?: boolean;
   className?: string;
   draft: string;
   isGenerating: boolean;
@@ -84,6 +85,7 @@ export function ChatComposerLoading({ className }: { className?: string }) {
 /** Renders controlled chat draft and file attachment form. */
 export function ChatComposer({
   attachments,
+  attachmentsEnabled = true,
   className,
   draft,
   isGenerating,
@@ -103,7 +105,7 @@ export function ChatComposer({
 
   useEffect(() => {
     function openChatFilePickerFromShortcut(event: KeyboardEvent) {
-      if (!isChatFilePickerShortcut(event)) {
+      if (!attachmentsEnabled || !isChatFilePickerShortcut(event)) {
         return;
       }
 
@@ -114,7 +116,7 @@ export function ChatComposer({
     document.addEventListener("keydown", openChatFilePickerFromShortcut);
     return () =>
       document.removeEventListener("keydown", openChatFilePickerFromShortcut);
-  }, []);
+  }, [attachmentsEnabled]);
 
   return (
     <form
@@ -138,22 +140,24 @@ export function ChatComposer({
       }}
     >
       <div className="rounded-lg bg-background">
-        <Input
-          ref={fileInputRef}
-          accept={LIBRARY_FILE_ACCEPT}
-          aria-label="Choose files to attach"
-          hidden
-          multiple
-          name="attachments"
-          onChange={(event) => {
-            onAttachmentsChange([
-              ...attachments,
-              ...Array.from(event.currentTarget.files ?? []),
-            ]);
-            event.currentTarget.value = "";
-          }}
-          type="file"
-        />
+        {attachmentsEnabled && (
+          <Input
+            ref={fileInputRef}
+            accept={LIBRARY_FILE_ACCEPT}
+            aria-label="Choose files to attach"
+            hidden
+            multiple
+            name="attachments"
+            onChange={(event) => {
+              onAttachmentsChange([
+                ...attachments,
+                ...Array.from(event.currentTarget.files ?? []),
+              ]);
+              event.currentTarget.value = "";
+            }}
+            type="file"
+          />
+        )}
 
         <InputGroup>
           {attachments.length > 0 && (
@@ -207,7 +211,15 @@ export function ChatComposer({
             canSend={canSend}
             isGenerating={isGenerating}
             onAnnouncementChange={onAnnouncementChange}
-            onChooseFiles={() => fileInputRef.current?.click()}
+            onChooseFiles={() => {
+              if (attachmentsEnabled) {
+                fileInputRef.current?.click();
+              } else {
+                onAnnouncementChange(
+                  "Attachments can be added after the Chat starts."
+                );
+              }
+            }}
             onStopResponse={onStopResponse}
           />
         </InputGroup>

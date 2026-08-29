@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   FileTextIcon,
   LibraryBigIcon,
@@ -9,14 +10,6 @@ import {
   XIcon,
 } from "lucide-react";
 
-import { LIBRARY_ITEMS } from "@/features/library/components/library-data";
-import {
-  formatProjectSourceType,
-  type ProjectRecord,
-  type ProjectSource,
-} from "@/features/project/components/project-data";
-import { ProjectSection } from "@/features/project/components/project-section";
-import { useProjects } from "@/features/project/components/project-state";
 import {
   Attachment,
   AttachmentAction,
@@ -25,6 +18,7 @@ import {
   AttachmentDescription,
   AttachmentMedia,
   AttachmentTitle,
+  AttachmentTrigger,
 } from "@/components/ui/attachment";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,81 +39,98 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "@/components/ui/toast";
 import { TouchTarget } from "@/components/ui/touch-target";
-import { cn } from "@/lib/utils";
+import { formatLibraryFileSize } from "@/features/library/components/library-data";
+import { uploadLibraryFiles } from "@/features/library/components/upload-library-files";
+import { ProjectSection } from "@/features/project/components/project-section";
+import {
+  addProjectSourceAction,
+  removeProjectSourceAction,
+} from "@/features/project/project-actions";
+import {
+  createLibraryFileDownloadUrl,
+  LIBRARY_FILE_ACCEPT,
+} from "@/src/entities/models/library";
 
-function getLibraryProjectSourceMediaType(filename: string) {
-  if (filename.endsWith(".pdf")) {
-    return "application/pdf";
-  }
-
-  if (filename.endsWith(".csv")) {
-    return "text/csv";
-  }
-
-  return "application/octet-stream";
-}
-
-type ProjectLibrarySourceDialogProps = {
-  className?: string;
-  existingSources: ProjectSource[];
-  onAdd: (source: ProjectSource) => void;
-  onOpenChange: (open: boolean) => void;
-  open: boolean;
+type ProjectSourceItem = {
+  id: string;
+  mediaType: string;
+  name: string;
+  size: number;
 };
 
+function formatProjectSourceType(mediaType: string) {
+  const subtype = mediaType.split("/").at(-1) ?? mediaType;
+  const normalizedSubtype =
+    subtype.split("+")[0].split(".").at(-1)?.replace(/^x-/, "") ?? subtype;
+
+  return normalizedSubtype.length <= 4
+    ? normalizedSubtype.toUpperCase()
+    : normalizedSubtype.charAt(0).toUpperCase() + normalizedSubtype.slice(1);
+}
+
+function showProjectSourceError(description: string) {
+  toast.add({ description, title: "Source update failed", type: "error" });
+}
+
 function ProjectLibrarySourceDialog({
-  className,
-  existingSources,
-  onAdd,
+  availableFiles,
   onOpenChange,
   open,
-}: ProjectLibrarySourceDialogProps) {
-  const existingFilenames = new Set(
-    existingSources.map(({ filename }) => filename)
-  );
-  const availableFiles = LIBRARY_ITEMS.filter(
-    (item) => item.kind === "file" && !existingFilenames.has(item.name)
-  );
+  projectId,
+}: {
+  availableFiles: readonly ProjectSourceItem[];
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  projectId: string;
+}) {
+  const [pendingFileId, setPendingFileId] = useState<string | null>(null);
 
-  if (!open) {
-    return null;
+  async function addSource(fileId: string) {
+    setPendingFileId(fileId);
+    const result = await addProjectSourceAction(projectId, fileId);
+    setPendingFileId(null);
+
+    if (!result.ok) {
+      showProjectSourceError(result.error);
+      return;
+    }
+
+    onOpenChange(false);
   }
+
+  if (!open) return null;
 
   return (
     <CommandDialog
-      className={cn(className)}
-      description="Attach a file the library already holds."
+      description="Link a Library File without changing where it is stored."
       onOpenChange={onOpenChange}
       open={open}
       title="Add from Library"
     >
       <Command>
         <CommandInput
-          aria-label="Search library files"
+          aria-label="Search Library Files"
           name="project-library-search"
-          placeholder="Search the library…"
+          placeholder="Search Library…"
         />
         <CommandList>
-          <CommandEmpty>Nothing left to add.</CommandEmpty>
+          <CommandEmpty>No Files available.</CommandEmpty>
           {availableFiles.length > 0 && (
             <CommandGroup heading="Library">
               {availableFiles.map((file) => (
                 <CommandItem
-                  key={file.name}
-                  onSelect={() => {
-                    onAdd({
-                      filename: file.name,
-                      mediaType: getLibraryProjectSourceMediaType(file.name),
-                    });
-                    onOpenChange(false);
-                  }}
-                  value={file.name}
+                  disabled={pendingFileId !== null}
+                  key={file.id}
+                  onSelect={() => void addSource(file.id)}
+                  value={`${file.name} ${file.id}`}
                 >
-                  <FileTextIcon />
+                  {pendingFileId === file.id ? <Spinner /> : <FileTextIcon />}
                   <span className="min-w-0 flex-1 truncate">{file.name}</span>
                   <CommandShortcut className="tracking-normal">
-                    {file.size}
+                    {formatLibraryFileSize(file.size)}
                   </CommandShortcut>
                 </CommandItem>
               ))}
@@ -131,46 +142,45 @@ function ProjectLibrarySourceDialog({
   );
 }
 
-type ProjectSourcesSectionProps = {
-  className?: string;
-  project: ProjectRecord;
-};
-
-/** Renders project files with upload, library attach, and removal actions. */
+/** Renders Project Source links with upload, add, and unlink actions. */
 export function ProjectSourcesSection({
+  availableFiles,
   className,
-  project,
-}: ProjectSourcesSectionProps) {
+  projectId,
+  sources,
+}: {
+  availableFiles: readonly ProjectSourceItem[];
+  className?: string;
+  projectId: string;
+  sources: readonly ProjectSourceItem[];
+}) {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
-  const { updateProject } = useProjects();
-  const projectSources = project.sources;
+  const [isUploading, setIsUploading] = useState(false);
+  const [removingFileId, setRemovingFileId] = useState<string | null>(null);
 
-  function addProjectSourceRecords(nextSources: ProjectSource[]) {
-    const filenames = new Set(projectSources.map(({ filename }) => filename));
-    const sources = nextSources.filter((source) => {
-      if (filenames.has(source.filename)) {
-        return false;
-      }
+  async function uploadSources(files: File[]) {
+    if (files.length === 0) return;
 
-      filenames.add(source.filename);
-      return true;
-    });
-
-    if (sources.length > 0) {
-      updateProject(project.slug, {
-        sources: [...projectSources, ...sources],
-      });
+    setIsUploading(true);
+    try {
+      await uploadLibraryFiles(files, { projectId });
+      router.refresh();
+    } catch (error) {
+      showProjectSourceError(
+        error instanceof Error ? error.message : "Could not upload Sources."
+      );
+    } finally {
+      setIsUploading(false);
     }
   }
 
-  function addUploadedProjectSources(files: File[]) {
-    addProjectSourceRecords(
-      files.map((file) => ({
-        filename: file.name,
-        mediaType: file.type || "application/octet-stream",
-      }))
-    );
+  async function removeSource(fileId: string) {
+    setRemovingFileId(fileId);
+    const result = await removeProjectSourceAction(projectId, fileId);
+    setRemovingFileId(null);
+    if (!result.ok) showProjectSourceError(result.error);
   }
 
   return (
@@ -181,14 +191,24 @@ export function ProjectSourcesSection({
             render={
               <Button
                 className="h-11 sm:h-7"
+                disabled={isUploading}
                 size="sm"
                 type="button"
                 variant="outline"
               />
             }
           >
-            <PlusIcon data-icon="inline-start" />
-            Add source
+            {isUploading ? (
+              <>
+                <Spinner data-icon="inline-start" />
+                Uploading…
+              </>
+            ) : (
+              <>
+                <PlusIcon data-icon="inline-start" />
+                Add Source
+              </>
+            )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuGroup>
@@ -208,34 +228,39 @@ export function ProjectSourcesSection({
       id="project-sources"
       title="Sources"
     >
-      {projectSources.length > 0 ? (
+      {sources.length > 0 ? (
         <div className="@container">
           <div className="grid gap-2 @sm:grid-cols-2">
-            {projectSources.map((source) => (
-              <Attachment className="w-full" key={source.filename}>
+            {sources.map((source) => (
+              <Attachment className="w-full" key={source.id}>
+                <AttachmentTrigger
+                  aria-label={`Download ${source.name}`}
+                  render={
+                    <a
+                      download
+                      href={createLibraryFileDownloadUrl(source.id)}
+                    />
+                  }
+                />
                 <AttachmentMedia>
                   <FileTextIcon />
                 </AttachmentMedia>
                 <AttachmentContent>
-                  <AttachmentTitle>{source.filename}</AttachmentTitle>
+                  <AttachmentTitle>{source.name}</AttachmentTitle>
                   <AttachmentDescription>
-                    {formatProjectSourceType(source.mediaType)}
+                    {formatProjectSourceType(source.mediaType)} ·{" "}
+                    {formatLibraryFileSize(source.size)}
                   </AttachmentDescription>
                 </AttachmentContent>
                 <AttachmentActions>
                   <AttachmentAction
-                    aria-label={`Remove ${source.filename} from project`}
+                    aria-label={`Remove ${source.name} from Project`}
                     className="relative opacity-0 group-focus-within/attachment:opacity-100 group-hover/attachment:opacity-100 pointer-coarse:opacity-100"
-                    onClick={() =>
-                      updateProject(project.slug, {
-                        sources: projectSources.filter(
-                          ({ filename }) => filename !== source.filename
-                        ),
-                      })
-                    }
+                    disabled={removingFileId !== null}
+                    onClick={() => void removeSource(source.id)}
                     type="button"
                   >
-                    <XIcon />
+                    {removingFileId === source.id ? <Spinner /> : <XIcon />}
                     <TouchTarget />
                   </AttachmentAction>
                 </AttachmentActions>
@@ -245,30 +270,29 @@ export function ProjectSourcesSection({
         </div>
       ) : (
         <p className="text-base text-pretty text-muted-foreground sm:text-sm">
-          No sources yet. Anything here is available to every chat in the
-          project.
+          No Sources yet. Upload Files or add them from your Library.
         </p>
       )}
 
       <Input
         ref={fileInputRef}
-        aria-label="Choose project source files"
+        accept={LIBRARY_FILE_ACCEPT}
+        aria-label="Choose Project Source Files"
         className="hidden"
         multiple
         name="project-sources"
         onChange={(event) => {
-          addUploadedProjectSources(
-            Array.from(event.currentTarget.files ?? [])
-          );
+          const files = Array.from(event.currentTarget.files ?? []);
           event.currentTarget.value = "";
+          void uploadSources(files);
         }}
         type="file"
       />
       <ProjectLibrarySourceDialog
-        existingSources={projectSources}
-        onAdd={(source) => addProjectSourceRecords([source])}
+        availableFiles={availableFiles}
         onOpenChange={setIsLibraryOpen}
         open={isLibraryOpen}
+        projectId={projectId}
       />
     </ProjectSection>
   );

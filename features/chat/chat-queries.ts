@@ -21,9 +21,20 @@ export const getChatSidebarEntries = cache(
 
     return {
       ownChats: ownChats.map(
-        ({ id, pinned, publicToken, title, updatedAt, visibility }) => ({
+        ({
           id,
           pinned,
+          projectId,
+          projectName,
+          publicToken,
+          title,
+          updatedAt,
+          visibility,
+        }) => ({
+          id,
+          pinned,
+          projectId,
+          projectName,
           publicToken,
           title,
           updatedAt,
@@ -60,6 +71,7 @@ export async function getChatPageView(
       id: view.chat.id,
       isOwner: view.isOwner,
       pinned: view.chat.pinned,
+      projectId: view.chat.projectId,
       publicToken: view.chat.publicToken,
       title: view.chat.title,
       visibility: view.chat.visibility,

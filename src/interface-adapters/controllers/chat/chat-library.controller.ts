@@ -23,8 +23,8 @@ const chatMessageFeedbackMetadataSchema = z.object({
   langfuseTraceId: z.string().regex(/^[0-9a-f]{32}$/),
 });
 
-function withoutPublicToken(chat: Chat): Chat {
-  return { ...chat, publicToken: null };
+function withoutOwnerInternals(chat: Chat): Chat {
+  return { ...chat, projectId: null, publicToken: null };
 }
 
 function withFileAvailability(
@@ -146,7 +146,7 @@ export function createChatLibraryController(
       const messages = await chatRepository.getChatMessages(chatId);
 
       return {
-        chat: isOwner ? chat : withoutPublicToken(chat),
+        chat: isOwner ? chat : withoutOwnerInternals(chat),
         isOwner,
         messages: await projectFileAvailability(
           messages,
@@ -165,7 +165,7 @@ export function createChatLibraryController(
       }
 
       return {
-        chat: withoutPublicToken(chat),
+        chat: withoutOwnerInternals(chat),
         messages: await projectFileAvailability(
           await chatRepository.getChatMessages(chat.id),
           null

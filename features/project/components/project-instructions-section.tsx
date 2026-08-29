@@ -3,9 +3,6 @@
 import { useState } from "react";
 import { PencilIcon } from "lucide-react";
 
-import type { ProjectRecord } from "@/features/project/components/project-data";
-import { ProjectSection } from "@/features/project/components/project-section";
-import { useProjects } from "@/features/project/components/project-state";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,13 +14,21 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
+import { ProjectSection } from "@/features/project/components/project-section";
+import { updateProjectInstructionsAction } from "@/features/project/project-actions";
 import { cn } from "@/lib/utils";
+
+type ProjectInstructionsItem = {
+  id: string;
+  instructions: string;
+};
 
 type ProjectInstructionsDialogProps = {
   className?: string;
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  project: ProjectRecord;
+  project: ProjectInstructionsItem;
 };
 
 function ProjectInstructionsDialog({
@@ -32,14 +37,31 @@ function ProjectInstructionsDialog({
   open,
   project,
 }: ProjectInstructionsDialogProps) {
-  const { updateProject } = useProjects();
+  const [isSaving, setIsSaving] = useState(false);
 
-  function saveProjectInstructions(event: React.FormEvent<HTMLFormElement>) {
+  async function saveProjectInstructions(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
     const instructions = String(
       new FormData(event.currentTarget).get("instructions") ?? ""
     ).trim();
-    updateProject(project.slug, { instructions: instructions || undefined });
+    setIsSaving(true);
+    const result = await updateProjectInstructionsAction(
+      project.id,
+      instructions
+    );
+    setIsSaving(false);
+
+    if (!result.ok) {
+      toast.add({
+        description: result.error,
+        title: "Instructions update failed",
+        type: "error",
+      });
+      return;
+    }
+
     onOpenChange(false);
   }
 
@@ -58,20 +80,21 @@ function ProjectInstructionsDialog({
             </DialogDescription>
           </DialogHeader>
           <Field>
-            <FieldLabel htmlFor={`${project.slug}-instructions`}>
+            <FieldLabel htmlFor={`${project.id}-instructions`}>
               Instructions
             </FieldLabel>
             <Textarea
               className="min-h-40"
               defaultValue={project.instructions}
-              id={`${project.slug}-instructions`}
+              id={`${project.id}-instructions`}
+              maxLength={10_000}
               name="instructions"
               placeholder="Tone, house rules, and things the model keeps getting wrong…"
             />
           </Field>
           <DialogFooter>
-            <Button className="h-11 sm:h-8" type="submit">
-              Save
+            <Button className="h-11 sm:h-8" disabled={isSaving} type="submit">
+              {isSaving ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </form>
@@ -82,10 +105,10 @@ function ProjectInstructionsDialog({
 
 type ProjectInstructionsSectionProps = {
   className?: string;
-  project: ProjectRecord;
+  project: ProjectInstructionsItem;
 };
 
-/** Renders project instructions with its edit dialog. */
+/** Renders persisted Project instructions with edit dialog. */
 export function ProjectInstructionsSection({
   className,
   project,
@@ -111,7 +134,7 @@ export function ProjectInstructionsSection({
       title="Instructions"
     >
       <p className="text-base text-pretty whitespace-pre-wrap text-muted-foreground sm:text-sm">
-        {project.instructions ??
+        {project.instructions ||
           "No instructions yet. Every chat in this project will carry them."}
       </p>
       <ProjectInstructionsDialog

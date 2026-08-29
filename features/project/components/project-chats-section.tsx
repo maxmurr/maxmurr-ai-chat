@@ -1,11 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { MessageSquareIcon, XIcon } from "lucide-react";
 
-import type { ProjectRecord } from "@/features/project/components/project-data";
-import { ProjectSection } from "@/features/project/components/project-section";
-import { useProjects } from "@/features/project/components/project-state";
 import { Button } from "@/components/ui/button";
 import {
   Item,
@@ -16,61 +14,90 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "@/components/ui/toast";
 import { TouchTarget } from "@/components/ui/touch-target";
+import { ProjectSection } from "@/features/project/components/project-section";
+import { detachChatFromProjectAction } from "@/features/project/project-actions";
 
-type ProjectChatsSectionProps = {
-  className?: string;
-  project: ProjectRecord;
-};
-
-/** Renders chats assigned to one project with removal actions. */
+/** Lists Chats attached to one owner-visible Project. */
 export function ProjectChatsSection({
+  chats,
   className,
-  project,
-}: ProjectChatsSectionProps) {
-  const { updateProject } = useProjects();
+}: {
+  chats: { id: string; title: string; updatedAt: Date }[];
+  className?: string;
+}) {
+  const [removingChatId, setRemovingChatId] = useState<string | null>(null);
+
+  async function removeChatFromProject(chatId: string) {
+    setRemovingChatId(chatId);
+    const result = await detachChatFromProjectAction(chatId);
+    setRemovingChatId(null);
+
+    if (!result.ok) {
+      toast.add({
+        description: result.error,
+        title: "Project update failed",
+        type: "error",
+      });
+    }
+  }
 
   return (
     <ProjectSection className={className} id="project-chats" title="Chats">
-      {project.chats.length > 0 ? (
-        <ItemGroup className="gap-2">
-          {project.chats.map((chat) => (
-            <Item key={chat.id} role="listitem" variant="outline">
+      {chats.length === 0 ? (
+        <p className="text-base text-pretty text-muted-foreground sm:text-sm">
+          No chats in this project yet.
+        </p>
+      ) : (
+        <ItemGroup className="flex flex-col gap-2">
+          {chats.map((chat) => (
+            <Item
+              className="relative has-[a:focus-visible]:border-ring has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50"
+              key={chat.id}
+              role="listitem"
+              variant="outline"
+            >
               <ItemMedia variant="icon">
                 <MessageSquareIcon />
               </ItemMedia>
               <ItemContent>
                 <ItemTitle>
-                  <Link className="hover:underline" href={chat.href}>
+                  <Link
+                    className="outline-none after:absolute after:inset-0 pointer-fine:group-hover/item:underline"
+                    href={`/chat/${chat.id}`}
+                  >
                     {chat.title}
                   </Link>
                 </ItemTitle>
-                <ItemDescription>{chat.updatedLabel}</ItemDescription>
+                <ItemDescription>
+                  <time dateTime={chat.updatedAt.toISOString()}>
+                    {chat.updatedAt.toLocaleDateString("en-US", {
+                      day: "numeric",
+                      month: "short",
+                      timeZone: "UTC",
+                    })}
+                  </time>
+                </ItemDescription>
               </ItemContent>
-              <ItemActions>
+              <ItemActions className="relative">
                 <Button
-                  aria-label={`Remove ${chat.title} from project`}
+                  aria-label={`Remove ${chat.title} from Project`}
                   className="relative opacity-0 group-focus-within/item:opacity-100 group-hover/item:opacity-100 pointer-coarse:opacity-100"
-                  onClick={() =>
-                    updateProject(project.slug, {
-                      chats: project.chats.filter(({ id }) => id !== chat.id),
-                    })
-                  }
+                  disabled={removingChatId !== null}
+                  onClick={() => void removeChatFromProject(chat.id)}
                   size="icon-sm"
                   type="button"
                   variant="ghost"
                 >
-                  <XIcon />
+                  {removingChatId === chat.id ? <Spinner /> : <XIcon />}
                   <TouchTarget />
                 </Button>
               </ItemActions>
             </Item>
           ))}
         </ItemGroup>
-      ) : (
-        <p className="text-base text-pretty text-muted-foreground sm:text-sm">
-          No chats in this project yet. Add one from any chat menu.
-        </p>
       )}
     </ProjectSection>
   );

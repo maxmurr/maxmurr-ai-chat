@@ -25,7 +25,8 @@ export const INSTANT_NAVIGATION_FIXTURES = {
     username: "instant_nav_onboarding",
   },
   project: {
-    slug: "pricing-revamp",
+    id: "20000000-0000-4000-8000-000000000001",
+    name: "Pricing revamp",
   },
   workspace: {
     id: "instant-nav-workspace",

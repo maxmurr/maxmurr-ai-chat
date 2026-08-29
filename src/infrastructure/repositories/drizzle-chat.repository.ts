@@ -1,15 +1,15 @@
-import { and, asc, desc, eq, gt, ne, or, sql } from "drizzle-orm"
+import { and, asc, desc, eq, gt, isNull, ne, or, sql } from "drizzle-orm";
 
-import { appDatabase } from "@/drizzle/app-database"
-import { chat, chatMessage, member } from "@/drizzle/app-schema"
-import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface"
+import { appDatabase } from "@/drizzle/app-database";
+import { chat, chatMessage, member, project } from "@/drizzle/app-schema";
+import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface";
 import type {
   Chat,
   ChatMessage,
   ChatVisibility,
-} from "@/src/entities/models/chat"
+} from "@/src/entities/models/chat";
 
-const CHAT_LIST_LIMIT = 100
+const CHAT_LIST_LIMIT = 100;
 
 function toChat(row: typeof chat.$inferSelect): Chat {
   return {
@@ -18,39 +18,37 @@ function toChat(row: typeof chat.$inferSelect): Chat {
     organizationId: row.organizationId,
     ownerId: row.ownerId,
     pinned: row.pinned,
+    projectId: row.projectId,
     publicToken: row.publicToken,
     title: row.title,
     updatedAt: row.updatedAt,
     visibility: row.visibility as ChatVisibility,
-  }
+  };
 }
 
 function toChatMessage(row: typeof chatMessage.$inferSelect): ChatMessage {
   const metadata =
     typeof row.metadata === "object" && row.metadata !== null
       ? row.metadata
-      : {}
+      : {};
 
   return {
     id: row.id,
     metadata: { ...metadata, createdAt: row.createdAt.toISOString() },
     parts: row.parts as readonly unknown[],
     role: row.role as ChatMessage["role"],
-  }
+  };
 }
 
 /** Drizzle-backed chat persistence for the app PostgreSQL database. */
 export const drizzleChatRepository: ChatRepository = {
   async createChat(newChat) {
-    const [row] = await appDatabase
-      .insert(chat)
-      .values(newChat)
-      .returning()
-    return toChat(row)
+    const [row] = await appDatabase.insert(chat).values(newChat).returning();
+    return toChat(row);
   },
 
   async deleteChat(chatId) {
-    await appDatabase.delete(chat).where(eq(chat.id, chatId))
+    await appDatabase.delete(chat).where(eq(chat.id, chatId));
   },
 
   async deleteMessagesFrom(chatId, pivot) {
@@ -59,10 +57,10 @@ export const drizzleChatRepository: ChatRepository = {
       .from(chatMessage)
       .where(
         and(eq(chatMessage.chatId, chatId), eq(chatMessage.id, pivot.messageId))
-      )
+      );
 
     if (!pivotRow) {
-      return
+      return;
     }
 
     await appDatabase
@@ -75,15 +73,15 @@ export const drizzleChatRepository: ChatRepository = {
             pivot.inclusive ? eq(chatMessage.id, pivot.messageId) : sql`false`
           )
         )
-      )
+      );
   },
 
   async getChatById(chatId) {
     const [row] = await appDatabase
       .select()
       .from(chat)
-      .where(eq(chat.id, chatId))
-    return row ? toChat(row) : null
+      .where(eq(chat.id, chatId));
+    return row ? toChat(row) : null;
   },
 
   async getChatByPublicToken(publicToken) {
@@ -92,8 +90,8 @@ export const drizzleChatRepository: ChatRepository = {
       .from(chat)
       .where(
         and(eq(chat.publicToken, publicToken), eq(chat.visibility, "public"))
-      )
-    return row ? toChat(row) : null
+      );
+    return row ? toChat(row) : null;
   },
 
   async getChatMessages(chatId) {
@@ -101,8 +99,8 @@ export const drizzleChatRepository: ChatRepository = {
       .select()
       .from(chatMessage)
       .where(eq(chatMessage.chatId, chatId))
-      .orderBy(asc(chatMessage.createdAt), asc(chatMessage.id))
-    return rows.map(toChatMessage)
+      .orderBy(asc(chatMessage.createdAt), asc(chatMessage.id));
+    return rows.map(toChatMessage);
   },
 
   async isWorkspaceMember(organizationId, userId) {
@@ -110,21 +108,56 @@ export const drizzleChatRepository: ChatRepository = {
       .select({ id: member.id })
       .from(member)
       .where(
-        and(eq(member.organizationId, organizationId), eq(member.userId, userId))
-      )
-    return row !== undefined
+        and(
+          eq(member.organizationId, organizationId),
+          eq(member.userId, userId)
+        )
+      );
+    return row !== undefined;
   },
 
-  async listOwnChats(organizationId, ownerId) {
+  async listChatsByProject(projectId) {
     const rows = await appDatabase
       .select()
       .from(chat)
-      .where(
-        and(eq(chat.organizationId, organizationId), eq(chat.ownerId, ownerId))
-      )
-      .orderBy(desc(chat.pinned), desc(chat.updatedAt))
-      .limit(CHAT_LIST_LIMIT)
-    return rows.map(toChat)
+      .where(eq(chat.projectId, projectId))
+      .orderBy(desc(chat.updatedAt));
+    return rows.map(toChat);
+  },
+
+  async listOwnChats(organizationId, ownerId) {
+    const ownerFilter = and(
+      eq(chat.organizationId, organizationId),
+      eq(chat.ownerId, ownerId)
+    );
+    // Keep every pinned Project Chat even when it falls outside sidebar cap.
+    const [limitedRows, pinnedProjectRows] = await Promise.all([
+      appDatabase
+        .select({ chat, projectName: project.name })
+        .from(chat)
+        .leftJoin(project, eq(chat.projectId, project.id))
+        .where(
+          and(
+            ownerFilter,
+            or(isNull(project.pinned), eq(project.pinned, false))
+          )
+        )
+        .orderBy(desc(chat.pinned), desc(chat.updatedAt))
+        .limit(CHAT_LIST_LIMIT),
+      appDatabase
+        .select({ chat, projectName: project.name })
+        .from(chat)
+        .innerJoin(project, eq(chat.projectId, project.id))
+        .where(and(ownerFilter, eq(project.pinned, true)))
+        .orderBy(desc(chat.updatedAt)),
+    ]);
+    const rowsByChatId = new Map(
+      [...limitedRows, ...pinnedProjectRows].map((row) => [row.chat.id, row])
+    );
+    return [...rowsByChatId.values()].map((row) => ({
+      ...toChat(row.chat),
+      projectName: row.projectName,
+    }));
   },
 
   async listTeamChats(organizationId, excludedOwnerId) {
@@ -139,8 +172,8 @@ export const drizzleChatRepository: ChatRepository = {
         )
       )
       .orderBy(desc(chat.updatedAt))
-      .limit(CHAT_LIST_LIMIT)
-    return rows.map(toChat)
+      .limit(CHAT_LIST_LIMIT);
+    return rows.map(toChat);
   },
 
   async saveMessage(chatId, message) {
@@ -159,22 +192,29 @@ export const drizzleChatRepository: ChatRepository = {
           parts: message.parts,
         },
         target: [chatMessage.chatId, chatMessage.id],
-      })
+      });
     await appDatabase
       .update(chat)
       .set({ updatedAt: new Date() })
-      .where(eq(chat.id, chatId))
+      .where(eq(chat.id, chatId));
   },
 
   async updateChatPinned(chatId, pinned) {
-    await appDatabase.update(chat).set({ pinned }).where(eq(chat.id, chatId))
+    await appDatabase.update(chat).set({ pinned }).where(eq(chat.id, chatId));
+  },
+
+  async updateChatProject(chatId, projectId) {
+    await appDatabase
+      .update(chat)
+      .set({ projectId })
+      .where(eq(chat.id, chatId));
   },
 
   async updateChatSharing(chatId, sharing) {
-    await appDatabase.update(chat).set(sharing).where(eq(chat.id, chatId))
+    await appDatabase.update(chat).set(sharing).where(eq(chat.id, chatId));
   },
 
   async updateChatTitle(chatId, title) {
-    await appDatabase.update(chat).set({ title }).where(eq(chat.id, chatId))
+    await appDatabase.update(chat).set({ title }).where(eq(chat.id, chatId));
   },
-}
+};

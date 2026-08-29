@@ -5,6 +5,7 @@ import {
 } from "@/features/chat/components/chat-history";
 import { ChatPrimaryNavigation } from "@/features/chat/components/chat-primary-navigation";
 import { ChatUserMenu } from "@/features/chat/components/chat-user-menu";
+import type { ProjectActionsEntry } from "@/features/project/components/project-actions";
 import {
   ChatWorkspaceSwitcher,
   type ChatWorkspaceSummary,
@@ -30,6 +31,7 @@ export type ChatAppSidebarProps = {
     name: string;
   };
   ownChats: ChatConversationEntry[];
+  projects: ProjectActionsEntry[];
   teamChats: ChatHistoryEntry[];
   workspaces: ChatWorkspaceSummary[];
 };
@@ -40,6 +42,7 @@ export function ChatAppSidebar({
   className,
   currentUser,
   ownChats,
+  projects,
   teamChats,
   workspaces,
 }: ChatAppSidebarProps) {
@@ -56,7 +59,11 @@ export function ChatAppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        <ChatHistory ownChats={ownChats} teamChats={teamChats} />
+        <ChatHistory
+          ownChats={ownChats}
+          projects={projects}
+          teamChats={teamChats}
+        />
       </SidebarContent>
 
       <SidebarFooter>

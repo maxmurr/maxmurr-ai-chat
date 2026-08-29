@@ -24,10 +24,14 @@ export function ChatThreadActions({
   chatId,
   className,
   pinned,
+  projectId,
+  projects,
 }: {
   chatId: string;
   className?: string;
   pinned: boolean;
+  projectId: string | null;
+  projects: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const { conversationTitle, setConversationTitle } =
@@ -67,10 +71,13 @@ export function ChatThreadActions({
         </DropdownMenuTrigger>
         <ChatActionsMenuContent
           align="end"
+          chatId={chatId}
           onDelete={() => setOpenDialog("delete")}
           onRename={() => setOpenDialog("rename")}
           onTogglePin={toggleChatPin}
           pinned={pinned}
+          projectId={projectId}
+          projects={projects}
         />
       </DropdownMenu>
 

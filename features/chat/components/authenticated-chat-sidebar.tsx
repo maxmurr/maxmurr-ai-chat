@@ -1,31 +1,38 @@
-import { ChatAppSidebar } from "@/features/chat/components/chat-app-sidebar"
-import { getChatSidebarEntries } from "@/features/chat/chat-queries"
-import { getAuthenticatedWorkspaceContext } from "@/features/workspace/workspace-queries"
+import { ChatAppSidebar } from "@/features/chat/components/chat-app-sidebar";
+import { getChatSidebarEntries } from "@/features/chat/chat-queries";
+import { getProjectsPageData } from "@/features/project/project-queries";
+import { getAuthenticatedWorkspaceContext } from "@/features/workspace/workspace-queries";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-} from "@/components/ui/sidebar"
-import { Skeleton } from "@/components/ui/skeleton"
+} from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /** Loads authenticated workspace navigation and sidebar chat history. */
 export async function AuthenticatedChatSidebar() {
-  const workspace = await getAuthenticatedWorkspaceContext()
-  const chats = await getChatSidebarEntries(
-    workspace.activeWorkspaceId,
-    workspace.userId
-  )
+  const workspace = await getAuthenticatedWorkspaceContext();
+  const [chats, projects] = await Promise.all([
+    getChatSidebarEntries(workspace.activeWorkspaceId, workspace.userId),
+    getProjectsPageData(),
+  ]);
 
   return (
     <ChatAppSidebar
       activeWorkspaceId={workspace.activeWorkspaceId}
       currentUser={workspace.currentUser}
       ownChats={chats.ownChats}
+      projects={projects.map(({ description, id, name, pinned }) => ({
+        description,
+        id,
+        name,
+        pinned,
+      }))}
       teamChats={chats.teamChats}
       workspaces={workspace.workspaces}
     />
-  )
+  );
 }
 
 /** Reserves authenticated app sidebar while workspace data loads. */
@@ -54,5 +61,5 @@ export function AuthenticatedChatSidebarSkeleton() {
         <Skeleton className="h-14 w-full lg:h-12" />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

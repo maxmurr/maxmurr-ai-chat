@@ -1,63 +1,33 @@
-"use client";
-
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FolderXIcon } from "lucide-react";
-
+import { Skeleton } from "@/components/ui/skeleton";
+import { ChatPageHeader } from "@/features/chat/components/chat-page-header";
+import { ProjectActions } from "@/features/project/components/project-actions";
 import { ProjectChatComposer } from "@/features/project/components/project-chat-composer";
 import { ProjectChatsSection } from "@/features/project/components/project-chats-section";
-import { ProjectActions } from "@/features/project/components/project-actions";
 import { ProjectDetailHeader } from "@/features/project/components/project-detail-header";
 import { ProjectInstructionsSection } from "@/features/project/components/project-instructions-section";
 import { ProjectSourcesSection } from "@/features/project/components/project-sources-section";
-import { useProjects } from "@/features/project/components/project-state";
-import { Button } from "@/components/ui/button";
-import { ErrorState } from "@/components/ui/error-state";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  getProjectPageData,
+  getProjectSourcesPageData,
+} from "@/features/project/project-queries";
 import { cn } from "@/lib/utils";
 
-function ProjectDetailNotFound({ className }: { className?: string }) {
-  return (
-    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
-      <ProjectDetailHeader />
-      <ErrorState
-        className="p-4"
-        description="It may have been deleted, or the link belongs to another workspace."
-        icon={<FolderXIcon aria-hidden="true" className="size-5" />}
-        id="project-not-found"
-        title="Project not found"
-      >
-        <Button
-          className="h-11 sm:h-8"
-          nativeButton={false}
-          render={<Link href="/projects" />}
-        >
-          Back to projects
-        </Button>
-      </ErrorState>
-    </div>
-  );
-}
-
-/** Renders one project workspace with instructions, sources, and chats. */
-export function ProjectDetail({
+/** Loads and renders one persisted owner-scoped Project by id. */
+export async function ProjectDetail({
   className,
-  projectSlug,
+  projectId,
 }: {
   className?: string;
-  projectSlug: string;
+  projectId: string;
 }) {
-  const router = useRouter();
-  const { getProject, isReady } = useProjects();
-  const project = getProject(projectSlug);
-
-  if (!project) {
-    return isReady ? (
-      <ProjectDetailNotFound className={className} />
-    ) : (
-      <ProjectDetailSkeleton className={className} />
-    );
-  }
+  const project = await getProjectPageData(projectId);
+  const sourceData = await getProjectSourcesPageData(project);
+  const toSourceItem = ({
+    id,
+    mediaType,
+    name,
+    size,
+  }: (typeof sourceData.sources)[number]) => ({ id, mediaType, name, size });
 
   return (
     <div
@@ -67,8 +37,13 @@ export function ProjectDetail({
       <ProjectDetailHeader
         actions={
           <ProjectActions
-            onDeleted={() => router.push("/projects")}
-            project={project}
+            deleteRedirect="/projects"
+            project={{
+              description: project.description,
+              id: project.id,
+              name: project.name,
+              pinned: project.pinned,
+            }}
           />
         }
         projectName={project.name}
@@ -87,17 +62,23 @@ export function ProjectDetail({
             )}
           </div>
 
-          <ProjectChatComposer />
-          <ProjectInstructionsSection project={project} />
-          <ProjectSourcesSection project={project} />
-          <ProjectChatsSection project={project} />
+          <ProjectChatComposer projectId={project.id} />
+          <ProjectInstructionsSection
+            project={{ id: project.id, instructions: project.instructions }}
+          />
+          <ProjectSourcesSection
+            availableFiles={sourceData.availableFiles.map(toSourceItem)}
+            projectId={project.id}
+            sources={sourceData.sources.map(toSourceItem)}
+          />
+          <ProjectChatsSection chats={project.chats} />
         </div>
       </div>
     </div>
   );
 }
 
-/** Reserves project detail structure while route and browser state load. */
+/** Reserves Project detail structure while authenticated Project loads. */
 export function ProjectDetailSkeleton({ className }: { className?: string }) {
   return (
     <div
@@ -105,7 +86,9 @@ export function ProjectDetailSkeleton({ className }: { className?: string }) {
       aria-label="Loading project"
       className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}
     >
-      <ProjectDetailHeader projectName="Loading…" />
+      <ChatPageHeader>
+        <Skeleton className="h-5 w-28 max-w-full sm:h-4" />
+      </ChatPageHeader>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-4 pb-12">
           <div className="flex min-w-0 flex-col gap-2">

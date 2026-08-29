@@ -13,13 +13,19 @@ import type { StreamChatResponse } from "@/src/application/services/chat-stream.
 import type { CrashReporterService } from "@/src/application/services/crash-reporter.service.interface";
 import type { InstrumentationService } from "@/src/application/services/instrumentation.service.interface";
 import type { LibraryService } from "@/src/application/services/library.service.interface";
+import type { ProjectRepository } from "@/src/application/services/project-repository.service.interface";
+import type { ProjectService } from "@/src/application/services/project.service.interface";
 import {
   ChatAccessDeniedError,
   ChatUnavailableError,
 } from "@/src/entities/errors/chat-errors";
 import { LibraryAccessDeniedError } from "@/src/entities/errors/library-errors";
 import type { ChatMessage } from "@/src/entities/models/chat";
-import type { ChatStreamMessage } from "@/src/entities/models/chat-stream-request";
+import type {
+  ChatRequestContext,
+  ChatStreamMessage,
+  ChatStreamRequest,
+} from "@/src/entities/models/chat-stream-request";
 import { getMessageLibraryFileIds } from "@/src/entities/models/library";
 import { mastraRuntime } from "@/src/infrastructure/ai/mastra/mastra-runtime";
 import {
@@ -29,6 +35,10 @@ import {
 
 const MODEL_MESSAGE_LIMIT = 100;
 const CHAT_TITLE_LIMIT = 80;
+
+type StreamMastraAgentChat = (
+  options: Parameters<typeof handleChatStream>[0]
+) => ReturnType<typeof handleChatStream>;
 
 function extractMessageText(message: ChatStreamMessage) {
   return message.parts
@@ -79,49 +89,85 @@ async function generateAndSaveChatTitle(
   }
 }
 
+type StreamChatRepository = Pick<
+  ChatRepository,
+  "createChat" | "getChatById" | "isWorkspaceMember"
+>;
+type StreamProjectRepository = Pick<ProjectRepository, "getOwnedProject">;
+
+/** Authorizes stream access and binds only a new Chat to an owned Project. */
+export async function authorizeAndCreateStreamChat(
+  chatRepository: StreamChatRepository,
+  projectRepository: StreamProjectRepository,
+  request: ChatStreamRequest,
+  context: ChatRequestContext
+) {
+  const existingChat = await chatRepository.getChatById(request.chatId);
+  const isWorkspaceMember = await chatRepository.isWorkspaceMember(
+    context.organizationId,
+    context.userId
+  );
+
+  if (existingChat) {
+    if (
+      existingChat.ownerId !== context.userId ||
+      existingChat.organizationId !== context.organizationId ||
+      !isWorkspaceMember ||
+      (request.projectId !== undefined &&
+        request.projectId !== existingChat.projectId)
+    ) {
+      throw new ChatAccessDeniedError();
+    }
+
+    return { chat: existingChat, created: false };
+  }
+
+  if (!isWorkspaceMember) {
+    throw new ChatAccessDeniedError();
+  }
+
+  if (
+    request.projectId &&
+    !(await projectRepository.getOwnedProject(request.projectId, {
+      organizationId: context.organizationId,
+      ownerId: context.userId,
+    }))
+  ) {
+    throw new ChatAccessDeniedError();
+  }
+
+  const chat = await chatRepository.createChat({
+    id: request.chatId,
+    organizationId: context.organizationId,
+    ownerId: context.userId,
+    projectId: request.projectId ?? null,
+    title: fallbackChatTitle(request.message),
+  });
+  return { chat, created: true };
+}
+
 /** Creates streaming Chat service that persists turns and Library Files. */
 export function createMastraChatStreamService(
   chatRepository: ChatRepository,
+  projectRepository: ProjectRepository,
   libraryService: LibraryService,
+  projectService: ProjectService,
   crashReporterService: CrashReporterService,
-  instrumentationService: InstrumentationService
+  instrumentationService: InstrumentationService,
+  streamAgentChat: StreamMastraAgentChat = handleChatStream,
+  defer: (callback: () => void | Promise<void>) => void = after
 ): StreamChatResponse {
   return async (request, context, abortSignal) => {
     const { chatId, message, messageId, trigger } = request;
-    const existingChat = await chatRepository.getChatById(chatId);
+    const { chat: activeChat, created } = await authorizeAndCreateStreamChat(
+      chatRepository,
+      projectRepository,
+      request,
+      context
+    );
 
-    if (existingChat) {
-      const isActiveWorkspaceMember = await chatRepository.isWorkspaceMember(
-        context.organizationId,
-        context.userId
-      );
-
-      if (
-        existingChat.ownerId !== context.userId ||
-        existingChat.organizationId !== context.organizationId ||
-        !isActiveWorkspaceMember
-      ) {
-        throw new ChatAccessDeniedError();
-      }
-    }
-
-    if (!existingChat) {
-      const isMember = await chatRepository.isWorkspaceMember(
-        context.organizationId,
-        context.userId
-      );
-
-      if (!isMember) {
-        throw new ChatAccessDeniedError();
-      }
-
-      await chatRepository.createChat({
-        id: chatId,
-        organizationId: context.organizationId,
-        ownerId: context.userId,
-        title: fallbackChatTitle(message),
-      });
-      after(() =>
+    if (created) {
+      defer(() =>
         generateAndSaveChatTitle(
           chatRepository,
           crashReporterService,
@@ -137,6 +183,14 @@ export function createMastraChatStreamService(
     };
 
     try {
+      const projectInstructions = activeChat.projectId
+        ? (
+            await projectRepository.getOwnedProject(
+              activeChat.projectId,
+              libraryScope
+            )
+          )?.instructions.trim() || undefined
+        : undefined;
       let history = await chatRepository.getChatMessages(chatId);
 
       if (trigger === "regenerate-message" && history.length > 0) {
@@ -175,7 +229,7 @@ export function createMastraChatStreamService(
       const stream = await instrumentationService.startSpan(
         { name: "Stream Chat response", op: "gen_ai.chat" },
         () =>
-          handleChatStream({
+          streamAgentChat({
             agentId: "chat-assistant",
             experimentalTransform: smoothStream({
               delayInMs: 20,
@@ -204,6 +258,7 @@ export function createMastraChatStreamService(
                 // OpenAI Responses accepts text/code file_data after adapter opt-in.
                 openai: { passThroughUnsupportedFiles: true },
               },
+              system: projectInstructions,
               tracingOptions: {
                 traceId: langfuseTraceId,
                 metadata: {
@@ -220,7 +275,7 @@ export function createMastraChatStreamService(
           })
       );
 
-      after(() => mastraRuntime.observability.flush());
+      defer(() => mastraRuntime.observability.flush());
 
       return createUIMessageStreamResponse({
         stream: createUIMessageStream<UIMessage>({
@@ -235,12 +290,31 @@ export function createMastraChatStreamService(
             let persistedResponse = responseMessage;
 
             try {
-              persistedResponse = await saveAssistantGeneratedFiles(
+              const savedFiles = await saveAssistantGeneratedFiles(
                 responseMessage,
                 chatId,
                 libraryService,
+                () =>
+                  projectService.resolveChatFileFolderId(chatId, libraryScope),
                 libraryScope
               );
+              persistedResponse = savedFiles.message;
+
+              if (savedFiles.savedFileIds.length > 0) {
+                try {
+                  await projectService.addChatFilesAsProjectSources(
+                    chatId,
+                    savedFiles.savedFileIds,
+                    libraryScope
+                  );
+                } catch (error) {
+                  crashReporterService.report(error);
+                  console.error(
+                    "Assistant Project Source link failed.",
+                    error instanceof Error ? error.message : "Unknown error"
+                  );
+                }
+              }
             } catch (error) {
               crashReporterService.report(error);
               console.error(
