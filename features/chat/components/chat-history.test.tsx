@@ -39,7 +39,17 @@ test("chat history renders collapsible sections outside active chat title provid
 
   assert.match(markup, />Pinned</);
   assert.match(markup, />Recents</);
-  assert.match(markup, /Pinned chat · Launch/);
+  assert.match(markup, /title="Pinned chat · Launch"/);
+  assert.doesNotMatch(markup, />Pinned chat · Launch</);
+  assert.match(
+    markup,
+    /class="[^"]*motion-reduce:transition-none[^"]*lg:pointer-fine:translate-x-12[^"]*lg:pointer-fine:group-hover\/menu-item:translate-x-0[^"]*">Launch<\/span>/
+  );
+  assert.match(
+    markup,
+    /Launch<\/span><div class="[^"]*lg:pointer-fine:opacity-0[^"]*lg:pointer-fine:group-hover\/menu-item:opacity-100[^"]*"><button[^>]*aria-label="Unpin Pinned chat"/
+  );
+  assert.match(markup, /bg-\[var\(--conversation-actions-background\)\]/);
   assert.match(markup, />Recent chat</);
   assert.doesNotMatch(markup, /Recent chat ·/);
   assert.equal(markup.match(/aria-expanded="true"/g)?.length, 2);

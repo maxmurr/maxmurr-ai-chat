@@ -144,7 +144,7 @@ export function ChatConversationItem({
     updateTitleOverflow();
 
     return () => resizeObserver.disconnect();
-  }, [sidebarTitle]);
+  }, [chat.title]);
 
   return (
     <SidebarMenuItem className={cn(className)}>
@@ -206,7 +206,7 @@ export function ChatConversationItem({
                   "motion-safe:pointer-fine:group-hover/menu-item:invisible"
               )}
             >
-              {sidebarTitle}
+              {chat.title}
             </span>
             <span
               ref={movingTitleRef}
@@ -217,7 +217,7 @@ export function ChatConversationItem({
                   "motion-safe:pointer-fine:group-hover/menu-item:visible motion-safe:pointer-fine:group-hover/menu-item:translate-x-[calc(var(--conversation-title-visible-width)-100%)] motion-safe:pointer-fine:group-hover/menu-item:transition-transform motion-safe:pointer-fine:group-hover/menu-item:delay-300 motion-safe:pointer-fine:group-hover/menu-item:duration-[2s] motion-safe:pointer-fine:group-hover/menu-item:ease-linear"
               )}
             >
-              {sidebarTitle}
+              {chat.title}
             </span>
           </span>
         </SidebarMenuButton>
@@ -226,45 +226,53 @@ export function ChatConversationItem({
       <div
         ref={conversationActionsRef}
         className={cn(
-          "pointer-events-none absolute inset-y-0 right-1 flex items-center gap-1 pl-4 opacity-100 lg:opacity-0 lg:[background:linear-gradient(to_right,transparent,var(--sidebar-accent)_1rem)] lg:group-hover/menu-item:opacity-100 lg:group-has-focus-visible/menu-item:opacity-100",
+          "pointer-events-none absolute inset-y-0 right-1 flex items-center [--conversation-actions-background:var(--sidebar)] peer-data-active/menu-button:[--conversation-actions-background:var(--sidebar-accent)] pointer-fine:group-hover/menu-item:[--conversation-actions-background:var(--sidebar-accent)] group-has-focus-visible/menu-item:[--conversation-actions-background:var(--sidebar-accent)]",
           isRenaming && "invisible"
         )}
       >
-        <SidebarMenuAction
-          aria-label={`${chat.pinned ? "Unpin" : "Pin"} ${chat.title}`}
-          className="pointer-events-auto static! hidden cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! lg:flex"
-          onClick={toggleConversationPin}
-        >
-          {chat.pinned ? <PinOffIcon /> : <PinIcon />}
-        </SidebarMenuAction>
+        {chat.projectName && (
+          <span className="max-w-24 truncate bg-[linear-gradient(to_right,transparent,var(--conversation-actions-background)_1.5rem)] pl-6 text-xs text-muted-foreground transition-transform duration-150 ease-in-out motion-reduce:transition-none lg:pointer-fine:translate-x-12 lg:pointer-fine:group-hover/menu-item:translate-x-0 lg:group-has-focus-visible/menu-item:translate-x-0">
+            {chat.projectName}
+          </span>
+        )}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <SidebarMenuAction
-                aria-label={`Open chat actions for ${chat.title}`}
-                className="pointer-events-auto static! cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground!"
-              />
-            }
+        <div className="pointer-events-auto flex items-center gap-1 bg-[var(--conversation-actions-background)] pl-1 transition-opacity duration-150 ease-in-out motion-reduce:transition-none lg:pointer-fine:pointer-events-none lg:pointer-fine:opacity-0 lg:pointer-fine:group-hover/menu-item:pointer-events-auto lg:pointer-fine:group-hover/menu-item:opacity-100 lg:group-has-focus-visible/menu-item:pointer-events-auto lg:group-has-focus-visible/menu-item:opacity-100">
+          <SidebarMenuAction
+            aria-label={`${chat.pinned ? "Unpin" : "Pin"} ${chat.title}`}
+            className="static! hidden cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! lg:flex"
+            onClick={toggleConversationPin}
           >
-            <EllipsisIcon />
-          </DropdownMenuTrigger>
-          <ChatActionsMenuContent
-            align="start"
-            chatId={chat.id}
-            finalFocus={(closeType) =>
-              renameInputRef.current ?? closeType === "keyboard"
-            }
-            onDelete={() => setIsDeleteDialogOpen(true)}
-            onRename={() => setIsRenaming(true)}
-            onShare={() => setIsShareDialogOpen(true)}
-            onTogglePin={toggleConversationPin}
-            pinned={chat.pinned}
-            projectId={chat.projectId}
-            projects={projects}
-            side="right"
-          />
-        </DropdownMenu>
+            {chat.pinned ? <PinOffIcon /> : <PinIcon />}
+          </SidebarMenuAction>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <SidebarMenuAction
+                  aria-label={`Open chat actions for ${chat.title}`}
+                  className="static! cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground!"
+                />
+              }
+            >
+              <EllipsisIcon />
+            </DropdownMenuTrigger>
+            <ChatActionsMenuContent
+              align="start"
+              chatId={chat.id}
+              finalFocus={(closeType) =>
+                renameInputRef.current ?? closeType === "keyboard"
+              }
+              onDelete={() => setIsDeleteDialogOpen(true)}
+              onRename={() => setIsRenaming(true)}
+              onShare={() => setIsShareDialogOpen(true)}
+              onTogglePin={toggleConversationPin}
+              pinned={chat.pinned}
+              projectId={chat.projectId}
+              projects={projects}
+              side="right"
+            />
+          </DropdownMenu>
+        </div>
       </div>
 
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
