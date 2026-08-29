@@ -8,8 +8,6 @@ import {
 } from "@/src/entities/errors/library-errors"
 import { LIBRARY_MAX_UPLOAD_SIZE } from "@/src/entities/models/library"
 
-export const runtime = "nodejs"
-
 // Transport-level cap only; the controller enforces the per-file, count, and
 // total limits. Headroom covers multipart boundaries and field overhead.
 const MAX_MULTIPART_BODY_SIZE = LIBRARY_MAX_UPLOAD_SIZE + 1024 * 1024

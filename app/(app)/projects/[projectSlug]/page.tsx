@@ -8,6 +8,10 @@ import {
 } from "@/features/project/components/project-detail"
 import { PROJECT_SEED } from "@/features/project/components/project-data"
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 /** Uses seed project name for browser title when route is known. */
 export async function generateMetadata({
   params,

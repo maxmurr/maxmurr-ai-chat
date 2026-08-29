@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  cacheComponents: true,
   experimental: {
     // TypeScript 7 supplies tsc; TypeScript 6 supplies API used by Next and ESLint.
     useTypeScriptCli: false,

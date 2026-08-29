@@ -9,7 +9,6 @@ import {
 } from "@/src/entities/errors/chat-errors"
 import type { ChatRequestContext } from "@/src/entities/models/chat-stream-request"
 
-export const runtime = "nodejs"
 export const maxDuration = 60
 
 function invalidChatRequestResponse() {
