@@ -1,8 +1,13 @@
 import { getToolName, isToolUIPart, type UIMessage } from "ai"
 
+import { getLibraryFileIdFromDownloadUrl } from "@/src/entities/models/library"
+
 /** Describes one file shown with a chat message. */
 export type ChatDisplayAttachment = {
   readonly filename: string
+  readonly href?: string
+  readonly id: string
+  readonly isAvailable: boolean
   readonly mediaType: string
 }
 
@@ -39,10 +44,14 @@ export type ChatDisplayMessage = {
   readonly tools?: readonly ChatDisplayTool[]
 }
 
-/** Client metadata for message creation time and attachment labels. */
+/** Client metadata for message creation time and File presentation. */
 export type ChatMessageMetadata = {
-  readonly attachments?: readonly ChatDisplayAttachment[]
+  readonly attachments?: readonly {
+    readonly filename: string
+    readonly mediaType: string
+  }[]
   readonly createdAt?: string
+  readonly libraryFileAvailability?: Readonly<Record<string, boolean>>
 }
 
 /** AI SDK message shape shared by chat store and Mastra route. */
@@ -85,17 +94,31 @@ export function convertChatUiMessageToDisplayMessage(
     ({ state }) => state === "streaming"
   )
   const attachments: ChatDisplayAttachment[] = [
-    ...(message.metadata?.attachments ?? []),
-    ...message.parts.flatMap((part) =>
-      part.type === "file"
-        ? [
-            {
-              filename: part.filename ?? "Attachment",
-              mediaType: part.mediaType,
-            },
-          ]
-        : []
-    ),
+    ...(message.metadata?.attachments ?? []).map((attachment, index) => ({
+      ...attachment,
+      id: `${message.id}-legacy-file-${index}`,
+      isAvailable: false,
+    })),
+    ...message.parts.flatMap((part, index) => {
+      if (part.type !== "file") {
+        return []
+      }
+
+      const libraryFileId = getLibraryFileIdFromDownloadUrl(part.url)
+      const isAvailable = libraryFileId
+        ? message.metadata?.libraryFileAvailability?.[libraryFileId] !== false
+        : true
+
+      return [
+        {
+          filename: part.filename ?? "Attachment",
+          ...(isAvailable ? { href: part.url } : {}),
+          id: libraryFileId ?? `${message.id}-file-${index}`,
+          isAvailable,
+          mediaType: part.mediaType,
+        },
+      ]
+    }),
   ]
   const sources = message.parts.flatMap((part): ChatDisplaySource[] => {
     if (part.type === "source-url") {

@@ -13,6 +13,7 @@ import {
   AttachmentGroup,
   AttachmentMedia,
   AttachmentTitle,
+  AttachmentTrigger,
 } from "@/components/ui/attachment"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import { Message, MessageContent } from "@/components/ui/message"
@@ -33,13 +34,27 @@ function ChatMessageAttachments({
   return (
     <AttachmentGroup className={cn(className)}>
       {attachments.map((attachment) => (
-        <Attachment className="min-w-60" key={attachment.filename}>
+        <Attachment
+          className="min-w-60"
+          key={attachment.id}
+          state={attachment.isAvailable ? "done" : "error"}
+        >
+          {attachment.href && (
+            <AttachmentTrigger
+              aria-label={`Download ${attachment.filename}`}
+              render={<a download href={attachment.href} />}
+            />
+          )}
           <AttachmentMedia>
             <FileTextIcon />
           </AttachmentMedia>
           <AttachmentContent>
             <AttachmentTitle>{attachment.filename}</AttachmentTitle>
-            <AttachmentDescription>{attachment.mediaType}</AttachmentDescription>
+            <AttachmentDescription>
+              {attachment.isAvailable
+                ? attachment.mediaType
+                : "File unavailable"}
+            </AttachmentDescription>
           </AttachmentContent>
         </Attachment>
       ))}

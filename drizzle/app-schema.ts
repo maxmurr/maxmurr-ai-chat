@@ -10,7 +10,12 @@ import {
   jsonb,
   primaryKey,
   uniqueIndex,
+  customType,
 } from "drizzle-orm/pg-core";
+
+const bytea = customType<{ data: Uint8Array; driverData: Uint8Array }>({
+  dataType: () => "bytea",
+});
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -193,6 +198,58 @@ export const chatMessage = pgTable(
   (table) => [primaryKey({ columns: [table.chatId, table.id] })],
 );
 
+export const libraryFolder = pgTable(
+  "library_folder",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("libraryFolder_organizationId_ownerId_idx").on(
+      table.organizationId,
+      table.ownerId,
+    ),
+  ],
+);
+
+export const libraryFile = pgTable(
+  "library_file",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    folderId: text("folder_id").references(() => libraryFolder.id, {
+      onDelete: "cascade",
+    }),
+    name: text("name").notNull(),
+    mediaType: text("media_type").notNull(),
+    size: integer("size").notNull(),
+    bytes: bytea("bytes").notNull(),
+    provenanceChatId: text("provenance_chat_id"),
+    provenanceMessageId: text("provenance_message_id"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("libraryFile_organizationId_ownerId_folderId_idx").on(
+      table.organizationId,
+      table.ownerId,
+      table.folderId,
+    ),
+    index("libraryFile_provenanceChatId_idx").on(table.provenanceChatId),
+  ],
+);
+
 export const rateLimit = pgTable("rate_limit", {
   id: text("id").primaryKey(),
   key: text("key").notNull().unique(),
@@ -205,6 +262,8 @@ export const userRelations = relations(user, ({ many }) => ({
   accounts: many(account),
   members: many(member),
   invitations: many(invitation),
+  libraryFolders: many(libraryFolder),
+  libraryFiles: many(libraryFile),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -224,6 +283,8 @@ export const accountRelations = relations(account, ({ one }) => ({
 export const organizationRelations = relations(organization, ({ many }) => ({
   members: many(member),
   invitations: many(invitation),
+  libraryFolders: many(libraryFolder),
+  libraryFiles: many(libraryFile),
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -253,6 +314,36 @@ export const chatMessageRelations = relations(chatMessage, ({ one }) => ({
   chat: one(chat, {
     fields: [chatMessage.chatId],
     references: [chat.id],
+  }),
+}));
+
+export const libraryFolderRelations = relations(
+  libraryFolder,
+  ({ one, many }) => ({
+    organization: one(organization, {
+      fields: [libraryFolder.organizationId],
+      references: [organization.id],
+    }),
+    owner: one(user, {
+      fields: [libraryFolder.ownerId],
+      references: [user.id],
+    }),
+    files: many(libraryFile),
+  }),
+);
+
+export const libraryFileRelations = relations(libraryFile, ({ one }) => ({
+  organization: one(organization, {
+    fields: [libraryFile.organizationId],
+    references: [organization.id],
+  }),
+  owner: one(user, {
+    fields: [libraryFile.ownerId],
+    references: [user.id],
+  }),
+  folder: one(libraryFolder, {
+    fields: [libraryFile.folderId],
+    references: [libraryFolder.id],
   }),
 }));
 

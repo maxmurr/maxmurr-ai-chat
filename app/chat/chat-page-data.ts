@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { resolveApplicationDependency } from "@/di/application-container"
 import { applicationInjectionTokens } from "@/di/application-container.registry"
 import { auth } from "@/di/authentication"
+import { resolveActiveWorkspaceId } from "@/lib/active-workspace"
 
 /** Loads the session, workspace, and sidebar chats every chat page needs. */
 export async function loadChatPageData() {
@@ -22,10 +23,10 @@ export async function loadChatPageData() {
     redirect("/onboarding")
   }
 
-  // Sessions start without an active workspace; fall back to the first
-  // membership, matching the workspace switcher's display fallback.
-  const activeWorkspaceId =
-    session.session.activeOrganizationId ?? organizations[0].id
+  const activeWorkspaceId = resolveActiveWorkspaceId(
+    organizations,
+    session.session.activeOrganizationId
+  )!
   const chatLibrary = resolveApplicationDependency(
     applicationInjectionTokens.chatLibraryController
   )

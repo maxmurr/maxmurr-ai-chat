@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+import Link from "next/link"
+import { notFound } from "next/navigation"
 
 import { loadChatPageData } from "@/app/chat/chat-page-data"
 import { ChatAppShell } from "@/components/chat/chat-app-shell"
@@ -8,18 +10,27 @@ import { createLibraryBrowserItems } from "@/components/library/library-data"
 import {
   Breadcrumb,
   BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { resolveApplicationDependency } from "@/di/application-container"
 import { applicationInjectionTokens } from "@/di/application-container.registry"
+import {
+  InvalidLibraryRequestError,
+  LibraryAccessDeniedError,
+} from "@/src/entities/errors/library-errors"
 
 export const metadata: Metadata = {
-  title: "Library – AI Chat",
+  title: "Folder – AI Chat",
 }
 
-/** Renders authenticated workspace library. */
-export default async function LibraryPage() {
+/** Renders one owner-scoped flat Library Folder at bookmarkable URL. */
+export default async function LibraryFolderPage(
+  props: PageProps<"/library/[folderId]">
+) {
+  const { folderId } = await props.params
   const {
     activeWorkspaceId,
     currentUser,
@@ -31,15 +42,29 @@ export default async function LibraryPage() {
   const libraryController = resolveApplicationDependency(
     applicationInjectionTokens.libraryController
   )
-  const listing = await libraryController.listLibrary(null, {
-    organizationId: activeWorkspaceId,
-    ownerId: userId,
-  })
-  const items = createLibraryBrowserItems(
-    listing.folders,
-    listing.files,
-    true
-  )
+  let listing
+
+  try {
+    listing = await libraryController.listLibrary(folderId, {
+      organizationId: activeWorkspaceId,
+      ownerId: userId,
+    })
+  } catch (error) {
+    if (
+      error instanceof InvalidLibraryRequestError ||
+      error instanceof LibraryAccessDeniedError
+    ) {
+      notFound()
+    }
+
+    throw error
+  }
+
+  if (!listing.folder) {
+    notFound()
+  }
+
+  const items = createLibraryBrowserItems([], listing.files, false)
   const folders = listing.folders.map(({ id, name }) => ({ id, name }))
 
   return (
@@ -47,7 +72,7 @@ export default async function LibraryPage() {
       activeNavigation="library"
       activeWorkspaceId={activeWorkspaceId}
       currentUser={currentUser}
-      initialTitle="Library"
+      initialTitle={listing.folder.name}
       ownChats={ownChats}
       teamChats={teamChats}
       workspaces={workspaces}
@@ -56,13 +81,24 @@ export default async function LibraryPage() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbPage>Library</BreadcrumbPage>
+              <BreadcrumbLink render={<Link href="/library" />}>
+                Library
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{listing.folder.name}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
       </ChatPageHeader>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <LibraryBrowser folders={folders} items={items} />
+        <LibraryBrowser
+          activeFolderId={listing.folder.id}
+          currentFolderName={listing.folder.name}
+          folders={folders}
+          items={items}
+        />
       </div>
     </ChatAppShell>
   )

@@ -45,6 +45,9 @@ test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", (
     attachments: [
       {
         filename: "quote.pdf",
+        href: "data:application/pdf;base64,AA==",
+        id: "assistant-response-file-4",
+        isAvailable: true,
         mediaType: "application/pdf",
       },
     ],
@@ -75,6 +78,32 @@ test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", (
       },
     ],
   })
+})
+
+test("deleted Library File maps to unavailable Chat placeholder", () => {
+  const fileId = "20000000-0000-4000-8000-000000000001"
+  const message: ChatUIMessage = {
+    id: "user-message",
+    metadata: { libraryFileAvailability: { [fileId]: false } },
+    role: "user",
+    parts: [
+      {
+        filename: "brief.pdf",
+        mediaType: "application/pdf",
+        type: "file",
+        url: `/api/library/files/${fileId}`,
+      },
+    ],
+  }
+
+  assert.deepEqual(convertChatUiMessageToDisplayMessage(message)?.attachments, [
+    {
+      filename: "brief.pdf",
+      id: fileId,
+      isAvailable: false,
+      mediaType: "application/pdf",
+    },
+  ])
 })
 
 test("streaming reasoning maps to running chat activity", () => {

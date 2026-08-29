@@ -17,7 +17,11 @@ export default async function ChatByIdPage(props: PageProps<"/chat/[chatId]">) {
     workspaces,
   } = await loadChatPageData()
 
-  const view = await chatLibrary.getChatForViewer(chatId, userId)
+  const view = await chatLibrary.getChatForViewer(
+    chatId,
+    userId,
+    activeWorkspaceId
+  )
 
   if (!view) {
     notFound()

@@ -1,6 +1,12 @@
+import Link from "next/link"
 import { FileTextIcon, FolderIcon } from "lucide-react"
 
-import type { LibraryItem } from "@/components/library/library-data"
+import type {
+  LibraryFolderOption,
+  LibraryItem,
+  LibraryItemActions,
+} from "@/components/library/library-data"
+import { LibraryItemMenu } from "@/components/library/library-item-menu"
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
 import {
   Table,
@@ -12,14 +18,19 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-/** Renders library folders and files as a metadata table. */
+/** Renders Library Folders and Files as metadata table. */
 export function LibraryList({
   className,
+  folders,
   items,
+  onDeleteFile,
+  onDeleteFolder,
+  onMoveFile,
 }: {
   className?: string
+  folders: readonly LibraryFolderOption[]
   items: readonly LibraryItem[]
-}) {
+} & LibraryItemActions) {
   return (
     <div className={cn("overflow-x-auto rounded-lg border", className)}>
       <Table>
@@ -30,12 +41,17 @@ export function LibraryList({
             <TableHead className="hidden w-32 sm:table-cell">
               Modified
             </TableHead>
-            <TableHead className="hidden w-48 lg:table-cell">Source</TableHead>
+            <TableHead className="hidden w-48 lg:table-cell">
+              Provenance
+            </TableHead>
+            <TableHead className="w-12">
+              <span className="sr-only">Actions</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {items.map((item) => (
-            <TableRow key={item.name}>
+            <TableRow key={item.id}>
               <TableCell>
                 <Item className="flex-nowrap p-0 text-left" size="sm">
                   <ItemMedia
@@ -50,7 +66,13 @@ export function LibraryList({
                   </ItemMedia>
                   <ItemContent className="min-w-0">
                     <ItemTitle className="max-w-full truncate">
-                      {item.name}
+                      {item.kind === "folder" ? (
+                        <Link href={item.href}>{item.name}</Link>
+                      ) : (
+                        <a download href={item.href}>
+                          {item.name}
+                        </a>
+                      )}
                     </ItemTitle>
                   </ItemContent>
                 </Item>
@@ -62,7 +84,25 @@ export function LibraryList({
                 {item.modified}
               </TableCell>
               <TableCell className="hidden text-muted-foreground lg:table-cell">
-                {item.source}
+                {item.provenanceHref ? (
+                  <Link
+                    className="hover:text-foreground"
+                    href={item.provenanceHref}
+                  >
+                    {item.provenance}
+                  </Link>
+                ) : (
+                  item.provenance
+                )}
+              </TableCell>
+              <TableCell>
+                <LibraryItemMenu
+                  folders={folders}
+                  item={item}
+                  onDeleteFile={onDeleteFile}
+                  onDeleteFolder={onDeleteFolder}
+                  onMoveFile={onMoveFile}
+                />
               </TableCell>
             </TableRow>
           ))}

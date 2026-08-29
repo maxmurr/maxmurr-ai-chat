@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface"
+import type { LibraryService } from "@/src/application/services/library.service.interface"
 import {
   ChatAccessDeniedError,
   InvalidChatRequestError,
@@ -9,7 +10,12 @@ import {
   canViewChat,
   chatVisibilities,
   type Chat,
+  type ChatMessage,
 } from "@/src/entities/models/chat"
+import {
+  getMessageLibraryFileIds,
+  type LibraryOwnerScope,
+} from "@/src/entities/models/library"
 
 const chatTitleSchema = z.string().trim().min(1).max(80)
 const chatVisibilitySchema = z.enum(chatVisibilities)
@@ -18,13 +24,57 @@ function withoutPublicToken(chat: Chat): Chat {
   return { ...chat, publicToken: null }
 }
 
+function withFileAvailability(
+  message: ChatMessage,
+  existingFileIds: ReadonlySet<string>
+): ChatMessage {
+  const fileIds = getMessageLibraryFileIds(message.parts)
+
+  if (fileIds.length === 0) {
+    return message
+  }
+
+  const metadata =
+    typeof message.metadata === "object" && message.metadata !== null
+      ? message.metadata
+      : {}
+
+  return {
+    ...message,
+    metadata: {
+      ...metadata,
+      libraryFileAvailability: Object.fromEntries(
+        fileIds.map((fileId) => [fileId, existingFileIds.has(fileId)])
+      ),
+    },
+  }
+}
+
 /** Validated chat library controller resolved by application composition root. */
 export type ChatLibraryController = ReturnType<
   typeof createChatLibraryController
 >
 
 /** Creates owner-scoped chat read and management operations over the repository. */
-export function createChatLibraryController(chatRepository: ChatRepository) {
+export function createChatLibraryController(
+  chatRepository: ChatRepository,
+  libraryService: LibraryService
+) {
+  async function projectFileAvailability(
+    messages: ChatMessage[],
+    scope: LibraryOwnerScope | null
+  ) {
+    const fileIds = [...new Set(messages.flatMap((entry) => getMessageLibraryFileIds(entry.parts)))]
+    const existingFileIds = new Set(
+      scope
+        ? await libraryService.findExistingFileIds(fileIds, scope)
+        : []
+    )
+    return messages.map((message) =>
+      withFileAvailability(message, existingFileIds)
+    )
+  }
+
   async function requireOwnedChat(chatId: string, userId: string) {
     const chat = await chatRepository.getChatById(chatId)
 
@@ -42,10 +92,14 @@ export function createChatLibraryController(chatRepository: ChatRepository) {
     },
 
     /** Returns the chat as seen by this user, or null when it must stay hidden. */
-    async getChatForViewer(chatId: string, userId: string) {
+    async getChatForViewer(
+      chatId: string,
+      userId: string,
+      activeOrganizationId: string
+    ) {
       const chat = await chatRepository.getChatById(chatId)
 
-      if (!chat) {
+      if (!chat || chat.organizationId !== activeOrganizationId) {
         return null
       }
 
@@ -58,10 +112,17 @@ export function createChatLibraryController(chatRepository: ChatRepository) {
         return null
       }
 
+      const messages = await chatRepository.getChatMessages(chatId)
+
       return {
         chat: isOwner ? chat : withoutPublicToken(chat),
         isOwner,
-        messages: await chatRepository.getChatMessages(chatId),
+        messages: await projectFileAvailability(
+          messages,
+          isOwner
+            ? { organizationId: activeOrganizationId, ownerId: userId }
+            : null
+        ),
       }
     },
 
@@ -74,7 +135,10 @@ export function createChatLibraryController(chatRepository: ChatRepository) {
 
       return {
         chat: withoutPublicToken(chat),
-        messages: await chatRepository.getChatMessages(chat.id),
+        messages: await projectFileAvailability(
+          await chatRepository.getChatMessages(chat.id),
+          null
+        ),
       }
     },
 

@@ -3,7 +3,7 @@
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport } from "ai"
+import { DefaultChatTransport, type FileUIPart } from "ai"
 import { CircleAlertIcon } from "lucide-react"
 
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/components/chat/chat-composer"
 import { useChatConversationTitle } from "@/components/chat/chat-conversation-title"
 import { ChatMessageList } from "@/components/chat/chat-message-list"
+import { uploadLibraryFiles } from "@/components/library/upload-library-files"
 import {
   Alert,
   AlertDescription,
@@ -21,7 +22,9 @@ import {
   convertChatUiMessageToDisplayMessage,
   type ChatUIMessage,
 } from "@/src/interface-adapters/presenters/chat-message.presenter"
+import { toast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
+import { createLibraryFileDownloadUrl } from "@/src/entities/models/library"
 
 const CHAT_TRANSPORT = new DefaultChatTransport<ChatUIMessage>({
   api: "/api/chat",
@@ -100,35 +103,47 @@ function ChatThreadContent({
       return
     }
 
-    const messageAttachments = attachments.map(({ name, type }) => ({
-      filename: name,
-      mediaType: type || "application/octet-stream",
-    }))
-
-    if (messages.length === 0) {
-      setConversationTitle(
-        text || messageAttachments[0]?.filename || "New chat"
-      )
-      isNewlyPersistedChatRef.current = true
-      window.history.replaceState(null, "", `/chat/${chatId}`)
-    }
-
     clearError()
-    setAttachments([])
-    setDraft("")
+    setComposerAnnouncement("")
 
     try {
+      const uploadedFiles =
+        attachments.length > 0 ? await uploadLibraryFiles(attachments) : []
+      const fileParts: FileUIPart[] = uploadedFiles.map((file) => ({
+        filename: file.name,
+        mediaType: file.mediaType,
+        type: "file",
+        url: createLibraryFileDownloadUrl(file.id),
+      }))
+      const messageId = crypto.randomUUID()
+
+      if (messages.length === 0) {
+        setConversationTitle(text || uploadedFiles[0]?.name || "New chat")
+        isNewlyPersistedChatRef.current = true
+        window.history.replaceState(null, "", `/chat/${chatId}`)
+      }
+
+      setAttachments([])
+      setDraft("")
+
       await sendMessage({
-        text: text || "Attached files.",
-        metadata: {
-          createdAt: new Date().toISOString(),
-          ...(messageAttachments.length > 0
-            ? { attachments: messageAttachments }
-            : {}),
-        },
+        id: messageId,
+        metadata: { createdAt: new Date().toISOString() },
+        parts: [
+          ...fileParts,
+          ...(text ? [{ text, type: "text" as const }] : []),
+        ],
+        role: "user",
       })
-    } catch {
-      setComposerAnnouncement("Could not send message.")
+    } catch (error) {
+      const description =
+        error instanceof Error ? error.message : "Could not send message."
+      setComposerAnnouncement(description)
+      toast.add({
+        description,
+        title: attachments.length > 0 ? "File send failed" : "Message failed",
+        type: "error",
+      })
     }
   }
 

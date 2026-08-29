@@ -16,7 +16,13 @@ test("chat message composes reasoning, tools, files, sources, and actions", () =
           isStreaming={false}
           message={{
             attachments: [
-              { filename: "report.pdf", mediaType: "application/pdf" },
+              {
+                filename: "report.pdf",
+                href: "/api/library/files/file-1",
+                id: "file-1",
+                isAvailable: true,
+                mediaType: "application/pdf",
+              },
             ],
             content: "Finished",
             createdAt: "2026-08-28T01:02:03.000Z",

@@ -1,7 +1,10 @@
 type ChatStreamMessagePart = {
   readonly [key: string]: unknown
+  readonly filename?: string
+  readonly mediaType?: string
   readonly text?: string
   readonly type: string
+  readonly url?: string
 }
 
 export type ChatStreamMessage = {

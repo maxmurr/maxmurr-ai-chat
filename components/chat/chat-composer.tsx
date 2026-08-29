@@ -10,6 +10,7 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group"
 import { cn } from "@/lib/utils"
+import { LIBRARY_FILE_ACCEPT } from "@/src/entities/models/library"
 
 type ChatFilePickerShortcut = Pick<
   KeyboardEvent,
@@ -140,6 +141,7 @@ export function ChatComposer({
           <div className="rounded-lg bg-background">
             <Input
               ref={fileInputRef}
+              accept={LIBRARY_FILE_ACCEPT}
               aria-label="Choose files to attach"
               hidden
               multiple

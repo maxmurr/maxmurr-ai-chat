@@ -9,14 +9,21 @@ import {
 import { after } from "next/server"
 
 import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface"
+import type { LibraryService } from "@/src/application/services/library.service.interface"
 import type { StreamChatResponse } from "@/src/application/services/chat-stream.service.interface"
 import {
   ChatAccessDeniedError,
   ChatUnavailableError,
 } from "@/src/entities/errors/chat-errors"
+import { LibraryAccessDeniedError } from "@/src/entities/errors/library-errors"
 import type { ChatMessage } from "@/src/entities/models/chat"
 import type { ChatStreamMessage } from "@/src/entities/models/chat-stream-request"
+import { getMessageLibraryFileIds } from "@/src/entities/models/library"
 import { mastraRuntime } from "@/src/infrastructure/ai/mastra/mastra-runtime"
+import {
+  hydrateLibraryFilesForModel,
+  saveAssistantGeneratedFiles,
+} from "@/src/infrastructure/services/chat-library-files.service"
 
 const MODEL_MESSAGE_LIMIT = 100
 const CHAT_TITLE_LIMIT = 80
@@ -30,7 +37,10 @@ function extractMessageText(message: ChatStreamMessage) {
 
 function fallbackChatTitle(message: ChatStreamMessage) {
   const text = extractMessageText(message).trim()
-  return text ? text.slice(0, CHAT_TITLE_LIMIT) : "New chat"
+  const filename = message.parts.find(
+    (part) => part.type === "file" && typeof part.filename === "string"
+  )?.filename
+  return (text || filename || "New chat").slice(0, CHAT_TITLE_LIMIT)
 }
 
 async function generateAndSaveChatTitle(
@@ -38,6 +48,10 @@ async function generateAndSaveChatTitle(
   chatId: string,
   userText: string
 ) {
+  if (!userText.trim()) {
+    return
+  }
+
   try {
     const { text } = await generateText({
       model: "openai/gpt-5.6-luna",
@@ -61,17 +75,28 @@ async function generateAndSaveChatTitle(
   }
 }
 
-/** Creates streaming chat service that persists each turn around a Mastra run. */
+/** Creates streaming Chat service that persists turns and Library Files. */
 export function createMastraChatStreamService(
-  chatRepository: ChatRepository
+  chatRepository: ChatRepository,
+  libraryService: LibraryService
 ): StreamChatResponse {
   return async (request, context, abortSignal) => {
     const { chatId, message, messageId, trigger } = request
-
     const existingChat = await chatRepository.getChatById(chatId)
 
-    if (existingChat && existingChat.ownerId !== context.userId) {
-      throw new ChatAccessDeniedError()
+    if (existingChat) {
+      const isActiveWorkspaceMember = await chatRepository.isWorkspaceMember(
+        context.organizationId,
+        context.userId
+      )
+
+      if (
+        existingChat.ownerId !== context.userId ||
+        existingChat.organizationId !== context.organizationId ||
+        !isActiveWorkspaceMember
+      ) {
+        throw new ChatAccessDeniedError()
+      }
     }
 
     if (!existingChat) {
@@ -99,6 +124,11 @@ export function createMastraChatStreamService(
       )
     }
 
+    const libraryScope = {
+      organizationId: context.organizationId,
+      ownerId: context.userId,
+    }
+
     try {
       let history = await chatRepository.getChatMessages(chatId)
 
@@ -118,13 +148,22 @@ export function createMastraChatStreamService(
         }
       }
 
+      await libraryService.setChatFileProvenance(
+        getMessageLibraryFileIds(message.parts),
+        { provenanceChatId: chatId, provenanceMessageId: message.id },
+        libraryScope
+      )
       await chatRepository.saveMessage(chatId, message)
 
-      const modelMessages = [
+      const persistedModelMessages = [
         ...history.filter((entry) => entry.id !== message.id),
         message,
       ].slice(-MODEL_MESSAGE_LIMIT) as unknown as UIMessage[]
-
+      const providerMessages = await hydrateLibraryFilesForModel(
+        persistedModelMessages,
+        libraryService,
+        libraryScope
+      )
       const stream = await handleChatStream({
         agentId: "chat-assistant",
         experimentalTransform: smoothStream({
@@ -145,10 +184,14 @@ export function createMastraChatStreamService(
         },
         params: {
           abortSignal,
-          messages: modelMessages,
+          messages: providerMessages,
+          providerOptions: {
+            // OpenAI Responses accepts text/code file_data after adapter opt-in.
+            openai: { passThroughUnsupportedFiles: true },
+          },
           tracingOptions: {
             metadata: {
-              langfuse: { organizationId: context.organizationId },
+              langfuse: { organizationId: libraryScope.organizationId },
               sessionId: chatId,
               userId: context.userId,
             },
@@ -168,17 +211,52 @@ export function createMastraChatStreamService(
             writer.merge(stream as unknown as ReadableStream<UIMessageChunk>)
           },
           onEnd: async ({ responseMessage }) => {
-            if (responseMessage.parts.length > 0) {
-              await chatRepository.saveMessage(
-                chatId,
-                responseMessage as ChatMessage
-              )
+            if (responseMessage.parts.length === 0) {
+              return
             }
+
+            let persistedResponse = responseMessage
+
+            try {
+              persistedResponse = await saveAssistantGeneratedFiles(
+                responseMessage,
+                chatId,
+                libraryService,
+                libraryScope
+              )
+            } catch (error) {
+              console.error(
+                "Assistant File persistence failed.",
+                error instanceof Error ? error.message : "Unknown error"
+              )
+              persistedResponse = {
+                ...responseMessage,
+                parts: responseMessage.parts.flatMap((part) =>
+                  part.type === "file" && part.url.startsWith("data:")
+                    ? [
+                        {
+                          text: `Generated File unavailable: ${part.filename ?? part.mediaType}`,
+                          type: "text" as const,
+                        },
+                      ]
+                    : [part]
+                ),
+              }
+            }
+
+            await chatRepository.saveMessage(
+              chatId,
+              persistedResponse as ChatMessage
+            )
           },
-          originalMessages: modelMessages,
+          originalMessages: persistedModelMessages,
         }),
       })
     } catch (error) {
+      if (error instanceof LibraryAccessDeniedError) {
+        throw new ChatAccessDeniedError({ cause: error })
+      }
+
       throw new ChatUnavailableError({ cause: error })
     }
   }

@@ -1,5 +1,6 @@
 import { resolveApplicationDependency } from "@/di/application-container"
 import { auth } from "@/di/authentication"
+import { resolveActiveWorkspaceId } from "@/lib/active-workspace"
 import { applicationInjectionTokens } from "@/di/application-container.registry"
 import {
   ChatAccessDeniedError,
@@ -27,16 +28,13 @@ export async function POST(request: Request) {
       return Response.json({ error: "Unauthorized." }, { status: 401 })
     }
 
-    // Sessions start without an active workspace; fall back to the first
-    // membership, matching the workspace switcher's display fallback.
-    let organizationId = session.session.activeOrganizationId ?? null
-
-    if (!organizationId) {
-      const organizations = await auth.api.listOrganizations({
-        headers: request.headers,
-      })
-      organizationId = organizations[0]?.id ?? null
-    }
+    const organizations = await auth.api.listOrganizations({
+      headers: request.headers,
+    })
+    const organizationId = resolveActiveWorkspaceId(
+      organizations,
+      session.session.activeOrganizationId
+    )
 
     if (!organizationId) {
       return Response.json({ error: "Workspace is required." }, { status: 403 })

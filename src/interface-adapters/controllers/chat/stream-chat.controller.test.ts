@@ -20,6 +20,12 @@ test("chat controller validates input before streaming", async () => {
         type: "text",
         text: "Hello",
       },
+      {
+        filename: "brief.pdf",
+        mediaType: "application/pdf",
+        type: "file",
+        url: "/api/library/files/20000000-0000-4000-8000-000000000001",
+      },
     ],
   }
   const validRequest = {
@@ -79,6 +85,29 @@ test("chat controller validates input before streaming", async () => {
             id: "user-message",
             role: "user",
             parts: [{ type: "text" }],
+          },
+        },
+        context,
+        abortSignal
+      ),
+    InvalidChatRequestError
+  )
+  assert.throws(
+    () =>
+      controller(
+        {
+          id: chatId,
+          message: {
+            id: "user-message",
+            role: "user",
+            parts: [
+              {
+                filename: "brief.pdf",
+                mediaType: "application/pdf",
+                type: "file",
+                url: "https://example.com/brief.pdf",
+              },
+            ],
           },
         },
         context,
