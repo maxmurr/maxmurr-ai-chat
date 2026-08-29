@@ -35,9 +35,15 @@ test("chat history renders collapsible sections outside active chat title provid
   assert.match(markup, />Pinned</)
   assert.match(markup, />Recents</)
   assert.equal(markup.match(/aria-expanded="true"/g)?.length, 2)
+  assert.match(markup, /lucide-chevron-right/)
   assert.match(
     markup,
-    /group-aria-expanded\/chat-history-trigger:rotate-180/
+    /aria-expanded:pointer-fine:not-hover:not-focus-visible/
+  )
+  assert.match(markup, /transition-\[opacity,rotate\]/)
+  assert.match(
+    markup,
+    /group-aria-expanded\/chat-history-trigger:rotate-90/
   )
   assert.doesNotMatch(markup, />Today</)
   assert.doesNotMatch(markup, />Yesterday</)

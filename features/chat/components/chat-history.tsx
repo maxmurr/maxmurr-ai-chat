@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronDownIcon } from "lucide-react"
+import { ChevronRightIcon } from "lucide-react"
 
 import {
   ChatConversationItem,
@@ -63,13 +63,13 @@ export function ChatHistory({
         >
           <Collapsible defaultOpen>
             <SidebarGroupLabel
-              className="group/chat-history-trigger cursor-pointer justify-between select-none"
+              className="group/chat-history-trigger cursor-pointer justify-start select-none aria-expanded:pointer-fine:not-hover:not-focus-visible:[&>svg]:opacity-0 [&>svg]:size-4 lg:[&>svg]:size-3.5"
               render={<CollapsibleTrigger />}
             >
               {group.label}
-              <ChevronDownIcon
+              <ChevronRightIcon
                 aria-hidden="true"
-                className="transition-transform duration-150 ease-out group-aria-expanded/chat-history-trigger:rotate-180 motion-reduce:transition-none"
+                className="stroke-sidebar-foreground/50 transition-[opacity,rotate] duration-150 ease-out group-aria-expanded/chat-history-trigger:rotate-90 motion-reduce:transition-none"
               />
             </SidebarGroupLabel>
             <CollapsibleContent className="h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0 motion-reduce:transition-none">
