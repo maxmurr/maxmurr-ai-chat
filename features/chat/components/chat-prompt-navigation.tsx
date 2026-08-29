@@ -59,7 +59,7 @@ export function ChatPromptNavigation({
     <HoverCard actionsRef={hoverCardActionsRef}>
       <nav
         aria-label="Prompt navigation"
-        className="absolute inset-y-0 end-1 hidden items-center lg:pointer-fine:flex"
+        className="absolute inset-y-0 inset-e-1 hidden items-center lg:pointer-fine:flex"
       >
         <ol className="flex flex-col items-end gap-0.5" role="list">
           {prompts.map((prompt, index) => {
