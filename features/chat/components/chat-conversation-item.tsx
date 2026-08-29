@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useEffect, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   EllipsisIcon,
   FolderPlusIcon,
@@ -12,13 +12,13 @@ import {
   PinOffIcon,
   ShareIcon,
   Trash2Icon,
-} from "lucide-react"
+} from "lucide-react";
 
-import { pinChatAction, renameChatAction } from "@/features/chat/chat-actions"
-import { ChatDeleteDialog } from "@/features/chat/components/chat-dialogs"
-import { ChatShareDialogContent } from "@/features/chat/components/chat-share-dialog"
-import { Dialog } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import { pinChatAction, renameChatAction } from "@/features/chat/chat-actions";
+import { ChatDeleteDialog } from "@/features/chat/components/chat-dialogs";
+import { ChatShareDialogContent } from "@/features/chat/components/chat-share-dialog";
+import { Dialog } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,31 +26,31 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { toast } from "@/components/ui/toast"
-import type { ChatVisibility } from "@/src/entities/models/chat"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/sidebar";
+import { toast } from "@/components/ui/toast";
+import type { ChatVisibility } from "@/src/entities/models/chat";
+import { cn } from "@/lib/utils";
 
 /** Serializable owned chat row with everything its action menu needs. */
 export type ChatConversationEntry = {
-  id: string
-  pinned: boolean
-  publicToken: string | null
-  title: string
-  updatedAt: Date
-  visibility: ChatVisibility
-}
+  id: string;
+  pinned: boolean;
+  publicToken: string | null;
+  title: string;
+  updatedAt: Date;
+  visibility: ChatVisibility;
+};
 
 type ChatConversationItemProps = {
-  chat: ChatConversationEntry
-  className?: string
-  isActive: boolean
-}
+  chat: ChatConversationEntry;
+  className?: string;
+  isActive: boolean;
+};
 
 /** Renders one renameable conversation link and its action menu. */
 export function ChatConversationItem({
@@ -58,93 +58,98 @@ export function ChatConversationItem({
   className,
   isActive,
 }: ChatConversationItemProps) {
-  const router = useRouter()
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isRenaming, setIsRenaming] = useState(false)
-  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
-  const [isTitleOverflowing, setIsTitleOverflowing] = useState(false)
-  const conversationActionsRef = useRef<HTMLDivElement>(null)
-  const conversationLinkRef = useRef<HTMLAnchorElement>(null)
-  const movingTitleRef = useRef<HTMLSpanElement>(null)
-  const renameInputRef = useRef<HTMLInputElement>(null)
-  const restoreLinkFocusRef = useRef(false)
-  const titleViewportRef = useRef<HTMLSpanElement>(null)
+  const router = useRouter();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isTitleOverflowing, setIsTitleOverflowing] = useState(false);
+  const conversationActionsRef = useRef<HTMLDivElement>(null);
+  const conversationLinkRef = useRef<HTMLAnchorElement>(null);
+  const movingTitleRef = useRef<HTMLSpanElement>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  const restoreLinkFocusRef = useRef(false);
+  const titleViewportRef = useRef<HTMLSpanElement>(null);
 
   function toggleConversationPin() {
     void pinChatAction(chat.id, !chat.pinned).then((result) => {
       if (!result.ok) {
-        toast.add({ description: result.error, title: "Pin failed", type: "error" })
+        toast.add({
+          description: result.error,
+          title: "Pin failed",
+          type: "error",
+        });
       }
-    })
+    });
   }
 
   function finishRenaming(value: string) {
-    const nextTitle = value.trim()
+    const nextTitle = value.trim();
 
     if (nextTitle && nextTitle !== chat.title) {
       void renameChatAction(chat.id, nextTitle).then((result) => {
         if (!result.ok) {
-          toast.add({ description: result.error, title: "Rename failed", type: "error" })
+          toast.add({
+            description: result.error,
+            title: "Rename failed",
+            type: "error",
+          });
         }
-      })
-
+      });
     }
 
-    setIsRenaming(false)
+    setIsRenaming(false);
   }
 
   useEffect(() => {
     if (isRenaming) {
-      renameInputRef.current?.focus()
-      renameInputRef.current?.select()
-      return
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+      return;
     }
 
     if (restoreLinkFocusRef.current) {
-      restoreLinkFocusRef.current = false
-      conversationLinkRef.current?.focus()
+      restoreLinkFocusRef.current = false;
+      conversationLinkRef.current?.focus();
     }
-  }, [isRenaming])
+  }, [isRenaming]);
 
   useEffect(() => {
-    const conversationActions = conversationActionsRef.current
-    const movingTitle = movingTitleRef.current
-    const titleViewport = titleViewportRef.current
+    const conversationActions = conversationActionsRef.current;
+    const movingTitle = movingTitleRef.current;
+    const titleViewport = titleViewportRef.current;
 
     if (!conversationActions || !movingTitle || !titleViewport) {
-      return
+      return;
     }
 
     const updateTitleOverflow = () => {
+      const titleViewportRect = titleViewport.getBoundingClientRect();
       const titleVisibleWidth =
         conversationActions.getBoundingClientRect().left -
-        titleViewport.getBoundingClientRect().left
+        titleViewportRect.left;
 
       titleViewport.style.setProperty(
         "--conversation-title-visible-width",
-        `${titleVisibleWidth - 16}px`
-      )
+        `${titleVisibleWidth}px`
+      );
       setIsTitleOverflowing(
-        movingTitle.getBoundingClientRect().width - titleVisibleWidth > 1
-      )
-    }
+        movingTitle.getBoundingClientRect().width - titleViewportRect.width > 1
+      );
+    };
 
-    const resizeObserver = new ResizeObserver(updateTitleOverflow)
-    resizeObserver.observe(conversationActions)
-    resizeObserver.observe(movingTitle)
-    resizeObserver.observe(titleViewport)
-    updateTitleOverflow()
+    const resizeObserver = new ResizeObserver(updateTitleOverflow);
+    resizeObserver.observe(conversationActions);
+    resizeObserver.observe(movingTitle);
+    resizeObserver.observe(titleViewport);
+    updateTitleOverflow();
 
-    return () => resizeObserver.disconnect()
-  }, [chat.title])
+    return () => resizeObserver.disconnect();
+  }, [chat.title]);
 
   return (
     <SidebarMenuItem className={cn(className)}>
       {isRenaming ? (
-        <SidebarMenuButton
-          className="bg-transparent! pr-2!"
-          render={<div />}
-        >
+        <SidebarMenuButton className="bg-transparent! pr-2!" render={<div />}>
           {chat.pinned && <MessageCircleIcon />}
           <Input
             ref={renameInputRef}
@@ -158,16 +163,16 @@ export function ChatConversationItem({
             onBlur={(event) => finishRenaming(event.currentTarget.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-                event.preventDefault()
-                restoreLinkFocusRef.current = true
-                finishRenaming(event.currentTarget.value)
-                return
+                event.preventDefault();
+                restoreLinkFocusRef.current = true;
+                finishRenaming(event.currentTarget.value);
+                return;
               }
 
               if (event.key === "Escape") {
-                event.stopPropagation()
-                restoreLinkFocusRef.current = true
-                setIsRenaming(false)
+                event.stopPropagation();
+                restoreLinkFocusRef.current = true;
+                setIsRenaming(false);
               }
             }}
           />
@@ -191,14 +196,14 @@ export function ChatConversationItem({
             className={cn(
               "@container/title relative min-w-0 flex-1 text-clip!",
               isTitleOverflowing &&
-              "mask-[linear-gradient(to_right,black,black_calc(100%-0.75rem),transparent)] motion-safe:pointer-fine:group-hover/menu-item:mask-[linear-gradient(to_right,transparent,black_0.75rem,black_calc(100%-0.75rem),transparent)]"
+                "mask-[linear-gradient(to_right,black,black_calc(100%-0.75rem),transparent)] motion-safe:pointer-fine:group-hover/menu-item:mask-[linear-gradient(to_right,transparent,black_0.75rem,black_calc(100%-0.75rem),transparent)]"
             )}
           >
             <span
               className={cn(
                 "block overflow-hidden whitespace-nowrap",
                 isTitleOverflowing &&
-                "motion-safe:pointer-fine:group-hover/menu-item:invisible"
+                  "motion-safe:pointer-fine:group-hover/menu-item:invisible"
               )}
             >
               {chat.title}
@@ -209,7 +214,7 @@ export function ChatConversationItem({
               className={cn(
                 "invisible absolute inset-y-0 left-0 inline-block w-max",
                 isTitleOverflowing &&
-                "motion-safe:pointer-fine:group-hover/menu-item:visible motion-safe:pointer-fine:group-hover/menu-item:translate-x-[calc(var(--conversation-title-visible-width)-100%)] motion-safe:pointer-fine:group-hover/menu-item:transition-transform motion-safe:pointer-fine:group-hover/menu-item:delay-300 motion-safe:pointer-fine:group-hover/menu-item:duration-[2s] motion-safe:pointer-fine:group-hover/menu-item:ease-linear"
+                  "motion-safe:pointer-fine:group-hover/menu-item:visible motion-safe:pointer-fine:group-hover/menu-item:translate-x-[calc(var(--conversation-title-visible-width)-100%)] motion-safe:pointer-fine:group-hover/menu-item:transition-transform motion-safe:pointer-fine:group-hover/menu-item:delay-300 motion-safe:pointer-fine:group-hover/menu-item:duration-[2s] motion-safe:pointer-fine:group-hover/menu-item:ease-linear"
               )}
             >
               {chat.title}
@@ -248,7 +253,7 @@ export function ChatConversationItem({
             align="start"
             className="w-48"
             finalFocus={(closeType) =>
-              renameInputRef.current ?? (closeType === "keyboard")
+              renameInputRef.current ?? closeType === "keyboard"
             }
             side="right"
           >
@@ -300,5 +305,5 @@ export function ChatConversationItem({
         open={isDeleteDialogOpen}
       />
     </SidebarMenuItem>
-  )
+  );
 }
