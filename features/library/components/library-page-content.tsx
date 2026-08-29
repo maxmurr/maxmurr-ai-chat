@@ -1,9 +1,10 @@
-import Link from "next/link"
+import Link from "next/link";
 
-import { ChatPageHeader } from "@/features/chat/components/chat-page-header"
-import { LibraryBrowser } from "@/features/library/components/library-browser"
-import { createLibraryBrowserItems } from "@/features/library/components/library-data"
-import { getLibraryPageListing } from "@/features/library/library-queries"
+import { ChatPageHeader } from "@/features/chat/components/chat-page-header";
+import { LibraryBrowser } from "@/features/library/components/library-browser";
+import { createLibraryBrowserItems } from "@/features/library/components/library-data";
+import { getLibraryPageListing } from "@/features/library/library-queries";
+import { AppPageContainer } from "@/components/app-page-container";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,23 +12,23 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Skeleton } from "@/components/ui/skeleton"
+} from "@/components/ui/breadcrumb";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /** Loads owner-scoped Library root or Folder browser. */
 export async function LibraryPageContent({
   folderId = null,
 }: {
-  folderId?: string | null
+  folderId?: string | null;
 }) {
-  const listing = await getLibraryPageListing(folderId)
-  const currentFolder = listing.folder
+  const listing = await getLibraryPageListing(folderId);
+  const currentFolder = listing.folder;
   const items = createLibraryBrowserItems(
     currentFolder ? [] : listing.folders,
     listing.files,
     !currentFolder
-  )
-  const folders = listing.folders.map(({ id, name }) => ({ id, name }))
+  );
+  const folders = listing.folders.map(({ id, name }) => ({ id, name }));
 
   return (
     <>
@@ -63,7 +64,7 @@ export async function LibraryPageContent({
         />
       </div>
     </>
-  )
+  );
 }
 
 /** Reserves Library header, controls, and item grid while data loads. */
@@ -78,7 +79,7 @@ export function LibraryPageContentSkeleton() {
         <Skeleton className="h-5 w-28 max-w-full sm:h-4" />
       </ChatPageHeader>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="@container mx-auto w-full max-w-7xl p-4 lg:p-6">
+        <AppPageContainer className="mx-auto">
           <div className="mb-6 flex min-w-0 items-center gap-2">
             <Skeleton className="h-11 min-w-0 max-w-xs flex-1 sm:h-8" />
             <Skeleton className="ml-auto h-11 w-16 shrink-0 sm:h-8" />
@@ -94,8 +95,8 @@ export function LibraryPageContentSkeleton() {
               <Skeleton className="aspect-4/5-full min-w-0" key={index} />
             ))}
           </div>
-        </div>
+        </AppPageContainer>
       </div>
     </div>
-  )
+  );
 }

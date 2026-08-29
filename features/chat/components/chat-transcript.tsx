@@ -1,9 +1,10 @@
-import { ChatMessageList } from "@/features/chat/components/chat-message-list"
+import { ChatFooterNotice } from "@/features/chat/components/chat-footer-notice";
+import { ChatMessageList } from "@/features/chat/components/chat-message-list";
 import {
   convertChatUiMessageToDisplayMessage,
   type ChatUIMessage,
-} from "@/src/interface-adapters/presenters/chat-message.presenter"
-import { cn } from "@/lib/utils"
+} from "@/src/interface-adapters/presenters/chat-message.presenter";
+import { cn } from "@/lib/utils";
 
 /** Renders a finished conversation for viewers who cannot write to it. */
 export function ChatTranscript({
@@ -11,14 +12,14 @@ export function ChatTranscript({
   messages,
   title,
 }: {
-  className?: string
-  messages: ChatUIMessage[]
-  title: string
+  className?: string;
+  messages: ChatUIMessage[];
+  title: string;
 }) {
   const displayMessages = messages.flatMap((message) => {
-    const displayMessage = convertChatUiMessageToDisplayMessage(message)
-    return displayMessage ? [displayMessage] : []
-  })
+    const displayMessage = convertChatUiMessageToDisplayMessage(message);
+    return displayMessage ? [displayMessage] : [];
+  });
 
   return (
     <section
@@ -34,10 +35,8 @@ export function ChatTranscript({
           status="ready"
         />
 
-        <p className="shrink-0 px-4 py-2.5 text-center text-xs text-balance text-muted-foreground">
-          This chat is read-only.
-        </p>
+        <ChatFooterNotice>This chat is read-only.</ChatFooterNotice>
       </div>
     </section>
-  )
+  );
 }

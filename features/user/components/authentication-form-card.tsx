@@ -1,70 +1,69 @@
-"use client"
+"use client";
 
-import { useForm } from "@tanstack/react-form"
-import { CircleAlertIcon } from "lucide-react"
-import { useState } from "react"
+import { useForm } from "@tanstack/react-form";
+import { CircleAlertIcon } from "lucide-react";
+import { useState } from "react";
 
-import { AuthenticationField } from "@/features/user/components/authentication-field"
+import { AuthenticationField } from "@/features/user/components/authentication-field";
 import {
   AuthenticationAlternateLink,
   AuthenticationFormHeader,
   AuthenticationOtpField,
-} from "@/features/user/components/authentication-form-sections"
+} from "@/features/user/components/authentication-form-sections";
 import {
   getAuthenticationFieldError,
   maskAuthenticationEmail,
   validateAuthenticationEmail,
   validateAuthenticationOtp,
   validateAuthenticationUsername,
-} from "@/features/user/user-authentication-validation"
-import { AuthenticationGoogleButton } from "@/features/user/components/authentication-google-button"
+} from "@/features/user/user-authentication-validation";
+import { AuthenticationGoogleButton } from "@/features/user/components/authentication-google-button";
 import {
   sendUserAuthenticationCodeAction,
   signInUserWithEmailOtpAction,
   startGoogleAuthenticationAction,
-} from "@/features/user/user-actions"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { FieldGroup } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
-import { cn } from "@/lib/utils"
+} from "@/features/user/user-actions";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { FieldGroup, FieldSeparator } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
-type AuthenticationMode = "sign-in" | "sign-up"
+type AuthenticationMode = "sign-in" | "sign-up";
 
 type AuthenticationFormValues = {
-  email: string
-  otp: string
-  username: string
-}
+  email: string;
+  otp: string;
+  username: string;
+};
 
 type AuthenticationVerificationRequest = {
-  email: string
-  username: string
-}
+  email: string;
+  username: string;
+};
 
 type AuthenticationFormCardProps = {
-  callbackPath?: string
-  className?: string
-  emailOtpEnabled: boolean
-  googleEnabled: boolean
-  initialErrorMessage?: string
-  mode: AuthenticationMode
-}
+  callbackPath?: string;
+  className?: string;
+  emailOtpEnabled: boolean;
+  googleEnabled: boolean;
+  initialErrorMessage?: string;
+  mode: AuthenticationMode;
+};
 
 const defaultAuthenticationFormValues: AuthenticationFormValues = {
   email: "",
   otp: "",
   username: "",
-}
+};
 
 export {
   maskAuthenticationEmail,
   validateAuthenticationEmail,
   validateAuthenticationOtp,
   validateAuthenticationUsername,
-} from "@/features/user/user-authentication-validation"
+} from "@/features/user/user-authentication-validation";
 
 /** Renders passwordless email OTP sign-in or verified account creation. */
 export function AuthenticationFormCard({
@@ -77,57 +76,57 @@ export function AuthenticationFormCard({
 }: AuthenticationFormCardProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(
     initialErrorMessage ?? null
-  )
+  );
   const [verificationRequest, setVerificationRequest] =
-    useState<AuthenticationVerificationRequest | null>(null)
-  const [isGooglePending, setIsGooglePending] = useState(false)
-  const isSignUp = mode === "sign-up"
-  const contentTestId = isSignUp ? "sign-up-content" : "sign-in-content"
-  const isVerificationStep = verificationRequest !== null
+    useState<AuthenticationVerificationRequest | null>(null);
+  const [isGooglePending, setIsGooglePending] = useState(false);
+  const isSignUp = mode === "sign-up";
+  const contentTestId = isSignUp ? "sign-up-content" : "sign-in-content";
+  const isVerificationStep = verificationRequest !== null;
   const title = isVerificationStep
     ? "Check your email"
     : isSignUp
       ? "Create your account"
-      : "Welcome back"
+      : "Welcome back";
   const description = !emailOtpEnabled
     ? "Email one-time password sign-in is unavailable."
     : isVerificationStep
       ? `A one-time password was sent to ${maskAuthenticationEmail(verificationRequest.email)}.`
       : isSignUp
         ? "Sign up with a one-time password"
-        : "Sign in to your account"
+        : "Sign in to your account";
 
   async function sendAuthenticationCode(email: string) {
     try {
-      const result = await sendUserAuthenticationCodeAction(email)
+      const result = await sendUserAuthenticationCodeAction(email);
 
       if (!result.ok) {
-        setErrorMessage(result.error)
-        return false
+        setErrorMessage(result.error);
+        return false;
       }
 
-      return true
+      return true;
     } catch {
-      setErrorMessage("Authentication is unavailable. Try again.")
-      return false
+      setErrorMessage("Authentication is unavailable. Try again.");
+      return false;
     }
   }
 
   const form = useForm({
     defaultValues: defaultAuthenticationFormValues,
     onSubmit: async ({ value }) => {
-      setErrorMessage(null)
+      setErrorMessage(null);
 
       if (!verificationRequest) {
-        const email = value.email.trim()
-        const username = value.username.trim()
+        const email = value.email.trim();
+        const username = value.username.trim();
 
         if (!(await sendAuthenticationCode(email))) {
-          return
+          return;
         }
 
-        setVerificationRequest({ email, username })
-        return
+        setVerificationRequest({ email, username });
+        return;
       }
 
       try {
@@ -136,67 +135,67 @@ export function AuthenticationFormCard({
           mode,
           otp: value.otp,
           username: verificationRequest.username,
-        })
+        });
 
         if (!result.ok) {
           if (!isSignUp && result.code === "SIGN_UP_REQUIRED") {
-            resetAuthenticationRequest()
-            setErrorMessage("No account found. Sign up to create one.")
-            return
+            resetAuthenticationRequest();
+            setErrorMessage("No account found. Sign up to create one.");
+            return;
           }
 
           if (isSignUp && result.code === "USERNAME_IS_ALREADY_TAKEN") {
-            resetAuthenticationRequest()
-            setErrorMessage("Username is unavailable. Choose another.")
-            return
+            resetAuthenticationRequest();
+            setErrorMessage("Username is unavailable. Choose another.");
+            return;
           }
 
-          setErrorMessage("Code is invalid or expired. Try again.")
-          resetVerificationCode()
-          return
+          setErrorMessage("Code is invalid or expired. Try again.");
+          resetVerificationCode();
+          return;
         }
 
-        window.location.assign(new URL(callbackPath, window.location.origin))
+        window.location.assign(new URL(callbackPath, window.location.origin));
       } catch {
-        setErrorMessage("Authentication is unavailable. Try again.")
-        resetVerificationCode()
+        setErrorMessage("Authentication is unavailable. Try again.");
+        resetVerificationCode();
       }
     },
-  })
+  });
 
   function resetVerificationCode() {
-    form.resetField("otp")
+    form.resetField("otp");
     requestAnimationFrame(() => {
-      document.getElementById("verification-code")?.focus()
-    })
+      document.getElementById("verification-code")?.focus();
+    });
   }
 
   function resetAuthenticationRequest() {
-    setErrorMessage(null)
-    setVerificationRequest(null)
-    form.resetField("otp")
+    setErrorMessage(null);
+    setVerificationRequest(null);
+    form.resetField("otp");
     requestAnimationFrame(() => {
-      document.getElementById("email")?.focus()
-    })
+      document.getElementById("email")?.focus();
+    });
   }
 
   async function signInWithGoogle() {
-    setErrorMessage(null)
-    setIsGooglePending(true)
+    setErrorMessage(null);
+    setIsGooglePending(true);
 
     try {
-      const result = await startGoogleAuthenticationAction(callbackPath, mode)
+      const result = await startGoogleAuthenticationAction(callbackPath, mode);
 
       if (!result.ok) {
-        setErrorMessage(result.error)
-        return
+        setErrorMessage(result.error);
+        return;
       }
 
-      window.location.assign(result.url)
+      window.location.assign(result.url);
     } catch {
-      setErrorMessage("Authentication is unavailable. Try again.")
+      setErrorMessage("Authentication is unavailable. Try again.");
     } finally {
-      setIsGooglePending(false)
+      setIsGooglePending(false);
     }
   }
 
@@ -248,11 +247,7 @@ export function AuthenticationFormCard({
         )}
 
         {!isVerificationStep && googleEnabled && emailOtpEnabled && (
-          <div aria-hidden="true" className="flex items-center gap-3">
-            <Separator className="flex-1" />
-            <span className="text-sm text-muted-foreground">or</span>
-            <Separator className="flex-1" />
-          </div>
+          <FieldSeparator aria-hidden="true">or</FieldSeparator>
         )}
 
         {emailOtpEnabled && (
@@ -260,9 +255,9 @@ export function AuthenticationFormCard({
             className="flex flex-col gap-6"
             noValidate
             onSubmit={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              void form.handleSubmit()
+              event.preventDefault();
+              event.stopPropagation();
+              void form.handleSubmit();
             }}
           >
             <FieldGroup className="gap-4">
@@ -277,9 +272,9 @@ export function AuthenticationFormCard({
                   {(field) => {
                     const error = getAuthenticationFieldError(
                       field.state.meta.errors
-                    )
-                    const descriptionId = "username-message"
-                    const errorId = "username-error"
+                    );
+                    const descriptionId = "username-message";
+                    const errorId = "username-error";
 
                     return (
                       <AuthenticationField
@@ -317,7 +312,7 @@ export function AuthenticationFormCard({
                           value={field.state.value}
                         />
                       </AuthenticationField>
-                    )
+                    );
                   }}
                 </form.Field>
               )}
@@ -332,8 +327,8 @@ export function AuthenticationFormCard({
                   {(field) => {
                     const error = getAuthenticationFieldError(
                       field.state.meta.errors
-                    )
-                    const errorId = "email-error"
+                    );
+                    const errorId = "email-error";
 
                     return (
                       <AuthenticationField
@@ -364,7 +359,7 @@ export function AuthenticationFormCard({
                           value={field.state.value}
                         />
                       </AuthenticationField>
-                    )
+                    );
                   }}
                 </form.Field>
               )}
@@ -379,8 +374,8 @@ export function AuthenticationFormCard({
                   {(field) => {
                     const error = getAuthenticationFieldError(
                       field.state.meta.errors
-                    )
-                    const invalid = !field.state.meta.isValid
+                    );
+                    const invalid = !field.state.meta.isValid;
 
                     return (
                       <form.Subscribe selector={(state) => state.isSubmitting}>
@@ -394,14 +389,14 @@ export function AuthenticationFormCard({
                             onChange={field.handleChange}
                             onComplete={() => {
                               if (!isSubmitting) {
-                                void form.handleSubmit()
+                                void form.handleSubmit();
                               }
                             }}
                             value={field.state.value}
                           />
                         )}
                       </form.Subscribe>
-                    )
+                    );
                   }}
                 </form.Field>
               )}
@@ -442,5 +437,5 @@ export function AuthenticationFormCard({
         />
       )}
     </Card>
-  )
+  );
 }

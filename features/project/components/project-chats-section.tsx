@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { MessageSquareIcon, XIcon } from "lucide-react"
+import Link from "next/link";
+import { MessageSquareIcon, XIcon } from "lucide-react";
 
-import type { ProjectRecord } from "@/features/project/components/project-data"
-import { ProjectSectionHeader } from "@/features/project/components/project-section-header"
-import { useProjects } from "@/features/project/components/project-state"
-import { Button } from "@/components/ui/button"
+import type { ProjectRecord } from "@/features/project/components/project-data";
+import { ProjectSection } from "@/features/project/components/project-section";
+import { useProjects } from "@/features/project/components/project-state";
+import { Button } from "@/components/ui/button";
 import {
   Item,
   ItemActions,
@@ -15,28 +15,23 @@ import {
   ItemGroup,
   ItemMedia,
   ItemTitle,
-} from "@/components/ui/item"
-import { TouchTarget } from "@/components/ui/touch-target"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/item";
+import { TouchTarget } from "@/components/ui/touch-target";
 
 type ProjectChatsSectionProps = {
-  className?: string
-  project: ProjectRecord
-}
+  className?: string;
+  project: ProjectRecord;
+};
 
 /** Renders chats assigned to one project with removal actions. */
 export function ProjectChatsSection({
   className,
   project,
 }: ProjectChatsSectionProps) {
-  const { updateProject } = useProjects()
+  const { updateProject } = useProjects();
 
   return (
-    <section
-      className={cn("flex flex-col gap-3", className)}
-      id="project-chats"
-    >
-      <ProjectSectionHeader title="Chats" />
+    <ProjectSection className={className} id="project-chats" title="Chats">
       {project.chats.length > 0 ? (
         <ItemGroup className="gap-2">
           {project.chats.map((chat) => (
@@ -77,6 +72,6 @@ export function ProjectChatsSection({
           No chats in this project yet. Add one from any chat menu.
         </p>
       )}
-    </section>
-  )
+    </ProjectSection>
+  );
 }

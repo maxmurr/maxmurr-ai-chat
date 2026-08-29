@@ -1,13 +1,14 @@
-import { ChatComposerLoading } from "@/features/chat/components/chat-composer"
-import { ChatPageHeader } from "@/features/chat/components/chat-page-header"
-import { ChatPageShell } from "@/features/chat/components/chat-page-shell"
-import { getChatPageView } from "@/features/chat/chat-queries"
-import { getAuthenticatedWorkspaceContext } from "@/features/workspace/workspace-queries"
-import { Skeleton } from "@/components/ui/skeleton"
+import { ChatComposerLoading } from "@/features/chat/components/chat-composer";
+import { ChatFooterNotice } from "@/features/chat/components/chat-footer-notice";
+import { ChatPageHeader } from "@/features/chat/components/chat-page-header";
+import { ChatPageShell } from "@/features/chat/components/chat-page-shell";
+import { getChatPageView } from "@/features/chat/chat-queries";
+import { getAuthenticatedWorkspaceContext } from "@/features/workspace/workspace-queries";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /** Loads authenticated blank chat composer. */
 export async function NewChatPageContent() {
-  await getAuthenticatedWorkspaceContext()
+  await getAuthenticatedWorkspaceContext();
 
   return (
     <ChatPageShell
@@ -20,19 +21,19 @@ export async function NewChatPageContent() {
         visibility: "private",
       }}
     />
-  )
+  );
 }
 
 /** Loads workspace-scoped persisted chat by ID. */
 export async function ChatByIdPageContent({ chatId }: { chatId: string }) {
-  const workspace = await getAuthenticatedWorkspaceContext()
+  const workspace = await getAuthenticatedWorkspaceContext();
   const view = await getChatPageView(
     chatId,
     workspace.userId,
     workspace.activeWorkspaceId
-  )
+  );
 
-  return <ChatPageShell chat={view.chat} initialMessages={view.messages} />
+  return <ChatPageShell chat={view.chat} initialMessages={view.messages} />;
 }
 
 /** Reserves chat header and top of transcript while chat data loads. */
@@ -65,12 +66,12 @@ export function ChatPageContentSkeleton() {
         </div>
       </div>
       <ChatComposerLoading className="mx-auto" />
-      <p className="shrink-0 px-4 py-2.5 text-center text-xs text-balance text-muted-foreground">
+      <ChatFooterNotice>
         AI can make mistakes. Verify important information.
-      </p>
+      </ChatFooterNotice>
       <p className="sr-only" role="status">
         Loading chat.
       </p>
     </div>
-  )
+  );
 }

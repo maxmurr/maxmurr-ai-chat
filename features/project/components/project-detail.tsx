@@ -1,60 +1,42 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { FolderXIcon } from "lucide-react"
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FolderXIcon } from "lucide-react";
 
-import { ProjectChatComposer } from "@/features/project/components/project-chat-composer"
-import { ProjectChatsSection } from "@/features/project/components/project-chats-section"
-import { ProjectActions } from "@/features/project/components/project-actions"
-import { ProjectDetailHeader } from "@/features/project/components/project-detail-header"
-import { ProjectInstructionsSection } from "@/features/project/components/project-instructions-section"
-import { ProjectSourcesSection } from "@/features/project/components/project-sources-section"
-import { useProjects } from "@/features/project/components/project-state"
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
-import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import { cn } from "@/lib/utils"
+import { ProjectChatComposer } from "@/features/project/components/project-chat-composer";
+import { ProjectChatsSection } from "@/features/project/components/project-chats-section";
+import { ProjectActions } from "@/features/project/components/project-actions";
+import { ProjectDetailHeader } from "@/features/project/components/project-detail-header";
+import { ProjectInstructionsSection } from "@/features/project/components/project-instructions-section";
+import { ProjectSourcesSection } from "@/features/project/components/project-sources-section";
+import { useProjects } from "@/features/project/components/project-state";
+import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 function ProjectDetailNotFound({ className }: { className?: string }) {
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
       <ProjectDetailHeader />
-      <section
-        className="flex min-h-0 flex-1 items-center justify-center p-4"
+      <ErrorState
+        className="p-4"
+        description="It may have been deleted, or the link belongs to another workspace."
+        icon={<FolderXIcon aria-hidden="true" className="size-5" />}
         id="project-not-found"
+        title="Project not found"
       >
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <FolderXIcon />
-            </EmptyMedia>
-            <EmptyTitle>Project not found</EmptyTitle>
-            <EmptyDescription>
-              It may have been deleted, or the link belongs to another
-              workspace.
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <Button
-              className="h-11 sm:h-8"
-              nativeButton={false}
-              render={<Link href="/projects" />}
-            >
-              Back to projects
-            </Button>
-          </EmptyContent>
-        </Empty>
-      </section>
+        <Button
+          className="h-11 sm:h-8"
+          nativeButton={false}
+          render={<Link href="/projects" />}
+        >
+          Back to projects
+        </Button>
+      </ErrorState>
     </div>
-  )
+  );
 }
 
 /** Renders one project workspace with instructions, sources, and chats. */
@@ -62,19 +44,19 @@ export function ProjectDetail({
   className,
   projectSlug,
 }: {
-  className?: string
-  projectSlug: string
+  className?: string;
+  projectSlug: string;
 }) {
-  const router = useRouter()
-  const { getProject, isReady } = useProjects()
-  const project = getProject(projectSlug)
+  const router = useRouter();
+  const { getProject, isReady } = useProjects();
+  const project = getProject(projectSlug);
 
   if (!project) {
     return isReady ? (
       <ProjectDetailNotFound className={className} />
     ) : (
       <ProjectDetailSkeleton className={className} />
-    )
+    );
   }
 
   return (
@@ -112,7 +94,7 @@ export function ProjectDetail({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 /** Reserves project detail structure while route and browser state load. */
@@ -163,5 +145,5 @@ export function ProjectDetailSkeleton({ className }: { className?: string }) {
         </div>
       </div>
     </div>
-  )
+  );
 }

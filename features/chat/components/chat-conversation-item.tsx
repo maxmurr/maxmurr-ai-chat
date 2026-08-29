@@ -5,26 +5,19 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   EllipsisIcon,
-  FolderPlusIcon,
   MessageCircleIcon,
-  PencilIcon,
   PinIcon,
   PinOffIcon,
-  ShareIcon,
-  Trash2Icon,
 } from "lucide-react";
 
 import { pinChatAction, renameChatAction } from "@/features/chat/chat-actions";
+import { ChatActionsMenuContent } from "@/features/chat/components/chat-actions-menu-content";
 import { ChatDeleteDialog } from "@/features/chat/components/chat-dialogs";
 import { ChatShareDialogContent } from "@/features/chat/components/chat-share-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -249,44 +242,18 @@ export function ChatConversationItem({
           >
             <EllipsisIcon />
           </DropdownMenuTrigger>
-          <DropdownMenuContent
+          <ChatActionsMenuContent
             align="start"
-            className="w-48"
             finalFocus={(closeType) =>
               renameInputRef.current ?? closeType === "keyboard"
             }
+            onDelete={() => setIsDeleteDialogOpen(true)}
+            onRename={() => setIsRenaming(true)}
+            onShare={() => setIsShareDialogOpen(true)}
+            onTogglePin={toggleConversationPin}
+            pinned={chat.pinned}
             side="right"
-          >
-            <DropdownMenuGroup>
-              <DropdownMenuItem onClick={toggleConversationPin}>
-                {chat.pinned ? <PinOffIcon /> : <PinIcon />}
-                {chat.pinned ? "Unpin" : "Pin"}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsRenaming(true)}>
-                <PencilIcon />
-                Rename
-              </DropdownMenuItem>
-              {/* Placeholder until projects exist. */}
-              <DropdownMenuItem>
-                <FolderPlusIcon />
-                Add to project
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsShareDialogOpen(true)}>
-                <ShareIcon />
-                Share
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={() => setIsDeleteDialogOpen(true)}
-                variant="destructive"
-              >
-                <Trash2Icon />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
+          />
         </DropdownMenu>
       </div>
 

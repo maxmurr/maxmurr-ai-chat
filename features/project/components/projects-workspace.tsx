@@ -1,12 +1,13 @@
-import type { ReactNode } from "react"
+import type { ReactNode } from "react";
 
-import { ProjectsProvider } from "@/features/project/components/project-state"
-import { getAuthenticatedWorkspaceContext } from "@/features/workspace/workspace-queries"
-import { Skeleton } from "@/components/ui/skeleton"
+import { ProjectsProvider } from "@/features/project/components/project-state";
+import { getAuthenticatedWorkspaceContext } from "@/features/workspace/workspace-queries";
+import { AppPageContainer } from "@/components/app-page-container";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /** Loads workspace identity before mounting workspace-scoped project state. */
 export async function ProjectsWorkspace({ children }: { children: ReactNode }) {
-  const { activeWorkspaceId } = await getAuthenticatedWorkspaceContext()
+  const { activeWorkspaceId } = await getAuthenticatedWorkspaceContext();
 
   return (
     <ProjectsProvider
@@ -15,16 +16,16 @@ export async function ProjectsWorkspace({ children }: { children: ReactNode }) {
     >
       {children}
     </ProjectsProvider>
-  )
+  );
 }
 
 /** Reserves project cards while workspace identity loads. */
 export function ProjectsWorkspaceSkeleton() {
   return (
-    <div
+    <AppPageContainer
       aria-busy="true"
       aria-label="Loading projects"
-      className="@container mx-auto w-full max-w-7xl p-4 lg:p-6"
+      className="mx-auto"
     >
       <div className="flex min-w-0 flex-col gap-6">
         <div className="flex min-w-0 items-center justify-between gap-2">
@@ -37,6 +38,6 @@ export function ProjectsWorkspaceSkeleton() {
           ))}
         </div>
       </div>
-    </div>
-  )
+    </AppPageContainer>
+  );
 }

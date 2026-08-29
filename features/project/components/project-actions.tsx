@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 
-import type { ProjectRecord } from "@/features/project/components/project-data"
-import { ProjectDetailsFields } from "@/features/project/components/project-details-fields"
-import { useProjects } from "@/features/project/components/project-state"
+import type { ProjectRecord } from "@/features/project/components/project-data";
+import { ProjectDetailsDialog } from "@/features/project/components/project-details-dialog";
+import { useProjects } from "@/features/project/components/project-state";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,16 +16,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,70 +25,39 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { TouchTarget } from "@/components/ui/touch-target"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/dropdown-menu";
+import { TouchTarget } from "@/components/ui/touch-target";
+import { cn } from "@/lib/utils";
 
 type ProjectDialogProps = {
-  className?: string
-  onOpenChange: (open: boolean) => void
-  open: boolean
-  project: ProjectRecord
-}
+  className?: string;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  project: ProjectRecord;
+};
 
-function ProjectDetailsDialog({
+function ProjectEditDetailsDialog({
   className,
   onOpenChange,
   open,
   project,
 }: ProjectDialogProps) {
-  const { updateProject } = useProjects()
-  const [description, setDescription] = useState(project.description ?? "")
-  const [name, setName] = useState(project.name)
-
-  function updateProjectDetails(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const trimmedName = name.trim()
-
-    if (!trimmedName) {
-      return
-    }
-
-    updateProject(project.slug, {
-      description: description.trim() || undefined,
-      name: trimmedName,
-    })
-    onOpenChange(false)
-  }
+  const { updateProject } = useProjects();
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className={cn("sm:max-w-lg", className)}>
-        <form className="contents" onSubmit={updateProjectDetails}>
-          <DialogHeader>
-            <DialogTitle>Project details</DialogTitle>
-            <DialogDescription>
-              Rename the project or change what it is for.
-            </DialogDescription>
-          </DialogHeader>
-
-          <ProjectDetailsFields
-            description={description}
-            idPrefix={`edit-${project.slug}`}
-            name={name}
-            onDescriptionChange={setDescription}
-            onNameChange={setName}
-          />
-
-          <DialogFooter>
-            <Button className="h-11 sm:h-8" type="submit">
-              Save
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
+    <ProjectDetailsDialog
+      className={className}
+      dialogDescription="Rename the project or change what it is for."
+      idPrefix={`edit-${project.slug}`}
+      initialDescription={project.description}
+      initialName={project.name}
+      onOpenChange={onOpenChange}
+      onSubmit={(details) => updateProject(project.slug, details)}
+      open={open}
+      submitLabel="Save"
+      title="Project details"
+    />
+  );
 }
 
 function ProjectDeleteDialog({
@@ -106,12 +67,12 @@ function ProjectDeleteDialog({
   open,
   project,
 }: ProjectDialogProps & { onDeleted?: () => void }) {
-  const { deleteProject } = useProjects()
+  const { deleteProject } = useProjects();
 
   function deleteCurrentProject() {
-    deleteProject(project.slug)
-    onOpenChange(false)
-    onDeleted?.()
+    deleteProject(project.slug);
+    onOpenChange(false);
+    onDeleted?.();
   }
 
   return (
@@ -125,9 +86,7 @@ function ProjectDeleteDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="h-11 sm:h-8">
-            Cancel
-          </AlertDialogCancel>
+          <AlertDialogCancel className="h-11 sm:h-8">Cancel</AlertDialogCancel>
           <AlertDialogAction
             className="h-11 sm:h-8"
             onClick={deleteCurrentProject}
@@ -138,14 +97,14 @@ function ProjectDeleteDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
+  );
 }
 
 type ProjectActionsProps = {
-  className?: string
-  onDeleted?: () => void
-  project: ProjectRecord
-}
+  className?: string;
+  onDeleted?: () => void;
+  project: ProjectRecord;
+};
 
 /** Renders edit and delete controls for one project. */
 export function ProjectActions({
@@ -153,8 +112,8 @@ export function ProjectActions({
   onDeleted,
   project,
 }: ProjectActionsProps) {
-  const [openDialog, setOpenDialog] = useState<"delete" | "edit" | null>(null)
-  const router = useRouter()
+  const [openDialog, setOpenDialog] = useState<"delete" | "edit" | null>(null);
+  const router = useRouter();
 
   return (
     <>
@@ -194,7 +153,7 @@ export function ProjectActions({
       </DropdownMenu>
 
       {openDialog === "edit" && (
-        <ProjectDetailsDialog
+        <ProjectEditDetailsDialog
           onOpenChange={(nextOpen) => !nextOpen && setOpenDialog(null)}
           open
           project={project}
@@ -209,5 +168,5 @@ export function ProjectActions({
         />
       )}
     </>
-  )
+  );
 }

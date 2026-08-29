@@ -1,14 +1,15 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { FolderIcon, PlusIcon, SearchIcon, SearchXIcon } from "lucide-react"
+import { useState } from "react";
+import Link from "next/link";
+import { FolderIcon, PlusIcon, SearchIcon, SearchXIcon } from "lucide-react";
 
-import { NewProjectDialog } from "@/features/project/components/new-project-dialog"
-import { ProjectActions } from "@/features/project/components/project-actions"
-import { formatProjectUpdatedDate } from "@/features/project/components/project-data"
-import { useProjects } from "@/features/project/components/project-state"
-import { Button } from "@/components/ui/button"
+import { NewProjectDialog } from "@/features/project/components/new-project-dialog";
+import { ProjectActions } from "@/features/project/components/project-actions";
+import { formatProjectUpdatedDate } from "@/features/project/components/project-data";
+import { useProjects } from "@/features/project/components/project-state";
+import { AppPageContainer } from "@/components/app-page-container";
+import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyContent,
@@ -16,12 +17,12 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "@/components/ui/empty"
+} from "@/components/ui/empty";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from "@/components/ui/input-group"
+} from "@/components/ui/input-group";
 import {
   Item,
   ItemActions,
@@ -29,27 +30,24 @@ import {
   ItemDescription,
   ItemGroup,
   ItemTitle,
-} from "@/components/ui/item"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/item";
+import { cn } from "@/lib/utils";
 
 /** Renders searchable project cards and project creation dialog. */
 export function ProjectsList({ className }: { className?: string }) {
-  const { projects } = useProjects()
-  const [isNewProjectOpen, setIsNewProjectOpen] = useState(false)
-  const [query, setQuery] = useState("")
-  const normalizedQuery = query.trim().toLowerCase()
+  const { projects } = useProjects();
+  const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLowerCase();
   const matchingProjects = projects.filter(
     ({ description, name }) =>
       name.toLowerCase().includes(normalizedQuery) ||
-      description?.toLowerCase().includes(normalizedQuery),
-  )
+      description?.toLowerCase().includes(normalizedQuery)
+  );
 
   return (
-    <div
-      className={cn(
-        "@container mx-auto w-full max-w-7xl p-4 lg:p-6",
-        className,
-      )}
+    <AppPageContainer
+      className={cn("mx-auto", className)}
       data-testid="projects-list-content"
     >
       {projects.length === 0 ? (
@@ -159,6 +157,6 @@ export function ProjectsList({ className }: { className?: string }) {
         onOpenChange={setIsNewProjectOpen}
         open={isNewProjectOpen}
       />
-    </div>
-  )
+    </AppPageContainer>
+  );
 }

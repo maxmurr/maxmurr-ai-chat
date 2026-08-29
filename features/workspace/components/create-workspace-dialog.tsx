@@ -1,20 +1,20 @@
-"use client"
+"use client";
 
-import { useForm } from "@tanstack/react-form"
-import { CircleAlertIcon, PlusIcon, Trash2Icon } from "lucide-react"
-import { useState } from "react"
+import { useForm } from "@tanstack/react-form";
+import { CircleAlertIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { useState } from "react";
 
 import {
-  getChatWorkspaceFieldError,
-  MAX_CHAT_WORKSPACE_MEMBERS,
-  type ChatWorkspaceFormMember,
-  type ChatWorkspaceMemberRole,
-  validateChatWorkspaceMemberEmail,
-  validateChatWorkspaceMembers,
-  validateChatWorkspaceName,
-} from "@/features/workspace/workspace-creation-validation"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+  getWorkspaceCreationFieldError,
+  MAX_WORKSPACE_CREATION_MEMBERS,
+  type WorkspaceCreationFormMember,
+  type WorkspaceCreationMemberRole,
+  validateWorkspaceCreationMemberEmail,
+  validateWorkspaceCreationMembers,
+  validateWorkspaceCreationName,
+} from "@/features/workspace/workspace-creation-validation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Field,
   FieldDescription,
@@ -31,35 +31,35 @@ import {
   FieldLabel,
   FieldLegend,
   FieldSet,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
   NativeSelect,
   NativeSelectOption,
-} from "@/components/ui/native-select"
-import { Spinner } from "@/components/ui/spinner"
-import { toast } from "@/components/ui/toast"
-import { createWorkspaceAction } from "@/features/workspace/workspace-actions"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/native-select";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "@/components/ui/toast";
+import { createWorkspaceAction } from "@/features/workspace/workspace-actions";
+import { cn } from "@/lib/utils";
 
-type ChatWorkspaceFormValues = {
+type WorkspaceCreationFormValues = {
   workspace: {
     identity: {
-      name: string
-    }
+      name: string;
+    };
     access: {
-      members: ChatWorkspaceFormMember[]
-    }
-  }
-}
+      members: WorkspaceCreationFormMember[];
+    };
+  };
+};
 
-type CreateChatWorkspaceDialogProps = {
-  className?: string
-  onOpenChange: (open: boolean) => void
-  open: boolean
-}
+type CreateWorkspaceDialogProps = {
+  className?: string;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+};
 
-const defaultChatWorkspaceFormValues: ChatWorkspaceFormValues = {
+const defaultWorkspaceCreationFormValues: WorkspaceCreationFormValues = {
   workspace: {
     identity: {
       name: "",
@@ -68,25 +68,19 @@ const defaultChatWorkspaceFormValues: ChatWorkspaceFormValues = {
       members: [],
     },
   },
-}
+};
 
-export {
-  validateChatWorkspaceMemberEmail,
-  validateChatWorkspaceMembers,
-  validateChatWorkspaceName,
-} from "@/features/workspace/workspace-creation-validation"
-
-/** Renders typed TanStack Form controls for creating one chat workspace. */
-export function CreateChatWorkspaceDialog({
+/** Renders typed TanStack Form controls for creating one Workspace. */
+export function CreateWorkspaceDialog({
   className,
   onOpenChange,
   open,
-}: CreateChatWorkspaceDialogProps) {
-  const [submissionError, setSubmissionError] = useState<string | null>(null)
+}: CreateWorkspaceDialogProps) {
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const form = useForm({
-    defaultValues: defaultChatWorkspaceFormValues,
+    defaultValues: defaultWorkspaceCreationFormValues,
     onSubmit: async ({ value }) => {
-      setSubmissionError(null)
+      setSubmissionError(null);
 
       try {
         const result = await createWorkspaceAction({
@@ -95,11 +89,11 @@ export function CreateChatWorkspaceDialog({
             email: email.trim(),
             role,
           })),
-        })
+        });
 
         if (!result.ok) {
-          setSubmissionError(result.error)
-          return
+          setSubmissionError(result.error);
+          return;
         }
 
         toast.add({
@@ -115,25 +109,25 @@ export function CreateChatWorkspaceDialog({
               : "Workspace created",
           type:
             result.failedInvitationEmails.length > 0 ? "warning" : "success",
-        })
+        });
       } catch (error) {
-        console.error("Chat workspace creation failed", error)
-        setSubmissionError("Could not create workspace. Try again.")
-        return
+        console.error("Workspace creation failed", error);
+        setSubmissionError("Could not create workspace. Try again.");
+        return;
       }
 
-      form.reset()
-      onOpenChange(false)
+      form.reset();
+      onOpenChange(false);
     },
-  })
+  });
 
   function changeDialogOpenState(nextOpen: boolean) {
     if (!nextOpen) {
-      form.reset()
-      setSubmissionError(null)
+      form.reset();
+      setSubmissionError(null);
     }
 
-    onOpenChange(nextOpen)
+    onOpenChange(nextOpen);
   }
 
   return (
@@ -155,9 +149,9 @@ export function CreateChatWorkspaceDialog({
           aria-label="Create workspace"
           noValidate
           onSubmit={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            void form.handleSubmit()
+            event.preventDefault();
+            event.stopPropagation();
+            void form.handleSubmit();
           }}
         >
           <FieldGroup>
@@ -166,30 +160,28 @@ export function CreateChatWorkspaceDialog({
               <form.Field
                 name="workspace.identity.name"
                 validators={{
-                  onChange: ({ value }) => validateChatWorkspaceName(value),
+                  onChange: ({ value }) => validateWorkspaceCreationName(value),
                 }}
               >
                 {(field) => {
-                  const errorMessage = getChatWorkspaceFieldError(
+                  const errorMessage = getWorkspaceCreationFieldError(
                     field.state.meta.errors
-                  )
-                  const descriptionId = "chat-workspace-name-description"
-                  const errorId = "chat-workspace-name-error"
+                  );
+                  const descriptionId = "workspace-creation-name-description";
+                  const errorId = "workspace-creation-name-error";
 
                   return (
                     <Field
-                      data-invalid={
-                        field.state.meta.isValid ? undefined : true
-                      }
+                      data-invalid={field.state.meta.isValid ? undefined : true}
                     >
-                      <FieldLabel htmlFor="chat-workspace-name">
+                      <FieldLabel htmlFor="workspace-creation-name">
                         Workspace name
                       </FieldLabel>
                       <Input
                         aria-describedby={`${descriptionId}${errorMessage ? ` ${errorId}` : ""}`}
                         aria-invalid={!field.state.meta.isValid}
                         autoComplete="organization"
-                        id="chat-workspace-name"
+                        id="workspace-creation-name"
                         maxLength={48}
                         name={field.name}
                         onBlur={field.handleBlur}
@@ -204,7 +196,7 @@ export function CreateChatWorkspaceDialog({
                       </FieldDescription>
                       <FieldError id={errorId}>{errorMessage}</FieldError>
                     </Field>
-                  )
+                  );
                 }}
               </form.Field>
             </FieldSet>
@@ -214,13 +206,13 @@ export function CreateChatWorkspaceDialog({
               name="workspace.access.members"
               validators={{
                 onChange: ({ value }) =>
-                  validateChatWorkspaceMembers(value),
+                  validateWorkspaceCreationMembers(value),
               }}
             >
               {(membersField) => {
-                const membersError = getChatWorkspaceFieldError(
+                const membersError = getWorkspaceCreationFieldError(
                   membersField.state.meta.errors
-                )
+                );
 
                 return (
                   <FieldSet>
@@ -241,15 +233,16 @@ export function CreateChatWorkspaceDialog({
                             name={`workspace.access.members[${index}].email`}
                             validators={{
                               onChange: ({ value }) =>
-                                validateChatWorkspaceMemberEmail(value),
+                                validateWorkspaceCreationMemberEmail(value),
                             }}
                           >
                             {(field) => {
-                              const errorMessage = getChatWorkspaceFieldError(
-                                field.state.meta.errors
-                              )
-                              const inputId = `chat-workspace-member-${member.id}-email`
-                              const errorId = `${inputId}-error`
+                              const errorMessage =
+                                getWorkspaceCreationFieldError(
+                                  field.state.meta.errors
+                                );
+                              const inputId = `workspace-creation-member-${member.id}-email`;
+                              const errorId = `${inputId}-error`;
 
                               return (
                                 <Field
@@ -282,7 +275,7 @@ export function CreateChatWorkspaceDialog({
                                     {errorMessage}
                                   </FieldError>
                                 </Field>
-                              )
+                              );
                             }}
                           </form.Field>
 
@@ -290,7 +283,7 @@ export function CreateChatWorkspaceDialog({
                             name={`workspace.access.members[${index}].role`}
                           >
                             {(field) => {
-                              const inputId = `chat-workspace-member-${member.id}-role`
+                              const inputId = `workspace-creation-member-${member.id}-role`;
 
                               return (
                                 <Field>
@@ -305,7 +298,7 @@ export function CreateChatWorkspaceDialog({
                                     onChange={(event) =>
                                       field.handleChange(
                                         event.target
-                                          .value as ChatWorkspaceMemberRole
+                                          .value as WorkspaceCreationMemberRole
                                       )
                                     }
                                     value={field.state.value}
@@ -318,7 +311,7 @@ export function CreateChatWorkspaceDialog({
                                     </NativeSelectOption>
                                   </NativeSelect>
                                 </Field>
-                              )
+                              );
                             }}
                           </form.Field>
 
@@ -326,9 +319,7 @@ export function CreateChatWorkspaceDialog({
                             <Button
                               aria-label={`Remove member ${index + 1}`}
                               className="size-11 sm:size-8"
-                              onClick={() =>
-                                membersField.removeValue(index)
-                              }
+                              onClick={() => membersField.removeValue(index)}
                               size="icon"
                               title={`Remove member ${index + 1}`}
                               type="button"
@@ -344,7 +335,7 @@ export function CreateChatWorkspaceDialog({
                         className="h-11 w-full sm:h-8"
                         disabled={
                           membersField.state.value.length >=
-                          MAX_CHAT_WORKSPACE_MEMBERS
+                          MAX_WORKSPACE_CREATION_MEMBERS
                         }
                         onClick={() =>
                           membersField.pushValue({
@@ -361,7 +352,7 @@ export function CreateChatWorkspaceDialog({
                       </Button>
                     </FieldGroup>
                   </FieldSet>
-                )
+                );
               }}
             </form.Field>
           </FieldGroup>
@@ -411,5 +402,5 @@ export function CreateChatWorkspaceDialog({
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

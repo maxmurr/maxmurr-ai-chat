@@ -1,22 +1,22 @@
-"use client"
+"use client";
 
-import { useRef, useState } from "react"
+import { useRef, useState } from "react";
 import {
   FileTextIcon,
   LibraryBigIcon,
   PlusIcon,
   UploadIcon,
   XIcon,
-} from "lucide-react"
+} from "lucide-react";
 
-import { LIBRARY_ITEMS } from "@/features/library/components/library-data"
+import { LIBRARY_ITEMS } from "@/features/library/components/library-data";
 import {
   formatProjectSourceType,
   type ProjectRecord,
   type ProjectSource,
-} from "@/features/project/components/project-data"
-import { ProjectSectionHeader } from "@/features/project/components/project-section-header"
-import { useProjects } from "@/features/project/components/project-state"
+} from "@/features/project/components/project-data";
+import { ProjectSection } from "@/features/project/components/project-section";
+import { useProjects } from "@/features/project/components/project-state";
 import {
   Attachment,
   AttachmentAction,
@@ -25,8 +25,8 @@ import {
   AttachmentDescription,
   AttachmentMedia,
   AttachmentTitle,
-} from "@/components/ui/attachment"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/attachment";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandDialog,
@@ -36,37 +36,37 @@ import {
   CommandItem,
   CommandList,
   CommandShortcut,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { TouchTarget } from "@/components/ui/touch-target"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { TouchTarget } from "@/components/ui/touch-target";
+import { cn } from "@/lib/utils";
 
 function getLibraryProjectSourceMediaType(filename: string) {
   if (filename.endsWith(".pdf")) {
-    return "application/pdf"
+    return "application/pdf";
   }
 
   if (filename.endsWith(".csv")) {
-    return "text/csv"
+    return "text/csv";
   }
 
-  return "application/octet-stream"
+  return "application/octet-stream";
 }
 
 type ProjectLibrarySourceDialogProps = {
-  className?: string
-  existingSources: ProjectSource[]
-  onAdd: (source: ProjectSource) => void
-  onOpenChange: (open: boolean) => void
-  open: boolean
-}
+  className?: string;
+  existingSources: ProjectSource[];
+  onAdd: (source: ProjectSource) => void;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+};
 
 function ProjectLibrarySourceDialog({
   className,
@@ -76,14 +76,14 @@ function ProjectLibrarySourceDialog({
   open,
 }: ProjectLibrarySourceDialogProps) {
   const existingFilenames = new Set(
-    existingSources.map(({ filename }) => filename),
-  )
+    existingSources.map(({ filename }) => filename)
+  );
   const availableFiles = LIBRARY_ITEMS.filter(
-    (item) => item.kind === "file" && !existingFilenames.has(item.name),
-  )
+    (item) => item.kind === "file" && !existingFilenames.has(item.name)
+  );
 
   if (!open) {
-    return null
+    return null;
   }
 
   return (
@@ -111,8 +111,8 @@ function ProjectLibrarySourceDialog({
                     onAdd({
                       filename: file.name,
                       mediaType: getLibraryProjectSourceMediaType(file.name),
-                    })
-                    onOpenChange(false)
+                    });
+                    onOpenChange(false);
                   }}
                   value={file.name}
                 >
@@ -128,39 +128,39 @@ function ProjectLibrarySourceDialog({
         </CommandList>
       </Command>
     </CommandDialog>
-  )
+  );
 }
 
 type ProjectSourcesSectionProps = {
-  className?: string
-  project: ProjectRecord
-}
+  className?: string;
+  project: ProjectRecord;
+};
 
 /** Renders project files with upload, library attach, and removal actions. */
 export function ProjectSourcesSection({
   className,
   project,
 }: ProjectSourcesSectionProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [isLibraryOpen, setIsLibraryOpen] = useState(false)
-  const { updateProject } = useProjects()
-  const projectSources = project.sources
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const { updateProject } = useProjects();
+  const projectSources = project.sources;
 
   function addProjectSourceRecords(nextSources: ProjectSource[]) {
-    const filenames = new Set(projectSources.map(({ filename }) => filename))
+    const filenames = new Set(projectSources.map(({ filename }) => filename));
     const sources = nextSources.filter((source) => {
       if (filenames.has(source.filename)) {
-        return false
+        return false;
       }
 
-      filenames.add(source.filename)
-      return true
-    })
+      filenames.add(source.filename);
+      return true;
+    });
 
     if (sources.length > 0) {
       updateProject(project.slug, {
         sources: [...projectSources, ...sources],
-      })
+      });
     }
   }
 
@@ -169,50 +169,45 @@ export function ProjectSourcesSection({
       files.map((file) => ({
         filename: file.name,
         mediaType: file.type || "application/octet-stream",
-      })),
-    )
+      }))
+    );
   }
 
   return (
-    <section
-      className={cn("flex flex-col gap-3", className)}
+    <ProjectSection
+      action={
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                className="h-11 sm:h-7"
+                size="sm"
+                type="button"
+                variant="outline"
+              />
+            }
+          >
+            <PlusIcon data-icon="inline-start" />
+            Add source
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                <UploadIcon />
+                Upload
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsLibraryOpen(true)}>
+                <LibraryBigIcon />
+                Add from Library
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      }
+      className={className}
       id="project-sources"
+      title="Sources"
     >
-      <ProjectSectionHeader
-        action={
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  className="h-11 sm:h-7"
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                />
-              }
-            >
-              <PlusIcon data-icon="inline-start" />
-              Add source
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <UploadIcon />
-                  Upload
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsLibraryOpen(true)}>
-                  <LibraryBigIcon />
-                  Add from Library
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        }
-        title="Sources"
-      />
-
       {projectSources.length > 0 ? (
         <div className="@container">
           <div className="grid gap-2 @sm:grid-cols-2">
@@ -234,7 +229,7 @@ export function ProjectSourcesSection({
                     onClick={() =>
                       updateProject(project.slug, {
                         sources: projectSources.filter(
-                          ({ filename }) => filename !== source.filename,
+                          ({ filename }) => filename !== source.filename
                         ),
                       })
                     }
@@ -262,8 +257,10 @@ export function ProjectSourcesSection({
         multiple
         name="project-sources"
         onChange={(event) => {
-          addUploadedProjectSources(Array.from(event.currentTarget.files ?? []))
-          event.currentTarget.value = ""
+          addUploadedProjectSources(
+            Array.from(event.currentTarget.files ?? [])
+          );
+          event.currentTarget.value = "";
         }}
         type="file"
       />
@@ -273,6 +270,6 @@ export function ProjectSourcesSection({
         onOpenChange={setIsLibraryOpen}
         open={isLibraryOpen}
       />
-    </section>
-  )
+    </ProjectSection>
+  );
 }

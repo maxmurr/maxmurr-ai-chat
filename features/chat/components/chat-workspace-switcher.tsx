@@ -1,11 +1,17 @@
-"use client"
+"use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
-import { ChevronsUpDownIcon, PlusIcon } from "lucide-react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
+import { ChevronsUpDownIcon, PlusIcon } from "lucide-react";
 
-import { ChatSidebarIdentity } from "@/features/chat/components/chat-sidebar-identity"
-import { CreateChatWorkspaceDialog } from "@/features/chat/components/create-chat-workspace-dialog"
-import { switchWorkspaceAction } from "@/features/workspace/workspace-actions"
+import { ChatSidebarIdentity } from "@/features/chat/components/chat-sidebar-identity";
+import { CreateWorkspaceDialog } from "@/features/workspace/components/create-workspace-dialog";
+import { switchWorkspaceAction } from "@/features/workspace/workspace-actions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,20 +21,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
-import { toast } from "@/components/ui/toast"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/dropdown-menu";
+import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import { toast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
 
 /** Minimal persisted workspace data rendered by chat navigation. */
 export type ChatWorkspaceSummary = {
-  id: string
-  name: string
-}
+  id: string;
+  name: string;
+};
 
 type ChatWorkspace = ChatWorkspaceSummary & {
-  plan: string
-}
+  plan: string;
+};
 
 /** Renders server-owned workspaces with client switching controls. */
 export function ChatWorkspaceSwitcher({
@@ -36,65 +42,71 @@ export function ChatWorkspaceSwitcher({
   className,
   workspaces,
 }: {
-  activeWorkspaceId: string
-  className?: string
-  workspaces: ChatWorkspaceSummary[]
+  activeWorkspaceId: string;
+  className?: string;
+  workspaces: ChatWorkspaceSummary[];
 }) {
   const chatWorkspaces = useMemo(
     () => workspaces.map((workspace) => ({ ...workspace, plan: "Free" })),
     [workspaces]
-  )
+  );
   const activeWorkspace =
     chatWorkspaces.find(({ id }) => id === activeWorkspaceId) ??
-    chatWorkspaces[0]
-  const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false)
-  const [isPending, startTransition] = useTransition()
+    chatWorkspaces[0];
+  const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const switchChatWorkspace = useCallback(
     (workspace: ChatWorkspace) => {
       if (workspace.id === activeWorkspace?.id) {
-        return
+        return;
       }
 
       startTransition(async () => {
-        const result = await switchWorkspaceAction(workspace.id)
+        const result = await switchWorkspaceAction(workspace.id);
 
         if (!result.ok) {
           toast.add({
             description: "Current workspace did not change. Try again.",
             title: "Could not switch workspace",
             type: "error",
-          })
+          });
         }
-      })
+      });
     },
     [activeWorkspace?.id]
-  )
+  );
 
   useEffect(() => {
     function handleWorkspaceShortcut(event: KeyboardEvent) {
-      if (!(event.metaKey || event.ctrlKey) || !event.code.startsWith("Digit")) {
-        return
+      if (
+        !(event.metaKey || event.ctrlKey) ||
+        !event.code.startsWith("Digit")
+      ) {
+        return;
       }
 
-      const workspace = chatWorkspaces[Number(event.code.slice(-1)) - 1]
+      const workspace = chatWorkspaces[Number(event.code.slice(-1)) - 1];
 
       if (workspace) {
-        event.preventDefault()
-        switchChatWorkspace(workspace)
+        event.preventDefault();
+        switchChatWorkspace(workspace);
       }
     }
 
-    window.addEventListener("keydown", handleWorkspaceShortcut)
-    return () => window.removeEventListener("keydown", handleWorkspaceShortcut)
-  }, [chatWorkspaces, switchChatWorkspace])
+    window.addEventListener("keydown", handleWorkspaceShortcut);
+    return () => window.removeEventListener("keydown", handleWorkspaceShortcut);
+  }, [chatWorkspaces, switchChatWorkspace]);
 
   if (!activeWorkspace) {
-    return null
+    return null;
   }
 
   return (
-    <SidebarMenuItem className={cn(className)} data-pending={isPending || undefined}>
+    <SidebarMenuItem
+      className={cn(className)}
+      data-pending={isPending || undefined}
+    >
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -148,10 +160,10 @@ export function ChatWorkspaceSwitcher({
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-      <CreateChatWorkspaceDialog
+      <CreateWorkspaceDialog
         onOpenChange={setIsCreateWorkspaceOpen}
         open={isCreateWorkspaceOpen}
       />
     </SidebarMenuItem>
-  )
+  );
 }

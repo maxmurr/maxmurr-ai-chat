@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { PencilIcon } from "lucide-react"
+import { useState } from "react";
+import { PencilIcon } from "lucide-react";
 
-import type { ProjectRecord } from "@/features/project/components/project-data"
-import { ProjectSectionHeader } from "@/features/project/components/project-section-header"
-import { useProjects } from "@/features/project/components/project-state"
-import { Button } from "@/components/ui/button"
+import type { ProjectRecord } from "@/features/project/components/project-data";
+import { ProjectSection } from "@/features/project/components/project-section";
+import { useProjects } from "@/features/project/components/project-state";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -14,17 +14,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Field, FieldLabel } from "@/components/ui/field"
-import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/dialog";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 type ProjectInstructionsDialogProps = {
-  className?: string
-  onOpenChange: (open: boolean) => void
-  open: boolean
-  project: ProjectRecord
-}
+  className?: string;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  project: ProjectRecord;
+};
 
 function ProjectInstructionsDialog({
   className,
@@ -32,15 +32,15 @@ function ProjectInstructionsDialog({
   open,
   project,
 }: ProjectInstructionsDialogProps) {
-  const { updateProject } = useProjects()
+  const { updateProject } = useProjects();
 
   function saveProjectInstructions(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
     const instructions = String(
-      new FormData(event.currentTarget).get("instructions") ?? "",
-    ).trim()
-    updateProject(project.slug, { instructions: instructions || undefined })
-    onOpenChange(false)
+      new FormData(event.currentTarget).get("instructions") ?? ""
+    ).trim();
+    updateProject(project.slug, { instructions: instructions || undefined });
+    onOpenChange(false);
   }
 
   return (
@@ -77,41 +77,39 @@ function ProjectInstructionsDialog({
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 type ProjectInstructionsSectionProps = {
-  className?: string
-  project: ProjectRecord
-}
+  className?: string;
+  project: ProjectRecord;
+};
 
 /** Renders project instructions with its edit dialog. */
 export function ProjectInstructionsSection({
   className,
   project,
 }: ProjectInstructionsSectionProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   return (
-    <section
-      className={cn("flex flex-col gap-3", className)}
+    <ProjectSection
+      action={
+        <Button
+          className="h-11 sm:h-7"
+          onClick={() => setIsDialogOpen(true)}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <PencilIcon data-icon="inline-start" />
+          Edit
+        </Button>
+      }
+      className={className}
       id="project-instructions"
+      title="Instructions"
     >
-      <ProjectSectionHeader
-        action={
-          <Button
-            className="h-11 sm:h-7"
-            onClick={() => setIsDialogOpen(true)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            <PencilIcon data-icon="inline-start" />
-            Edit
-          </Button>
-        }
-        title="Instructions"
-      />
       <p className="text-base text-pretty whitespace-pre-wrap text-muted-foreground sm:text-sm">
         {project.instructions ??
           "No instructions yet. Every chat in this project will carry them."}
@@ -121,6 +119,6 @@ export function ProjectInstructionsSection({
         open={isDialogOpen}
         project={project}
       />
-    </section>
-  )
+    </ProjectSection>
+  );
 }
