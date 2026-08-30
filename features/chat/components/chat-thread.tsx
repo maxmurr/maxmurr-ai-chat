@@ -14,7 +14,10 @@ import {
 import { useChatConversationTitle } from "@/features/chat/components/chat-conversation-title";
 import { ChatFooterNotice } from "@/features/chat/components/chat-footer-notice";
 import { ChatMessageList } from "@/features/chat/components/chat-message-list";
-import { takePendingProjectChat } from "@/features/chat/pending-project-chat";
+import {
+  takePendingProjectChat,
+  type PendingProjectChat,
+} from "@/features/chat/pending-project-chat";
 import { uploadLibraryFiles } from "@/features/library/components/upload-library-files";
 import {
   Alert,
@@ -29,6 +32,10 @@ import {
 } from "@/src/interface-adapters/presenters/chat-message.presenter";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import {
+  DEFAULT_CHAT_MODEL_ID,
+  type ChatModelId,
+} from "@/src/entities/models/chat-model";
 import { createLibraryFileDownloadUrl } from "@/src/entities/models/library";
 
 const CHAT_TRANSPORT = new DefaultChatTransport<ChatUIMessage>({
@@ -99,6 +106,9 @@ function ChatThreadContent({
   const [attachments, setAttachments] = useState<File[]>([]);
   const [composerAnnouncement, setComposerAnnouncement] = useState("");
   const [draft, setDraft] = useState("");
+  const [selectedModelId, setSelectedModelId] = useState<ChatModelId>(
+    DEFAULT_CHAT_MODEL_ID
+  );
 
   function updateActiveResponseStreamId(streamId: string | null) {
     activeStreamIdRef.current = streamId;
@@ -149,7 +159,7 @@ function ChatThreadContent({
     status === "streaming" ? chatMessages.at(-1)?.id : undefined;
 
   async function sendChatMessage(
-    { attachments, text }: ChatComposerSubmission,
+    { attachments, modelId, text }: ChatComposerSubmission,
     projectId?: string
   ) {
     if (
@@ -203,7 +213,13 @@ function ChatThreadContent({
           ],
           role: "user",
         },
-        { body: { ...(projectId ? { projectId } : {}), streamId } }
+        {
+          body: {
+            ...(projectId ? { projectId } : {}),
+            modelId,
+            streamId,
+          },
+        }
       );
     } catch (error) {
       updateActiveResponseStreamId(null);
@@ -219,11 +235,17 @@ function ChatThreadContent({
   }
 
   const sendPendingProjectChat = useEffectEvent(
-    (pendingProjectChat: { projectId: string; text: string }) =>
+    (pendingProjectChat: PendingProjectChat) => {
+      setSelectedModelId(pendingProjectChat.modelId);
       void sendChatMessage(
-        { attachments: [], text: pendingProjectChat.text },
+        {
+          attachments: [],
+          modelId: pendingProjectChat.modelId,
+          text: pendingProjectChat.text,
+        },
         pendingProjectChat.projectId
-      )
+      );
+    }
   );
 
   const markLatestAssistantResponseRead = useEffectEvent(() => {
@@ -347,7 +369,10 @@ function ChatThreadContent({
 
     const streamId = crypto.randomUUID();
     updateActiveResponseStreamId(streamId);
-    void regenerate({ body: { streamId }, messageId }).catch(() => {
+    void regenerate({
+      body: { modelId: selectedModelId, streamId },
+      messageId,
+    }).catch(() => {
       updateActiveResponseStreamId(null);
       setComposerAnnouncement("Could not retry response.");
     });
@@ -355,7 +380,11 @@ function ChatThreadContent({
 
   function submitSuggestedMessage(suggestion: string) {
     setComposerAnnouncement("");
-    void sendChatMessage({ attachments, text: suggestion });
+    void sendChatMessage({
+      attachments,
+      modelId: selectedModelId,
+      text: suggestion,
+    });
   }
 
   const statusAnnouncement =
@@ -419,8 +448,10 @@ function ChatThreadContent({
           onAnnouncementChange={setComposerAnnouncement}
           onAttachmentsChange={setAttachments}
           onDraftChange={setDraft}
+          onModelChange={setSelectedModelId}
           onSendMessage={sendChatMessage}
           onStopResponse={() => void stopChatResponse()}
+          selectedModelId={selectedModelId}
         />
 
         <ChatFooterNotice>

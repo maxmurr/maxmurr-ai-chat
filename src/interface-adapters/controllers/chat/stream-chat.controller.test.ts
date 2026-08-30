@@ -29,10 +29,12 @@ test("chat controller validates input before streaming", async () => {
       },
     ],
   };
+  const modelId = "anthropic/claude-opus-5";
   const projectId = "7f1f429e-84f3-4a10-9f2c-58a1a7a8f002";
   const validRequest = {
     id: chatId,
     message: validMessage,
+    modelId,
     projectId,
     streamId,
     trigger: "submit-message" as const,
@@ -52,6 +54,7 @@ test("chat controller validates input before streaming", async () => {
     chatId,
     message: validMessage,
     messageId: undefined,
+    modelId,
     projectId,
     streamId,
     trigger: "submit-message",
@@ -60,13 +63,13 @@ test("chat controller validates input before streaming", async () => {
   assert.throws(
     () =>
       controller(
-        { id: "not-a-uuid", message: validMessage, streamId },
+        { id: "not-a-uuid", message: validMessage, modelId, streamId },
         context
       ),
     InvalidChatRequestError
   );
   assert.throws(
-    () => controller({ id: chatId, message: validMessage }, context),
+    () => controller({ id: chatId, message: validMessage, modelId }, context),
     InvalidChatRequestError
   );
   assert.throws(
@@ -79,6 +82,7 @@ test("chat controller validates input before streaming", async () => {
             role: "assistant",
             parts: [{ type: "text", text: "Hello" }],
           },
+          modelId,
           streamId,
         },
         context
@@ -95,6 +99,7 @@ test("chat controller validates input before streaming", async () => {
             role: "user",
             parts: [{ type: "text" }],
           },
+          modelId,
           streamId,
         },
         context
@@ -107,6 +112,7 @@ test("chat controller validates input before streaming", async () => {
         {
           id: chatId,
           message: validMessage,
+          modelId,
           projectId: "not-a-uuid",
           streamId,
         },
@@ -131,6 +137,20 @@ test("chat controller validates input before streaming", async () => {
               },
             ],
           },
+          modelId,
+          streamId,
+        },
+        context
+      ),
+    InvalidChatRequestError
+  );
+  assert.throws(
+    () =>
+      controller(
+        {
+          id: chatId,
+          message: validMessage,
+          modelId: "openai/not-approved",
           streamId,
         },
         context

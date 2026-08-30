@@ -28,11 +28,13 @@ test("pending Project Chat turn transfers once to normal Chat page", () => {
   };
 
   storePendingProjectChat(storage, {
+    modelId: "anthropic/claude-sonnet-5",
     projectId: "project-1",
     text: "  Start this Chat  ",
   });
 
   assert.deepEqual(takePendingProjectChat(storage), {
+    modelId: "anthropic/claude-sonnet-5",
     projectId: "project-1",
     text: "Start this Chat",
   });

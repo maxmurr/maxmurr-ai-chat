@@ -15,6 +15,10 @@ import {
   ChatStreamConflictError,
 } from "@/src/entities/errors/chat-errors";
 import type { Chat, ChatMessage } from "@/src/entities/models/chat";
+import {
+  DEFAULT_CHAT_MODEL_ID,
+  type ChatModelId,
+} from "@/src/entities/models/chat-model";
 import type {
   ChatRequestContext,
   ChatStreamRequest,
@@ -67,6 +71,7 @@ function createStreamFixture(
   let sourceReads = 0;
   const savedMessages: ChatMessage[] = [];
   const streamedMessages: unknown[][] = [];
+  const streamedModels: unknown[] = [];
   const streamedSystems: (string | undefined)[] = [];
   const chatRepository = {
     async claimChatResponseStream() {
@@ -152,6 +157,9 @@ function createStreamFixture(
     instrumentationService,
     async (options) => {
       streamedMessages.push(options.params.messages);
+      streamedModels.push(
+        options.params.requestContext?.get("chat-assistant-model")
+      );
       streamedSystems.push(options.params.system as string | undefined);
       return new ReadableStream() as unknown as Awaited<
         ReturnType<typeof handleChatStream>
@@ -175,7 +183,7 @@ function createStreamFixture(
     get sourceReads() {
       return sourceReads;
     },
-    async sendMessage() {
+    async sendMessage(modelId: ChatModelId = DEFAULT_CHAT_MODEL_ID) {
       messageNumber += 1;
       return streamChat(
         {
@@ -185,6 +193,7 @@ function createStreamFixture(
             parts: [{ text: "Hello", type: "text" }],
             role: "user",
           },
+          modelId,
           streamId: `40000000-0000-4000-8000-${messageNumber
             .toString()
             .padStart(12, "0")}`,
@@ -197,6 +206,7 @@ function createStreamFixture(
       project = { ...project, instructions: nextInstructions };
     },
     streamedMessages,
+    streamedModels,
     streamedSystems,
   };
 }
@@ -208,6 +218,14 @@ test("active Chat stream rejects a second producer before side effects", async (
   await assert.rejects(fixture.sendMessage(), ChatStreamConflictError);
   assert.deepEqual(fixture.savedMessages, []);
   assert.deepEqual(fixture.streamedMessages, []);
+});
+
+test("Chat streams selected response model through Vercel AI Gateway", async () => {
+  const fixture = createStreamFixture("", null);
+
+  await fixture.sendMessage("anthropic/claude-opus-5");
+
+  assert.deepEqual(fixture.streamedModels, ["vercel/anthropic/claude-opus-5"]);
 });
 
 test("Project Chat streams current Custom Instructions as non-persisted system context", async () => {
@@ -292,6 +310,7 @@ const request: ChatStreamRequest = {
     parts: [{ text: "Plan launch", type: "text" }],
     role: "user",
   },
+  modelId: DEFAULT_CHAT_MODEL_ID,
   projectId,
   streamId: "8f1f429e-84f3-4a10-9f2c-58a1a7a8f003",
 };

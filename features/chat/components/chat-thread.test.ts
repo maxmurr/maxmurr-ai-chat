@@ -9,6 +9,7 @@ import {
   validateChatComposerMessage,
 } from "@/features/chat/components/chat-composer";
 import { getChatGreeting } from "@/features/chat/components/chat-message-list";
+import { DEFAULT_CHAT_MODEL_ID } from "@/src/entities/models/chat-model";
 import { resolveChatFileUploadDestination } from "@/features/chat/components/chat-thread";
 
 test("chat composer mounts native form controls", () => {
@@ -20,8 +21,10 @@ test("chat composer mounts native form controls", () => {
       onAnnouncementChange() {},
       onAttachmentsChange() {},
       onDraftChange() {},
+      onModelChange() {},
       async onSendMessage() {},
       onStopResponse() {},
+      selectedModelId: DEFAULT_CHAT_MODEL_ID,
     })
   );
 

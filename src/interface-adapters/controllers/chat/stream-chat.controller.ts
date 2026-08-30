@@ -2,6 +2,10 @@ import { z } from "zod";
 
 import type { StreamChatResponse } from "@/src/application/services/chat-stream.service.interface";
 import { InvalidChatRequestError } from "@/src/entities/errors/chat-errors";
+import {
+  isChatModelId,
+  type ChatModelId,
+} from "@/src/entities/models/chat-model";
 import type { ChatRequestContext } from "@/src/entities/models/chat-stream-request";
 import { getLibraryFileIdFromDownloadUrl } from "@/src/entities/models/library";
 
@@ -44,6 +48,8 @@ const chatMessagePartSchema = z
     }
   });
 
+const chatModelIdSchema = z.custom<ChatModelId>(isChatModelId);
+
 const chatStreamRequestSchema = z.object({
   id: z.uuid(),
   message: z
@@ -54,6 +60,7 @@ const chatStreamRequestSchema = z.object({
     })
     .catchall(z.unknown()),
   messageId: z.string().min(1).max(200).optional(),
+  modelId: chatModelIdSchema,
   projectId: z.uuid().optional(),
   streamId: z.uuid(),
   trigger: z.enum(["submit-message", "regenerate-message"]).optional(),
@@ -75,11 +82,19 @@ export function createStreamChatController(
       throw new InvalidChatRequestError({ cause: result.error });
     }
 
-    const { id, message, messageId, projectId, streamId, trigger } =
+    const { id, message, messageId, modelId, projectId, streamId, trigger } =
       result.data;
 
     return streamChatResponse(
-      { chatId: id, message, messageId, projectId, streamId, trigger },
+      {
+        chatId: id,
+        message,
+        messageId,
+        modelId,
+        projectId,
+        streamId,
+        trigger,
+      },
       context
     );
   };

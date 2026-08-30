@@ -12,6 +12,10 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
+import {
+  DEFAULT_CHAT_MODEL_ID,
+  type ChatModelId,
+} from "@/src/entities/models/chat-model";
 import { LIBRARY_FILE_ACCEPT } from "@/src/entities/models/library";
 
 type ChatFilePickerShortcut = Pick<
@@ -24,9 +28,10 @@ export function isChatFilePickerShortcut(event: ChatFilePickerShortcut) {
   return event.key.toLowerCase() === "u" && (event.metaKey || event.ctrlKey);
 }
 
-/** Message draft and selected files submitted by chat composer. */
+/** Message draft, selected model, and files submitted by chat composer. */
 export type ChatComposerSubmission = {
   readonly attachments: readonly File[];
+  readonly modelId: ChatModelId;
   readonly text: string;
 };
 
@@ -51,8 +56,10 @@ type ChatComposerProps = {
   onAnnouncementChange: (announcement: string) => void;
   onAttachmentsChange: (attachments: File[]) => void;
   onDraftChange: (draft: string) => void;
+  onModelChange: (modelId: ChatModelId) => void;
   onSendMessage: (submission: ChatComposerSubmission) => Promise<void>;
   onStopResponse: () => void;
+  selectedModelId: ChatModelId;
 };
 
 const ignoreChatComposerLoadingAction = () => {};
@@ -75,8 +82,10 @@ export function ChatComposerLoading({ className }: { className?: string }) {
         onAnnouncementChange={ignoreChatComposerLoadingAction}
         onAttachmentsChange={ignoreChatComposerLoadingAction}
         onDraftChange={ignoreChatComposerLoadingAction}
+        onModelChange={ignoreChatComposerLoadingAction}
         onSendMessage={ignoreChatComposerLoadingSubmission}
         onStopResponse={ignoreChatComposerLoadingAction}
+        selectedModelId={DEFAULT_CHAT_MODEL_ID}
       />
     </fieldset>
   );
@@ -92,8 +101,10 @@ export function ChatComposer({
   onAnnouncementChange,
   onAttachmentsChange,
   onDraftChange,
+  onModelChange,
   onSendMessage,
   onStopResponse,
+  selectedModelId,
 }: ChatComposerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
@@ -136,7 +147,11 @@ export function ChatComposer({
 
         setHasAttemptedSubmit(false);
         onAnnouncementChange("");
-        void onSendMessage({ attachments, text: messageText });
+        void onSendMessage({
+          attachments,
+          modelId: selectedModelId,
+          text: messageText,
+        });
       }}
     >
       <div className="rounded-lg bg-background">
@@ -220,7 +235,9 @@ export function ChatComposer({
                 );
               }
             }}
+            onModelChange={onModelChange}
             onStopResponse={onStopResponse}
+            selectedModelId={selectedModelId}
           />
         </InputGroup>
       </div>

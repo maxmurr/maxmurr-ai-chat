@@ -29,6 +29,7 @@ import type {
   ChatStreamRequest,
 } from "@/src/entities/models/chat-stream-request";
 import { getMessageLibraryFileIds } from "@/src/entities/models/library";
+import { createChatAssistantRequestContext } from "@/src/infrastructure/ai/mastra/chat-assistant-agent";
 import { mastraRuntime } from "@/src/infrastructure/ai/mastra/mastra-runtime";
 import {
   hydrateLibraryFilesForModel,
@@ -283,6 +284,9 @@ export function createMastraChatStreamService(
                 // OpenAI Responses accepts text/code file_data after adapter opt-in.
                 openai: { passThroughUnsupportedFiles: true },
               },
+              requestContext: createChatAssistantRequestContext(
+                request.modelId
+              ),
               system: projectInstructions,
               tracingOptions: {
                 traceId: langfuseTraceId,

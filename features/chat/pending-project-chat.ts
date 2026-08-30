@@ -1,4 +1,11 @@
+import {
+  isChatModelId,
+  type ChatModelId,
+} from "@/src/entities/models/chat-model";
+
+/** First Project Chat turn carried through browser navigation. */
 export type PendingProjectChat = {
+  readonly modelId: ChatModelId;
   readonly projectId: string;
   readonly text: string;
 };
@@ -30,6 +37,8 @@ export function takePendingProjectChat(
     if (
       typeof pendingChat === "object" &&
       pendingChat !== null &&
+      "modelId" in pendingChat &&
+      isChatModelId(pendingChat.modelId) &&
       "projectId" in pendingChat &&
       typeof pendingChat.projectId === "string" &&
       "text" in pendingChat &&
@@ -37,6 +46,7 @@ export function takePendingProjectChat(
       pendingChat.text.trim()
     ) {
       return {
+        modelId: pendingChat.modelId,
         projectId: pendingChat.projectId,
         text: pendingChat.text.trim(),
       };

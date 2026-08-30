@@ -1,3 +1,5 @@
+import type { ChatModelId } from "@/src/entities/models/chat-model";
+
 type ChatStreamMessagePart = {
   readonly [key: string]: unknown;
   readonly filename?: string;
@@ -19,6 +21,7 @@ export type ChatStreamRequest = {
   readonly chatId: string;
   readonly message: ChatStreamMessage;
   readonly messageId?: string;
+  readonly modelId: ChatModelId;
   readonly projectId?: string;
   readonly streamId: string;
   readonly trigger?: "submit-message" | "regenerate-message";

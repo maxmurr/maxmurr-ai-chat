@@ -1,5 +1,5 @@
-import Image from "next/image"
-import { useState } from "react"
+import Image from "next/image";
+import { useState } from "react";
 import {
   ArrowUpIcon,
   ChevronDownIcon,
@@ -9,9 +9,9 @@ import {
   PlusIcon,
   TelescopeIcon,
   XIcon,
-} from "lucide-react"
+} from "lucide-react";
 
-import { TouchTarget } from "@/components/ui/touch-target"
+import { TouchTarget } from "@/components/ui/touch-target";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -24,23 +24,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
+import { InputGroupAddon, InputGroupButton } from "@/components/ui/input-group";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import {
-  InputGroupAddon,
-  InputGroupButton,
-} from "@/components/ui/input-group"
-import { Switch } from "@/components/ui/switch"
-import { cn } from "@/lib/utils"
-
-const CHAT_MODEL_OPTIONS = [
-  "Claude Opus 5",
-  "Claude Sonnet 5",
-  "Claude Haiku 4.5",
-  "GPT-5.6 Sol",
-  "GPT-5.6 Luna",
-  "Grok Build 0.1",
-] as const
-const DEFAULT_CHAT_MODEL = "Grok Build 0.1"
+  chatModelOptions,
+  isChatModelId,
+  type ChatModelId,
+} from "@/src/entities/models/chat-model";
 
 function ChatConnectorMenuItem({
   checked,
@@ -49,11 +41,11 @@ function ChatConnectorMenuItem({
   label,
   onCheckedChange,
 }: {
-  checked: boolean
-  className?: string
-  iconSrc: string
-  label: string
-  onCheckedChange: (checked: boolean) => void
+  checked: boolean;
+  className?: string;
+  iconSrc: string;
+  label: string;
+  onCheckedChange: (checked: boolean) => void;
 }) {
   return (
     <DropdownMenuCheckboxItem
@@ -83,7 +75,7 @@ function ChatConnectorMenuItem({
         tabIndex={-1}
       />
     </DropdownMenuCheckboxItem>
-  )
+  );
 }
 
 function ChatComposerAddMenu({
@@ -99,17 +91,17 @@ function ChatComposerAddMenu({
   researchModeEnabled,
   webSearchEnabled,
 }: {
-  className?: string
-  figmaConnected: boolean
-  googleDriveConnected: boolean
-  onAnnouncementChange: (announcement: string) => void
-  onChooseFiles: () => void
-  onFigmaConnectedChange: (checked: boolean) => void
-  onGoogleDriveConnectedChange: (checked: boolean) => void
-  onResearchModeChange: (checked: boolean) => void
-  onWebSearchChange: (checked: boolean) => void
-  researchModeEnabled: boolean
-  webSearchEnabled: boolean
+  className?: string;
+  figmaConnected: boolean;
+  googleDriveConnected: boolean;
+  onAnnouncementChange: (announcement: string) => void;
+  onChooseFiles: () => void;
+  onFigmaConnectedChange: (checked: boolean) => void;
+  onGoogleDriveConnectedChange: (checked: boolean) => void;
+  onResearchModeChange: (checked: boolean) => void;
+  onWebSearchChange: (checked: boolean) => void;
+  researchModeEnabled: boolean;
+  webSearchEnabled: boolean;
 }) {
   return (
     <DropdownMenu>
@@ -197,18 +189,22 @@ function ChatComposerAddMenu({
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
 
 function ChatModelMenu({
   className,
   onModelChange,
-  selectedModel,
+  selectedModelId,
 }: {
-  className?: string
-  onModelChange: (model: string) => void
-  selectedModel: string
+  className?: string;
+  onModelChange: (modelId: ChatModelId) => void;
+  selectedModelId: ChatModelId;
 }) {
+  const selectedModelLabel =
+    chatModelOptions.find((model) => model.id === selectedModelId)?.label ??
+    selectedModelId;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -220,30 +216,28 @@ function ChatModelMenu({
           />
         }
       >
-        <span className="truncate text-foreground">{selectedModel}</span>
+        <span className="truncate text-foreground">{selectedModelLabel}</span>
         <ChevronDownIcon className="shrink-0" data-icon="inline-end" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        className="w-fit min-w-60"
-        side="top"
-      >
+      <DropdownMenuContent align="start" className="w-fit min-w-60" side="top">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Model</DropdownMenuLabel>
           <DropdownMenuRadioGroup
-            onValueChange={onModelChange}
-            value={selectedModel}
+            onValueChange={(modelId) => {
+              if (isChatModelId(modelId)) onModelChange(modelId);
+            }}
+            value={selectedModelId}
           >
-            {CHAT_MODEL_OPTIONS.map((model) => (
-              <DropdownMenuRadioItem key={model} value={model}>
-                {model}
+            {chatModelOptions.map((model) => (
+              <DropdownMenuRadioItem key={model.id} value={model.id}>
+                {model.label}
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
 
 function ChatComposerSubmitButton({
@@ -252,10 +246,10 @@ function ChatComposerSubmitButton({
   isGenerating,
   onStopResponse,
 }: {
-  canSend: boolean
-  className?: string
-  isGenerating: boolean
-  onStopResponse: () => void
+  canSend: boolean;
+  className?: string;
+  isGenerating: boolean;
+  onStopResponse: () => void;
 }) {
   return isGenerating ? (
     <InputGroupButton
@@ -283,17 +277,19 @@ function ChatComposerSubmitButton({
       <ArrowUpIcon />
       <TouchTarget />
     </InputGroupButton>
-  )
+  );
 }
 
 type ChatComposerToolbarProps = {
-  canSend: boolean
-  className?: string
-  isGenerating: boolean
-  onAnnouncementChange: (announcement: string) => void
-  onChooseFiles: () => void
-  onStopResponse: () => void
-}
+  canSend: boolean;
+  className?: string;
+  isGenerating: boolean;
+  onAnnouncementChange: (announcement: string) => void;
+  onChooseFiles: () => void;
+  onModelChange: (modelId: ChatModelId) => void;
+  onStopResponse: () => void;
+  selectedModelId: ChatModelId;
+};
 
 /** Renders chat composer tools, model selection, and submit control. */
 export function ChatComposerToolbar({
@@ -302,13 +298,14 @@ export function ChatComposerToolbar({
   isGenerating,
   onAnnouncementChange,
   onChooseFiles,
+  onModelChange,
   onStopResponse,
+  selectedModelId,
 }: ChatComposerToolbarProps) {
-  const [figmaConnected, setFigmaConnected] = useState(true)
-  const [googleDriveConnected, setGoogleDriveConnected] = useState(false)
-  const [researchModeEnabled, setResearchModeEnabled] = useState(false)
-  const [selectedModel, setSelectedModel] = useState(DEFAULT_CHAT_MODEL)
-  const [webSearchEnabled, setWebSearchEnabled] = useState(false)
+  const [figmaConnected, setFigmaConnected] = useState(true);
+  const [googleDriveConnected, setGoogleDriveConnected] = useState(false);
+  const [researchModeEnabled, setResearchModeEnabled] = useState(false);
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
 
   return (
     <InputGroupAddon
@@ -329,8 +326,8 @@ export function ChatComposerToolbar({
         webSearchEnabled={webSearchEnabled}
       />
       <ChatModelMenu
-        onModelChange={setSelectedModel}
-        selectedModel={selectedModel}
+        onModelChange={onModelChange}
+        selectedModelId={selectedModelId}
       />
       <ChatComposerSubmitButton
         canSend={canSend}
@@ -339,5 +336,5 @@ export function ChatComposerToolbar({
         onStopResponse={onStopResponse}
       />
     </InputGroupAddon>
-  )
+  );
 }
