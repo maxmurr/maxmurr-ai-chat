@@ -1,3 +1,5 @@
+export const CHAT_RESPONSE_STREAM_STALE_AFTER_MS = 90_000;
+
 export const chatVisibilities = ["private", "workspace", "public"] as const;
 
 /** Who can see a chat: owner only, workspace members, or anyone with the public link. */
@@ -5,16 +7,18 @@ export type ChatVisibility = (typeof chatVisibilities)[number];
 
 /** One persisted conversation owned by its creator and scoped to a workspace. */
 export type Chat = {
+  readonly activeStreamId: string | null;
+  readonly createdAt: Date;
+  readonly hasUnreadResponse: boolean;
   readonly id: string;
   readonly organizationId: string;
   readonly ownerId: string;
-  readonly projectId: string | null;
-  readonly title: string;
-  readonly visibility: ChatVisibility;
-  readonly publicToken: string | null;
   readonly pinned: boolean;
-  readonly createdAt: Date;
+  readonly projectId: string | null;
+  readonly publicToken: string | null;
+  readonly title: string;
   readonly updatedAt: Date;
+  readonly visibility: ChatVisibility;
 };
 
 /** Owner sidebar Chat projection with live Project name for display. */

@@ -20,6 +20,7 @@ export type ChatStreamRequest = {
   readonly message: ChatStreamMessage;
   readonly messageId?: string;
   readonly projectId?: string;
+  readonly streamId: string;
   readonly trigger?: "submit-message" | "regenerate-message";
 };
 

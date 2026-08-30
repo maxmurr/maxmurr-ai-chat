@@ -60,6 +60,7 @@ export function ChatAppSidebar({
 
       <SidebarContent>
         <ChatHistory
+          activeWorkspaceId={activeWorkspaceId}
           ownChats={ownChats}
           projects={projects}
           teamChats={teamChats}

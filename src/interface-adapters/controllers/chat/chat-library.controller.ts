@@ -4,10 +4,12 @@ import type { ChatRepository } from "@/src/application/services/chat-repository.
 import type { LibraryService } from "@/src/application/services/library.service.interface";
 import {
   ChatAccessDeniedError,
+  ChatStreamConflictError,
   InvalidChatRequestError,
 } from "@/src/entities/errors/chat-errors";
 import {
   canViewChat,
+  CHAT_RESPONSE_STREAM_STALE_AFTER_MS,
   chatVisibilities,
   type Chat,
   type ChatMessage,
@@ -24,7 +26,13 @@ const chatMessageFeedbackMetadataSchema = z.object({
 });
 
 function withoutOwnerInternals(chat: Chat): Chat {
-  return { ...chat, projectId: null, publicToken: null };
+  return {
+    ...chat,
+    activeStreamId: null,
+    hasUnreadResponse: false,
+    projectId: null,
+    publicToken: null,
+  };
 }
 
 function withFileAvailability(
@@ -93,7 +101,10 @@ export function createChatLibraryController(
   return {
     async deleteChat(chatId: string, userId: string) {
       await requireOwnedChat(chatId, userId);
-      await chatRepository.deleteChat(chatId);
+
+      if (!(await chatRepository.deleteChat(chatId))) {
+        throw new ChatStreamConflictError();
+      }
     },
 
     /** Returns the Langfuse trace only for an owned assistant message. */
@@ -174,11 +185,47 @@ export function createChatLibraryController(
     },
 
     async listSidebarChats(organizationId: string, userId: string) {
-      const [ownChats, teamChats] = await Promise.all([
+      const [initialOwnChats, teamChats] = await Promise.all([
         chatRepository.listOwnChats(organizationId, userId),
         chatRepository.listTeamChats(organizationId, userId),
       ]);
+      let ownChats = initialOwnChats;
+      const staleStreams = ownChats.filter(
+        (chat) =>
+          chat.activeStreamId &&
+          Date.now() - chat.updatedAt.getTime() >=
+            CHAT_RESPONSE_STREAM_STALE_AFTER_MS
+      );
+
+      if (staleStreams.length > 0) {
+        await Promise.all(
+          staleStreams.map((chat) =>
+            chatRepository.finishChatResponseStream(
+              chat.id,
+              chat.activeStreamId!,
+              false
+            )
+          )
+        );
+        ownChats = await chatRepository.listOwnChats(organizationId, userId);
+      }
+
       return { ownChats, teamChats };
+    },
+
+    async markChatRead(
+      chatId: string,
+      userId: string,
+      activeOrganizationId: string,
+      assistantMessageId: string
+    ) {
+      const chat = await requireOwnedChat(chatId, userId);
+
+      if (chat.organizationId !== activeOrganizationId) {
+        throw new ChatAccessDeniedError();
+      }
+
+      await chatRepository.markChatRead(chatId, assistantMessageId);
     },
 
     async pinChat(chatId: string, userId: string, pinned: boolean) {

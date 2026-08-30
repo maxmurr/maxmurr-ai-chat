@@ -9,6 +9,7 @@ import {
 import { after } from "next/server";
 
 import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface";
+import type { ChatStreamStore } from "@/src/application/services/chat-stream-store.service.interface";
 import type { StreamChatResponse } from "@/src/application/services/chat-stream.service.interface";
 import type { CrashReporterService } from "@/src/application/services/crash-reporter.service.interface";
 import type { InstrumentationService } from "@/src/application/services/instrumentation.service.interface";
@@ -17,6 +18,7 @@ import type { ProjectRepository } from "@/src/application/services/project-repos
 import type { ProjectService } from "@/src/application/services/project.service.interface";
 import {
   ChatAccessDeniedError,
+  ChatStreamConflictError,
   ChatUnavailableError,
 } from "@/src/entities/errors/chat-errors";
 import { LibraryAccessDeniedError } from "@/src/entities/errors/library-errors";
@@ -149,6 +151,7 @@ export async function authorizeAndCreateStreamChat(
 /** Creates streaming Chat service that persists turns and Library Files. */
 export function createMastraChatStreamService(
   chatRepository: ChatRepository,
+  chatStreamStore: ChatStreamStore,
   projectRepository: ProjectRepository,
   libraryService: LibraryService,
   projectService: ProjectService,
@@ -157,32 +160,52 @@ export function createMastraChatStreamService(
   streamAgentChat: StreamMastraAgentChat = handleChatStream,
   defer: (callback: () => void | Promise<void>) => void = after
 ): StreamChatResponse {
-  return async (request, context, abortSignal) => {
-    const { chatId, message, messageId, trigger } = request;
+  return async (request, context) => {
+    const {
+      chatId,
+      message,
+      messageId,
+      streamId: responseStreamId,
+      trigger,
+    } = request;
     const { chat: activeChat, created } = await authorizeAndCreateStreamChat(
       chatRepository,
       projectRepository,
       request,
       context
     );
-
-    if (created) {
-      defer(() =>
-        generateAndSaveChatTitle(
-          chatRepository,
-          crashReporterService,
-          chatId,
-          extractMessageText(message)
-        )
-      );
-    }
-
     const libraryScope = {
       organizationId: context.organizationId,
       ownerId: context.userId,
     };
+    const responseStreamIdentity = {
+      chatId,
+      organizationId: context.organizationId,
+      ownerId: context.userId,
+      streamId: responseStreamId,
+    };
+    let claimedStream = false;
 
     try {
+      claimedStream = await chatRepository.claimChatResponseStream(
+        chatId,
+        responseStreamId
+      );
+
+      if (!claimedStream) {
+        throw new ChatStreamConflictError();
+      }
+
+      if (created) {
+        defer(() =>
+          generateAndSaveChatTitle(
+            chatRepository,
+            crashReporterService,
+            chatId,
+            extractMessageText(message)
+          )
+        );
+      }
       const projectInstructions = activeChat.projectId
         ? (
             await projectRepository.getOwnedProject(
@@ -226,6 +249,8 @@ export function createMastraChatStreamService(
         libraryScope
       );
       const langfuseTraceId = crypto.randomUUID().replaceAll("-", "");
+      const responseAbortController = new AbortController();
+      let streamWasStopped = false;
       const stream = await instrumentationService.startSpan(
         { name: "Stream Chat response", op: "gen_ai.chat" },
         () =>
@@ -252,7 +277,7 @@ export function createMastraChatStreamService(
               return "Chat response failed.";
             },
             params: {
-              abortSignal,
+              abortSignal: responseAbortController.signal,
               messages: providerMessages,
               providerOptions: {
                 // OpenAI Responses accepts text/code file_data after adapter opt-in.
@@ -277,13 +302,16 @@ export function createMastraChatStreamService(
 
       defer(() => mastraRuntime.observability.flush());
 
-      return createUIMessageStreamResponse({
-        stream: createUIMessageStream<UIMessage>({
-          execute: ({ writer }) => {
-            writer.merge(stream as unknown as ReadableStream<UIMessageChunk>);
-          },
-          onEnd: async ({ responseMessage }) => {
-            if (responseMessage.parts.length === 0) {
+      const uiMessageStream = createUIMessageStream<UIMessage>({
+        execute: ({ writer }) => {
+          writer.merge(stream as unknown as ReadableStream<UIMessageChunk>);
+        },
+        onEnd: async ({ responseMessage }) => {
+          const hasUnreadResponse =
+            !streamWasStopped && responseMessage.parts.length > 0;
+
+          try {
+            if (!hasUnreadResponse) {
               return;
             }
 
@@ -340,11 +368,61 @@ export function createMastraChatStreamService(
               chatId,
               persistedResponse as ChatMessage
             );
-          },
-          originalMessages: persistedModelMessages,
-        }),
+          } finally {
+            await chatRepository.finishChatResponseStream(
+              chatId,
+              responseStreamId,
+              hasUnreadResponse
+            );
+          }
+        },
+        originalMessages: persistedModelMessages,
+      });
+
+      return createUIMessageStreamResponse({
+        consumeSseStream: async ({ stream: sseStream }) => {
+          try {
+            await chatStreamStore.createChatStream(
+              responseStreamIdentity,
+              sseStream,
+              () => {
+                streamWasStopped = true;
+                responseAbortController.abort();
+              }
+            );
+          } catch (error) {
+            responseAbortController.abort();
+            crashReporterService.report(error);
+            console.error(
+              "Chat resumable stream failed.",
+              error instanceof Error ? error.message : "Unknown error"
+            );
+            await chatRepository.finishChatResponseStream(
+              chatId,
+              responseStreamId,
+              false
+            );
+          }
+        },
+        stream: uiMessageStream,
       });
     } catch (error) {
+      if (claimedStream) {
+        try {
+          await chatRepository.finishChatResponseStream(
+            chatId,
+            responseStreamId,
+            false
+          );
+        } catch (cleanupError) {
+          crashReporterService.report(cleanupError);
+        }
+      }
+
+      if (error instanceof ChatStreamConflictError) {
+        throw error;
+      }
+
       if (error instanceof LibraryAccessDeniedError) {
         throw new ChatAccessDeniedError({ cause: error });
       }

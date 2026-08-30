@@ -10,10 +10,12 @@ import { resolveApplicationDependency } from "@/di/application-container";
 import { applicationInjectionTokens } from "@/di/application-container.registry";
 import { auth } from "@/di/authentication";
 import { chatFeedbackReasons } from "@/features/chat/chat-feedback";
+import { getWorkspaceOwnerScope } from "@/features/workspace/workspace-queries";
 import { reportUnexpectedServerError } from "@/lib/server-error-reporting";
 import { traceServerAction } from "@/lib/server-action-tracing";
 import {
   ChatAccessDeniedError,
+  ChatStreamConflictError,
   InvalidChatRequestError,
 } from "@/src/entities/errors/chat-errors";
 import type { ChatVisibility } from "@/src/entities/models/chat";
@@ -181,6 +183,40 @@ export async function updateChatSharingAction(
   });
 }
 
+/** Clears owner unread state for the latest visible assistant response. */
+export async function markChatReadAction(
+  chatId: unknown,
+  assistantMessageId: unknown
+) {
+  return traceServerAction("markChatReadAction", async () => {
+    const parsedChatId = chatIdSchema.safeParse(chatId);
+    const parsedMessageId = chatMessageIdSchema.safeParse(assistantMessageId);
+
+    if (!parsedChatId.success || !parsedMessageId.success) {
+      return { error: "Could not mark chat read.", ok: false as const };
+    }
+
+    const workspace = await getWorkspaceOwnerScope(await headers());
+
+    if (workspace.status !== "authorized") {
+      return { error: "Could not mark chat read.", ok: false as const };
+    }
+
+    try {
+      await chatLibrary().markChatRead(
+        parsedChatId.data,
+        workspace.scope.ownerId,
+        workspace.scope.organizationId,
+        parsedMessageId.data
+      );
+      return { ok: true as const };
+    } catch (error) {
+      reportUnexpectedChatActionError(error);
+      return { error: "Could not mark chat read.", ok: false as const };
+    }
+  });
+}
+
 /** Sets owner chat pin after validating action input. */
 export async function pinChatAction(chatId: unknown, pinned: unknown) {
   return traceServerAction("pinChatAction", async () => {
@@ -241,6 +277,13 @@ export async function deleteChatAction(chatId: unknown) {
       refresh();
       return { ok: true as const };
     } catch (error) {
+      if (error instanceof ChatStreamConflictError) {
+        return {
+          error: "Stop the response before deleting this chat.",
+          ok: false as const,
+        };
+      }
+
       reportUnexpectedChatActionError(error);
       return { error: "Could not delete chat.", ok: false as const };
     }

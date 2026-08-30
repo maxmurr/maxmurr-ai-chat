@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   ChevronRightIcon,
@@ -48,6 +49,13 @@ type ChatHistorySection = {
   label: "Pinned" | "Recents";
   projects: ChatHistoryProjectGroup[];
 };
+
+type SerializedChatConversationEntry = Omit<
+  ChatConversationEntry,
+  "updatedAt"
+> & { updatedAt: string };
+
+const CHAT_ACTIVITY_POLL_INTERVAL_MS = 2_000;
 
 /** Groups pinned Projects while keeping individually pinned Chats standalone. */
 export function groupOwnChats(
@@ -166,19 +174,85 @@ function PinnedProjectHistoryItem({
 
 /** Renders own and team chat history in the sidebar. */
 export function ChatHistory({
+  activeWorkspaceId,
   ownChats,
   projects,
   teamChats,
 }: {
+  activeWorkspaceId: string;
   ownChats: ChatConversationEntry[];
   projects: ProjectActionsEntry[];
   teamChats: ChatHistoryEntry[];
 }) {
   const pathname = usePathname();
+  const [polledOwnChats, setPolledOwnChats] = useState<{
+    chats: ChatConversationEntry[];
+    source: ChatConversationEntry[];
+    workspaceId: string;
+  } | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const abortController = new AbortController();
+
+    async function refreshChatActivity() {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/chat/activity", {
+          signal: abortController.signal,
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const result = (await response.json()) as {
+          chats?: SerializedChatConversationEntry[];
+        };
+
+        if (!isMounted || !Array.isArray(result.chats)) {
+          return;
+        }
+
+        setPolledOwnChats({
+          chats: result.chats.map((chat) => ({
+            ...chat,
+            updatedAt: new Date(chat.updatedAt),
+          })),
+          source: ownChats,
+          workspaceId: activeWorkspaceId,
+        });
+      } catch {
+        // Keep server-rendered history when background status refresh fails.
+      }
+    }
+
+    void refreshChatActivity();
+    // ponytail: polling avoids a persistent socket; replace with push at scale.
+    const interval = window.setInterval(
+      () => void refreshChatActivity(),
+      CHAT_ACTIVITY_POLL_INTERVAL_MS
+    );
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+      window.clearInterval(interval);
+    };
+  }, [activeWorkspaceId, ownChats]);
+
+  const currentOwnChats =
+    polledOwnChats?.workspaceId === activeWorkspaceId &&
+    polledOwnChats.source === ownChats
+      ? polledOwnChats.chats
+      : ownChats;
 
   return (
     <>
-      {groupOwnChats(ownChats, projects).map((group) => (
+      {groupOwnChats(currentOwnChats, projects).map((group) => (
         <SidebarGroup
           className="group-data-[collapsible=icon]:hidden"
           key={group.label}

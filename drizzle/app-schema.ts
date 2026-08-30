@@ -203,6 +203,8 @@ export const chat = pgTable(
     visibility: text("visibility").default("private").notNull(),
     publicToken: text("public_token"),
     pinned: boolean("pinned").default(false).notNull(),
+    activeStreamId: text("active_stream_id"),
+    hasUnreadResponse: boolean("has_unread_response").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

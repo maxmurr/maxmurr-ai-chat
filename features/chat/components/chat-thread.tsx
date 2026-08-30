@@ -6,6 +6,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type FileUIPart } from "ai";
 import { CircleAlertIcon } from "lucide-react";
 
+import { markChatReadAction } from "@/features/chat/chat-actions";
 import {
   ChatComposer,
   type ChatComposerSubmission,
@@ -39,10 +40,23 @@ const CHAT_TRANSPORT = new DefaultChatTransport<ChatUIMessage>({
 });
 
 type ChatThreadProps = {
+  activeStreamId: string | null;
   chatId: string;
   className?: string;
   initialMessages?: ChatUIMessage[];
 };
+
+function isCurrentChatRoute(chatId: string) {
+  return window.location.pathname === `/chat/${chatId}`;
+}
+
+function canMarkCurrentChatRead(chatId: string) {
+  return (
+    document.visibilityState === "visible" &&
+    document.hasFocus() &&
+    isCurrentChatRoute(chatId)
+  );
+}
 
 /** Routes uploads after a Chat exists locally or has loaded from persistence. */
 export function resolveChatFileUploadDestination(
@@ -55,47 +69,70 @@ export function resolveChatFileUploadDestination(
 
 /** Renders current live chat conversation. */
 export function ChatThread({
+  activeStreamId,
   chatId,
   className,
   initialMessages,
 }: ChatThreadProps) {
   return (
     <ChatThreadContent
+      activeStreamId={activeStreamId}
       chatId={chatId}
       className={className}
       initialMessages={initialMessages}
+      key={`${chatId}:${activeStreamId ?? "idle"}:${initialMessages?.at(-1)?.id ?? "empty"}`}
     />
   );
 }
 
 function ChatThreadContent({
+  activeStreamId,
   chatId,
   className,
   initialMessages,
 }: ChatThreadProps) {
   const router = useRouter();
-  const isNewlyPersistedChatRef = useRef(false);
+  const activeStreamIdRef = useRef(activeStreamId);
+  const chatFinishEventCountRef = useRef(0);
+  const [activeResponseStreamId, setActiveResponseStreamId] =
+    useState(activeStreamId);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [composerAnnouncement, setComposerAnnouncement] = useState("");
   const [draft, setDraft] = useState("");
+
+  function updateActiveResponseStreamId(streamId: string | null) {
+    activeStreamIdRef.current = streamId;
+    setActiveResponseStreamId(streamId);
+  }
+
   const {
     clearError,
     error,
     messages: chatMessages,
     regenerate,
+    resumeStream,
     sendMessage,
     status,
     stop,
   } = useChat<ChatUIMessage>({
     id: chatId,
     messages: initialMessages,
-    onFinish: () => {
-      // Refresh once after the first exchange so the sidebar picks up the chat.
-      if (isNewlyPersistedChatRef.current) {
-        isNewlyPersistedChatRef.current = false;
-        router.refresh();
+    onFinish: ({ isAbort, isDisconnect, isError, message }) => {
+      chatFinishEventCountRef.current += 1;
+      const responseCompleted = !isAbort && !isDisconnect && !isError;
+
+      if (!isCurrentChatRoute(chatId)) return;
+
+      if (!isDisconnect) {
+        updateActiveResponseStreamId(null);
       }
+
+      if (responseCompleted && canMarkCurrentChatRead(chatId)) {
+        void markChatReadAction(chatId, message.id);
+      }
+      router.refresh();
     },
+    resume: activeStreamId !== null,
     transport: CHAT_TRANSPORT,
   });
   const messages = chatMessages.flatMap((message) => {
@@ -104,7 +141,10 @@ function ChatThreadContent({
   });
   const { conversationTitle, setConversationTitle } =
     useChatConversationTitle();
-  const isGenerating = status === "submitted" || status === "streaming";
+  const isGenerating =
+    activeResponseStreamId !== null ||
+    status === "submitted" ||
+    status === "streaming";
   const streamingMessageId =
     status === "streaming" ? chatMessages.at(-1)?.id : undefined;
 
@@ -112,7 +152,11 @@ function ChatThreadContent({
     { attachments, text }: ChatComposerSubmission,
     projectId?: string
   ) {
-    if (isGenerating || (!text && attachments.length === 0)) {
+    if (
+      activeStreamIdRef.current ||
+      isGenerating ||
+      (!text && attachments.length === 0)
+    ) {
       return;
     }
 
@@ -138,15 +182,16 @@ function ChatThreadContent({
         url: createLibraryFileDownloadUrl(file.id),
       }));
       const messageId = crypto.randomUUID();
+      const streamId = crypto.randomUUID();
 
       if (messages.length === 0) {
         setConversationTitle(text || uploadedFiles[0]?.name || "New chat");
-        isNewlyPersistedChatRef.current = true;
         window.history.replaceState(null, "", `/chat/${chatId}`);
       }
 
       setAttachments([]);
       setDraft("");
+      updateActiveResponseStreamId(streamId);
 
       await sendMessage(
         {
@@ -158,9 +203,10 @@ function ChatThreadContent({
           ],
           role: "user",
         },
-        projectId ? { body: { projectId } } : undefined
+        { body: { ...(projectId ? { projectId } : {}), streamId } }
       );
     } catch (error) {
+      updateActiveResponseStreamId(null);
       const description =
         error instanceof Error ? error.message : "Could not send message.";
       setComposerAnnouncement(description);
@@ -180,6 +226,64 @@ function ChatThreadContent({
       )
   );
 
+  const markLatestAssistantResponseRead = useEffectEvent(() => {
+    if (!canMarkCurrentChatRead(chatId)) return;
+
+    const assistantMessage = chatMessages.findLast(
+      (message) => message.role === "assistant"
+    );
+
+    if (assistantMessage) {
+      void markChatReadAction(chatId, assistantMessage.id);
+    }
+  });
+
+  useEffect(() => {
+    markLatestAssistantResponseRead();
+    window.addEventListener("focus", markLatestAssistantResponseRead);
+    document.addEventListener(
+      "visibilitychange",
+      markLatestAssistantResponseRead
+    );
+    return () => {
+      window.removeEventListener("focus", markLatestAssistantResponseRead);
+      document.removeEventListener(
+        "visibilitychange",
+        markLatestAssistantResponseRead
+      );
+    };
+  }, [chatId]);
+
+  useEffect(() => {
+    if (!activeStreamId || status === "submitted" || status === "streaming") {
+      return;
+    }
+
+    let isMounted = true;
+    let isReconciling = false;
+    const reconcile = async () => {
+      if (isReconciling || document.visibilityState !== "visible") {
+        return;
+      }
+
+      isReconciling = true;
+      try {
+        await resumeStream();
+      } finally {
+        if (isMounted) {
+          isReconciling = false;
+          router.refresh();
+        }
+      }
+    };
+    const interval = window.setInterval(() => void reconcile(), 5_000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, [activeStreamId, resumeStream, router, status]);
+
   useEffect(() => {
     const sendTimer = window.setTimeout(() => {
       const pendingProjectChat = takePendingProjectChat(window.sessionStorage);
@@ -188,12 +292,65 @@ function ChatThreadContent({
     return () => window.clearTimeout(sendTimer);
   }, []);
 
-  function retryChatMessage(messageId: string) {
+  async function stopChatResponse() {
+    try {
+      const streamId = activeStreamIdRef.current;
+
+      if (streamId) {
+        const latestMessage = chatMessages.at(-1);
+        const assistantMessage =
+          latestMessage?.role === "assistant" ? latestMessage : undefined;
+        const response = await fetch(`/api/chat/${chatId}/stop`, {
+          body: JSON.stringify({
+            activeStreamId: streamId,
+            assistantMessage,
+          }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        });
+
+        if (!response.ok) {
+          throw new Error("Chat stop request failed.");
+        }
+      }
+
+      updateActiveResponseStreamId(null);
+      await stop();
+      router.refresh();
+    } catch {
+      const description = "Could not stop response.";
+      setComposerAnnouncement(description);
+      toast.add({ description, title: "Stop failed", type: "error" });
+    }
+  }
+
+  function retryChatMessage(messageId?: string) {
     clearError();
     setComposerAnnouncement("");
-    void regenerate({ messageId }).catch(() =>
-      setComposerAnnouncement("Could not retry response.")
-    );
+
+    if (activeStreamIdRef.current) {
+      const streamId = activeStreamIdRef.current;
+      const finishEventCount = chatFinishEventCountRef.current;
+      void resumeStream().then(() => {
+        if (
+          activeStreamId === null &&
+          activeStreamIdRef.current === streamId &&
+          chatFinishEventCountRef.current === finishEventCount
+        ) {
+          // A 204 resume has no onFinish callback: no server stream remains.
+          updateActiveResponseStreamId(null);
+        }
+        router.refresh();
+      });
+      return;
+    }
+
+    const streamId = crypto.randomUUID();
+    updateActiveResponseStreamId(streamId);
+    void regenerate({ body: { streamId }, messageId }).catch(() => {
+      updateActiveResponseStreamId(null);
+      setComposerAnnouncement("Could not retry response.");
+    });
   }
 
   function submitSuggestedMessage(suggestion: string) {
@@ -242,7 +399,7 @@ function ChatThreadContent({
               <AlertAction>
                 <Button
                   className="h-11 sm:h-7"
-                  onClick={() => void regenerate()}
+                  onClick={() => retryChatMessage()}
                   size="sm"
                   type="button"
                   variant="outline"
@@ -263,7 +420,7 @@ function ChatThreadContent({
           onAttachmentsChange={setAttachments}
           onDraftChange={setDraft}
           onSendMessage={sendChatMessage}
-          onStopResponse={() => void stop()}
+          onStopResponse={() => void stopChatResponse()}
         />
 
         <ChatFooterNotice>

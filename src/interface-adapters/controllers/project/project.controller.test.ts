@@ -8,6 +8,7 @@ import type {
   ProjectDetailsUpdate,
   ProjectRepository,
 } from "@/src/application/services/project-repository.service.interface";
+import { ChatStreamConflictError } from "@/src/entities/errors/chat-errors";
 import { LibraryAccessDeniedError } from "@/src/entities/errors/library-errors";
 import {
   InvalidProjectRequestError,
@@ -44,6 +45,7 @@ class InMemoryChatRepository {
     deleteChat: async (chatId: string) => {
       this.deletedChatIds.push(chatId);
       this.chats = this.chats.filter((chat) => chat.id !== chatId);
+      return true;
     },
     getChatById: async (chatId: string) =>
       this.chats.find((chat) => chat.id === chatId) ?? null,
@@ -320,7 +322,9 @@ function createChat(
 ): Chat {
   return {
     ...scope,
+    activeStreamId: null,
     createdAt,
+    hasUnreadResponse: false,
     id,
     pinned: false,
     projectId,
@@ -776,6 +780,31 @@ test("Project attaches, moves, and detaches only owner Chats in active Workspace
     ),
     ProjectAccessDeniedError
   );
+});
+
+test("Project with an active Chat response cannot be deleted", async () => {
+  const repository = new InMemoryProjectRepository();
+  const { chats, controller } = createController(repository);
+  const project = await controller.createProject(
+    { description: "", name: "Launch" },
+    ownerScope
+  );
+  chats.chats = [
+    {
+      ...createChat(
+        "30000000-0000-4000-8000-000000000010",
+        ownerScope,
+        project.id
+      ),
+      activeStreamId: "40000000-0000-4000-8000-000000000010",
+    },
+  ];
+
+  await assert.rejects(
+    controller.deleteProject(project.id, ownerScope),
+    ChatStreamConflictError
+  );
+  assert.deepEqual(await controller.listProjects(ownerScope), [project]);
 });
 
 test("deleting Project delegates one database-cascading Project delete", async () => {

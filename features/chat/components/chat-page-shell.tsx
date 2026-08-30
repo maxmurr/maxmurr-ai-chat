@@ -12,6 +12,7 @@ import type { ChatUIMessage } from "@/src/interface-adapters/presenters/chat-mes
 import type { ChatVisibility } from "@/src/entities/models/chat";
 
 export type ChatPageShellChat = {
+  activeStreamId: string | null;
   id: string;
   isOwner: boolean;
   pinned: boolean;
@@ -58,7 +59,11 @@ export async function ChatPageShell({
         <ChatConversationTitle className="min-w-0" />
       </ChatPageHeader>
       {chat.isOwner ? (
-        <ChatThread chatId={chat.id} initialMessages={initialMessages} />
+        <ChatThread
+          activeStreamId={chat.activeStreamId}
+          chatId={chat.id}
+          initialMessages={initialMessages}
+        />
       ) : (
         <ChatTranscript messages={initialMessages ?? []} title={chat.title} />
       )}

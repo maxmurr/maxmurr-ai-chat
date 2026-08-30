@@ -13,6 +13,7 @@ export async function NewChatPageContent() {
   return (
     <ChatPageShell
       chat={{
+        activeStreamId: null,
         id: crypto.randomUUID(),
         isOwner: true,
         pinned: false,

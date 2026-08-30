@@ -4,12 +4,16 @@ import { test } from "node:test";
 import type { handleChatStream } from "@mastra/ai-sdk";
 
 import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface";
+import type { ChatStreamStore } from "@/src/application/services/chat-stream-store.service.interface";
 import type { CrashReporterService } from "@/src/application/services/crash-reporter.service.interface";
 import type { InstrumentationService } from "@/src/application/services/instrumentation.service.interface";
 import type { LibraryService } from "@/src/application/services/library.service.interface";
 import type { ProjectRepository } from "@/src/application/services/project-repository.service.interface";
 import type { ProjectService } from "@/src/application/services/project.service.interface";
-import { ChatAccessDeniedError } from "@/src/entities/errors/chat-errors";
+import {
+  ChatAccessDeniedError,
+  ChatStreamConflictError,
+} from "@/src/entities/errors/chat-errors";
 import type { Chat, ChatMessage } from "@/src/entities/models/chat";
 import type {
   ChatRequestContext,
@@ -33,7 +37,9 @@ function createStreamFixture(
   projectFolderId: string | null = null
 ) {
   let chat: Chat = {
+    activeStreamId: null,
     createdAt,
+    hasUnreadResponse: false,
     id: "30000000-0000-4000-8000-000000000001",
     organizationId: context.organizationId,
     ownerId: context.userId,
@@ -56,12 +62,17 @@ function createStreamFixture(
     pinned: false,
     updatedAt: createdAt,
   };
+  let claimAllowed = true;
   let projectReads = 0;
   let sourceReads = 0;
   const savedMessages: ChatMessage[] = [];
   const streamedMessages: unknown[][] = [];
   const streamedSystems: (string | undefined)[] = [];
   const chatRepository = {
+    async claimChatResponseStream() {
+      return claimAllowed;
+    },
+    async finishChatResponseStream() {},
     async getChatById() {
       return chat;
     },
@@ -124,8 +135,16 @@ function createStreamFixture(
     instrumentServerAction: async (_name, _options, callback) => callback(),
     startSpan: (_options, callback) => callback(),
   } satisfies InstrumentationService;
+  const chatStreamStore: ChatStreamStore = {
+    async cancelChatStream() {},
+    async createChatStream() {},
+    async resumeChatStream() {
+      return null;
+    },
+  };
   const streamChat = createMastraChatStreamService(
     chatRepository,
+    chatStreamStore,
     projectRepository,
     libraryService,
     projectService,
@@ -143,6 +162,9 @@ function createStreamFixture(
   let messageNumber = 0;
 
   return {
+    denyStreamClaim() {
+      claimAllowed = false;
+    },
     detachChat() {
       chat = { ...chat, projectId: null };
     },
@@ -163,10 +185,12 @@ function createStreamFixture(
             parts: [{ text: "Hello", type: "text" }],
             role: "user",
           },
+          streamId: `40000000-0000-4000-8000-${messageNumber
+            .toString()
+            .padStart(12, "0")}`,
           trigger: "submit-message",
         },
-        context,
-        new AbortController().signal
+        context
       );
     },
     setInstructions(nextInstructions: string) {
@@ -176,6 +200,15 @@ function createStreamFixture(
     streamedSystems,
   };
 }
+
+test("active Chat stream rejects a second producer before side effects", async () => {
+  const fixture = createStreamFixture("", null);
+  fixture.denyStreamClaim();
+
+  await assert.rejects(fixture.sendMessage(), ChatStreamConflictError);
+  assert.deepEqual(fixture.savedMessages, []);
+  assert.deepEqual(fixture.streamedMessages, []);
+});
 
 test("Project Chat streams current Custom Instructions as non-persisted system context", async () => {
   const fixture = createStreamFixture(
@@ -260,6 +293,7 @@ const request: ChatStreamRequest = {
     role: "user",
   },
   projectId,
+  streamId: "8f1f429e-84f3-4a10-9f2c-58a1a7a8f003",
 };
 
 function createProject(overrides: Partial<Project> = {}): Project {
@@ -280,7 +314,9 @@ function createProject(overrides: Partial<Project> = {}): Project {
 
 function createChat(overrides: Partial<Chat> = {}): Chat {
   return {
+    activeStreamId: null,
     createdAt,
+    hasUnreadResponse: false,
     id: chatId,
     organizationId: context.organizationId,
     ownerId: context.userId,

@@ -4,57 +4,55 @@ import { authorizeChatRouteRequest } from "@/features/chat/chat-route-auth";
 import { reportUnexpectedServerError } from "@/lib/server-error-reporting";
 import {
   ChatAccessDeniedError,
-  ChatStreamConflictError,
   ChatUnavailableError,
   InvalidChatRequestError,
 } from "@/src/entities/errors/chat-errors";
 
-export const maxDuration = 60;
-
-function invalidChatRequestResponse() {
-  return Response.json({ error: "Invalid chat request." }, { status: 400 });
-}
-
-/** Streams authenticated, validated chat messages through configured controller. */
-export async function POST(request: Request) {
+/** Cancels one active owner chat response without treating navigation as stop. */
+export async function POST(
+  request: Request,
+  routeContext: RouteContext<"/api/chat/[chatId]/stop">
+) {
   const authorization = await authorizeChatRouteRequest(request.headers);
 
   if (!authorization.ok) {
     return authorization.response;
   }
 
+  const { chatId } = await routeContext.params;
   let body: unknown;
+
   try {
     body = await request.json();
   } catch {
-    return invalidChatRequestResponse();
+    return Response.json(
+      { error: "Invalid chat stop request." },
+      { status: 400 }
+    );
   }
 
   try {
-    const streamChatController = resolveApplicationDependency(
-      applicationInjectionTokens.streamChatController
+    const controller = resolveApplicationDependency(
+      applicationInjectionTokens.chatStreamLifecycleController
     );
-    return await streamChatController(body, authorization.context);
+    await controller.stopChatStream(chatId, body, authorization.context);
+    return new Response(null, { status: 204 });
   } catch (error) {
-    if (error instanceof InvalidChatRequestError) {
-      return invalidChatRequestResponse();
-    }
-
     if (error instanceof ChatAccessDeniedError) {
       return Response.json({ error: "Chat not found." }, { status: 404 });
     }
 
-    if (error instanceof ChatStreamConflictError) {
+    if (error instanceof InvalidChatRequestError) {
       return Response.json(
-        { error: "Chat response is already streaming." },
-        { status: 409 }
+        { error: "Invalid chat stop request." },
+        { status: 400 }
       );
     }
 
     const cause = error instanceof ChatUnavailableError ? error.cause : error;
     reportUnexpectedServerError(cause);
     console.error(
-      "Chat route setup failed.",
+      "Chat stream stop failed.",
       cause instanceof Error ? cause.message : "Unknown error"
     );
     return Response.json({ error: "Chat is unavailable." }, { status: 500 });

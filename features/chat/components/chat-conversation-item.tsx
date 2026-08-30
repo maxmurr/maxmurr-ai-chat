@@ -25,12 +25,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import type { ChatVisibility } from "@/src/entities/models/chat";
 import { cn } from "@/lib/utils";
 
 /** Serializable owned chat row with everything its action menu needs. */
 export type ChatConversationEntry = {
+  activeStreamId: string | null;
+  hasUnreadResponse: boolean;
   id: string;
   pinned: boolean;
   projectId: string | null;
@@ -76,6 +79,13 @@ export function ChatConversationItem({
     showProjectName && chat.projectName
       ? `${chat.title} · ${chat.projectName}`
       : chat.title;
+  const isGeneratingResponse = chat.activeStreamId !== null;
+  const hasUnreadResponse = chat.hasUnreadResponse && !isActive;
+  const activityLabel = isGeneratingResponse
+    ? ", generating response"
+    : hasUnreadResponse
+      ? ", unread response"
+      : "";
 
   function toggleConversationPin() {
     void pinChatAction(chat.id, !chat.pinned).then((result) => {
@@ -192,7 +202,7 @@ export function ChatConversationItem({
             <Link
               ref={conversationLinkRef}
               aria-current={isActive ? "page" : undefined}
-              aria-label={chat.title}
+              aria-label={`${chat.title}${activityLabel}`}
               href={`/chat/${chat.id}`}
             />
           }
@@ -228,6 +238,22 @@ export function ChatConversationItem({
               {chat.title}
             </span>
           </span>
+          {(isGeneratingResponse || hasUnreadResponse) && (
+            <span
+              aria-hidden="true"
+              className="flex size-4 shrink-0 items-center justify-center"
+              data-slot="chat-conversation-activity"
+            >
+              {isGeneratingResponse ? (
+                <Spinner className="text-muted-foreground motion-reduce:animate-none" />
+              ) : (
+                <span
+                  className="size-2 rounded-full bg-status-unread"
+                  data-slot="chat-unread-indicator"
+                />
+              )}
+            </span>
+          )}
         </SidebarMenuButton>
       )}
 

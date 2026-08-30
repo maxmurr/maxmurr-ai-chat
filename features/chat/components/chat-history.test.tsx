@@ -12,6 +12,8 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 
 const ownChats: ChatConversationEntry[] = [
   {
+    activeStreamId: null,
+    hasUnreadResponse: false,
     id: "project-chat",
     pinned: false,
     projectId: "project-1",
@@ -22,6 +24,8 @@ const ownChats: ChatConversationEntry[] = [
     visibility: "private",
   },
   {
+    activeStreamId: null,
+    hasUnreadResponse: false,
     id: "pinned-project-chat",
     pinned: true,
     projectId: "project-1",
@@ -32,6 +36,8 @@ const ownChats: ChatConversationEntry[] = [
     visibility: "private",
   },
   {
+    activeStreamId: null,
+    hasUnreadResponse: false,
     id: "pinned-chat",
     pinned: true,
     projectId: null,
@@ -42,6 +48,8 @@ const ownChats: ChatConversationEntry[] = [
     visibility: "private",
   },
   {
+    activeStreamId: null,
+    hasUnreadResponse: false,
     id: "project-recent-chat",
     pinned: false,
     projectId: "project-2",
@@ -52,6 +60,8 @@ const ownChats: ChatConversationEntry[] = [
     visibility: "private",
   },
   {
+    activeStreamId: null,
+    hasUnreadResponse: false,
     id: "recent-chat",
     pinned: false,
     projectId: null,
@@ -98,7 +108,12 @@ test("chat grouping keeps pinned Project Chats inside and outside their folder",
 test("chat history defaults pinned Project folders closed", () => {
   const markup = renderToStaticMarkup(
     <SidebarProvider>
-      <ChatHistory ownChats={ownChats} projects={projects} teamChats={[]} />
+      <ChatHistory
+        activeWorkspaceId="workspace-1"
+        ownChats={ownChats}
+        projects={projects}
+        teamChats={[]}
+      />
     </SidebarProvider>
   );
 
@@ -154,4 +169,30 @@ test("chat history defaults pinned Project folders closed", () => {
   assert.match(markup, /group-aria-expanded\/chat-history-trigger:rotate-90/);
   assert.doesNotMatch(markup, />Today</);
   assert.doesNotMatch(markup, />Yesterday</);
+});
+
+test("chat history shows resumable loading and unread response states", () => {
+  const activityChats = ownChats.map((chat) =>
+    chat.id === "project-recent-chat"
+      ? { ...chat, activeStreamId: "stream-1" }
+      : chat.id === "recent-chat"
+        ? { ...chat, hasUnreadResponse: true }
+        : chat
+  );
+  const markup = renderToStaticMarkup(
+    <SidebarProvider>
+      <ChatHistory
+        activeWorkspaceId="workspace-1"
+        ownChats={activityChats}
+        projects={projects}
+        teamChats={[]}
+      />
+    </SidebarProvider>
+  );
+
+  assert.match(markup, /aria-label="Backlog chat, generating response"/);
+  assert.match(markup, /motion-reduce:animate-none/);
+  assert.match(markup, /aria-label="Recent chat, unread response"/);
+  assert.match(markup, /data-slot="chat-unread-indicator"/);
+  assert.match(markup, /bg-status-unread/);
 });

@@ -55,6 +55,7 @@ const chatStreamRequestSchema = z.object({
     .catchall(z.unknown()),
   messageId: z.string().min(1).max(200).optional(),
   projectId: z.uuid().optional(),
+  streamId: z.uuid(),
   trigger: z.enum(["submit-message", "regenerate-message"]).optional(),
 });
 
@@ -67,23 +68,19 @@ export type StreamChatController = ReturnType<
 export function createStreamChatController(
   streamChatResponse: StreamChatResponse
 ) {
-  return (
-    input: unknown,
-    context: ChatRequestContext,
-    abortSignal: AbortSignal
-  ) => {
+  return (input: unknown, context: ChatRequestContext) => {
     const result = chatStreamRequestSchema.safeParse(input);
 
     if (!result.success) {
       throw new InvalidChatRequestError({ cause: result.error });
     }
 
-    const { id, message, messageId, projectId, trigger } = result.data;
+    const { id, message, messageId, projectId, streamId, trigger } =
+      result.data;
 
     return streamChatResponse(
-      { chatId: id, message, messageId, projectId, trigger },
-      context,
-      abortSignal
+      { chatId: id, message, messageId, projectId, streamId, trigger },
+      context
     );
   };
 }

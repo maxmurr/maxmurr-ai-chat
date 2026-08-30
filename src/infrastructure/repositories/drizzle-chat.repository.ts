@@ -13,7 +13,9 @@ const CHAT_LIST_LIMIT = 100;
 
 function toChat(row: typeof chat.$inferSelect): Chat {
   return {
+    activeStreamId: row.activeStreamId,
     createdAt: row.createdAt,
+    hasUnreadResponse: row.hasUnreadResponse,
     id: row.id,
     organizationId: row.organizationId,
     ownerId: row.ownerId,
@@ -42,13 +44,30 @@ function toChatMessage(row: typeof chatMessage.$inferSelect): ChatMessage {
 
 /** Drizzle-backed chat persistence for the app PostgreSQL database. */
 export const drizzleChatRepository: ChatRepository = {
+  async claimChatResponseStream(chatId, streamId) {
+    const rows = await appDatabase
+      .update(chat)
+      .set({
+        activeStreamId: streamId,
+        hasUnreadResponse: false,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(chat.id, chatId), isNull(chat.activeStreamId)))
+      .returning({ id: chat.id });
+    return rows.length === 1;
+  },
+
   async createChat(newChat) {
     const [row] = await appDatabase.insert(chat).values(newChat).returning();
     return toChat(row);
   },
 
   async deleteChat(chatId) {
-    await appDatabase.delete(chat).where(eq(chat.id, chatId));
+    const rows = await appDatabase
+      .delete(chat)
+      .where(and(eq(chat.id, chatId), isNull(chat.activeStreamId)))
+      .returning({ id: chat.id });
+    return rows.length === 1;
   },
 
   async deleteMessagesFrom(chatId, pivot) {
@@ -74,6 +93,13 @@ export const drizzleChatRepository: ChatRepository = {
           )
         )
       );
+  },
+
+  async finishChatResponseStream(chatId, streamId, hasUnreadResponse) {
+    await appDatabase
+      .update(chat)
+      .set({ activeStreamId: null, hasUnreadResponse })
+      .where(and(eq(chat.id, chatId), eq(chat.activeStreamId, streamId)));
   },
 
   async getChatById(chatId) {
@@ -176,6 +202,29 @@ export const drizzleChatRepository: ChatRepository = {
     return rows.map(toChat);
   },
 
+  async markChatRead(chatId, assistantMessageId) {
+    await appDatabase
+      .update(chat)
+      .set({
+        hasUnreadResponse: false,
+        updatedAt: sql`${chat.updatedAt}`,
+      })
+      .where(
+        and(
+          eq(chat.id, chatId),
+          isNull(chat.activeStreamId),
+          sql`${assistantMessageId} = (
+            SELECT ${chatMessage.id}
+            FROM ${chatMessage}
+            WHERE ${chatMessage.chatId} = ${chat.id}
+              AND ${chatMessage.role} = 'assistant'
+            ORDER BY ${chatMessage.createdAt} DESC, ${chatMessage.id} DESC
+            LIMIT 1
+          )`
+        )
+      );
+  },
+
   async saveMessage(chatId, message) {
     await appDatabase
       .insert(chatMessage)
@@ -197,6 +246,19 @@ export const drizzleChatRepository: ChatRepository = {
       .update(chat)
       .set({ updatedAt: new Date() })
       .where(eq(chat.id, chatId));
+  },
+
+  async saveMessageIfAbsent(chatId, message) {
+    await appDatabase
+      .insert(chatMessage)
+      .values({
+        chatId,
+        id: message.id,
+        metadata: message.metadata ?? null,
+        parts: message.parts,
+        role: message.role,
+      })
+      .onConflictDoNothing({ target: [chatMessage.chatId, chatMessage.id] });
   },
 
   async updateChatPinned(chatId, pinned) {

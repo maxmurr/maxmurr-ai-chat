@@ -4,6 +4,7 @@ import type { ChatRepository } from "@/src/application/services/chat-repository.
 import type { ProjectRepository } from "@/src/application/services/project-repository.service.interface";
 import type { LibraryService } from "@/src/application/services/library.service.interface";
 import type { ProjectService } from "@/src/application/services/project.service.interface";
+import { ChatStreamConflictError } from "@/src/entities/errors/chat-errors";
 import { LibraryAccessDeniedError } from "@/src/entities/errors/library-errors";
 import {
   InvalidProjectRequestError,
@@ -196,6 +197,11 @@ export function createProjectController(
 
     async deleteProject(projectId: unknown, scope: ProjectOwnerScope) {
       const project = await getOwnedProject(projectId, scope);
+      const projectChats = await chatRepository.listChatsByProject(project.id);
+
+      if (projectChats.some((chat) => chat.activeStreamId !== null)) {
+        throw new ChatStreamConflictError();
+      }
 
       if (!(await projectRepository.deleteOwnedProject(project.id, scope))) {
         throw new ProjectAccessDeniedError();

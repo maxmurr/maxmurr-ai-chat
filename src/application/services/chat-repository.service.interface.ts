@@ -7,6 +7,7 @@ import type {
 
 /** Persists chats and their messages behind the infrastructure boundary. */
 export type ChatRepository = {
+  claimChatResponseStream(chatId: string, streamId: string): Promise<boolean>;
   createChat(chat: {
     id: string;
     organizationId: string;
@@ -14,10 +15,15 @@ export type ChatRepository = {
     projectId: string | null;
     title: string;
   }): Promise<Chat>;
-  deleteChat(chatId: string): Promise<void>;
+  deleteChat(chatId: string): Promise<boolean>;
   deleteMessagesFrom(
     chatId: string,
     pivot: { messageId: string; inclusive: boolean }
+  ): Promise<void>;
+  finishChatResponseStream(
+    chatId: string,
+    streamId: string,
+    hasUnreadResponse: boolean
   ): Promise<void>;
   getChatById(chatId: string): Promise<Chat | null>;
   getChatByPublicToken(publicToken: string): Promise<Chat | null>;
@@ -32,7 +38,9 @@ export type ChatRepository = {
     organizationId: string,
     excludedOwnerId: string
   ): Promise<Chat[]>;
+  markChatRead(chatId: string, assistantMessageId: string): Promise<void>;
   saveMessage(chatId: string, message: ChatMessage): Promise<void>;
+  saveMessageIfAbsent(chatId: string, message: ChatMessage): Promise<void>;
   updateChatPinned(chatId: string, pinned: boolean): Promise<void>;
   updateChatProject(chatId: string, projectId: string | null): Promise<void>;
   updateChatSharing(

@@ -82,11 +82,31 @@ export const drizzleProjectRepository: ProjectRepository = {
   },
 
   async deleteOwnedProject(projectId, scope) {
-    const rows = await appDatabase
-      .delete(project)
-      .where(ownedProjectWhere(projectId, scope))
-      .returning({ id: project.id });
-    return rows.length === 1;
+    return appDatabase.transaction(async (transaction) => {
+      const [ownedProject] = await transaction
+        .select({ id: project.id })
+        .from(project)
+        .where(ownedProjectWhere(projectId, scope))
+        .for("update");
+
+      if (!ownedProject) return false;
+
+      const projectChats = await transaction
+        .select({ activeStreamId: chat.activeStreamId })
+        .from(chat)
+        .where(eq(chat.projectId, projectId))
+        .for("update");
+
+      if (projectChats.some(({ activeStreamId }) => activeStreamId !== null)) {
+        return false;
+      }
+
+      const rows = await transaction
+        .delete(project)
+        .where(ownedProjectWhere(projectId, scope))
+        .returning({ id: project.id });
+      return rows.length === 1;
+    });
   },
 
   async getOwnedProject(projectId, scope) {

@@ -10,6 +10,7 @@ import { createStreamChatController } from "@/src/interface-adapters/controllers
 
 test("chat controller validates input before streaming", async () => {
   const chatId = "6f1f429e-84f3-4a10-9f2c-58a1a7a8f001";
+  const streamId = "8f1f429e-84f3-4a10-9f2c-58a1a7a8f003";
   const validMessage = {
     id: "user-message",
     metadata: { createdAt: "2026-08-26T00:00:00.000Z" },
@@ -33,6 +34,7 @@ test("chat controller validates input before streaming", async () => {
     id: chatId,
     message: validMessage,
     projectId,
+    streamId,
     trigger: "submit-message" as const,
   };
   const context: ChatRequestContext = {
@@ -45,27 +47,26 @@ test("chat controller validates input before streaming", async () => {
     receivedRequest = request;
     return expectedResponse;
   });
-  const abortSignal = new AbortController().signal;
-
-  assert.equal(
-    await controller(validRequest, context, abortSignal),
-    expectedResponse
-  );
+  assert.equal(await controller(validRequest, context), expectedResponse);
   assert.deepEqual(receivedRequest, {
     chatId,
     message: validMessage,
     messageId: undefined,
     projectId,
+    streamId,
     trigger: "submit-message",
   });
 
   assert.throws(
     () =>
       controller(
-        { id: "not-a-uuid", message: validMessage },
-        context,
-        abortSignal
+        { id: "not-a-uuid", message: validMessage, streamId },
+        context
       ),
+    InvalidChatRequestError
+  );
+  assert.throws(
+    () => controller({ id: chatId, message: validMessage }, context),
     InvalidChatRequestError
   );
   assert.throws(
@@ -78,9 +79,9 @@ test("chat controller validates input before streaming", async () => {
             role: "assistant",
             parts: [{ type: "text", text: "Hello" }],
           },
+          streamId,
         },
-        context,
-        abortSignal
+        context
       ),
     InvalidChatRequestError
   );
@@ -94,9 +95,9 @@ test("chat controller validates input before streaming", async () => {
             role: "user",
             parts: [{ type: "text" }],
           },
+          streamId,
         },
-        context,
-        abortSignal
+        context
       ),
     InvalidChatRequestError
   );
@@ -107,9 +108,9 @@ test("chat controller validates input before streaming", async () => {
           id: chatId,
           message: validMessage,
           projectId: "not-a-uuid",
+          streamId,
         },
-        context,
-        abortSignal
+        context
       ),
     InvalidChatRequestError
   );
@@ -130,9 +131,9 @@ test("chat controller validates input before streaming", async () => {
               },
             ],
           },
+          streamId,
         },
-        context,
-        abortSignal
+        context
       ),
     InvalidChatRequestError
   );

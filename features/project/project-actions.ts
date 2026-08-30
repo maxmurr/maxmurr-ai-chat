@@ -9,6 +9,7 @@ import { applicationInjectionTokens } from "@/di/application-container.registry"
 import { getProjectRequestContext } from "@/features/project/project-queries";
 import { reportUnexpectedServerError } from "@/lib/server-error-reporting";
 import { traceServerAction } from "@/lib/server-action-tracing";
+import { ChatStreamConflictError } from "@/src/entities/errors/chat-errors";
 import {
   InvalidLibraryRequestError,
   LibraryAccessDeniedError,
@@ -43,7 +44,8 @@ function reportUnexpectedProjectActionError(error: unknown) {
     !(error instanceof InvalidProjectRequestError) &&
     !(error instanceof ProjectAccessDeniedError) &&
     !(error instanceof InvalidLibraryRequestError) &&
-    !(error instanceof LibraryAccessDeniedError)
+    !(error instanceof LibraryAccessDeniedError) &&
+    !(error instanceof ChatStreamConflictError)
   ) {
     reportUnexpectedServerError(error);
   }

@@ -22,6 +22,8 @@ export const getChatSidebarEntries = cache(
     return {
       ownChats: ownChats.map(
         ({
+          activeStreamId,
+          hasUnreadResponse,
           id,
           pinned,
           projectId,
@@ -31,6 +33,8 @@ export const getChatSidebarEntries = cache(
           updatedAt,
           visibility,
         }) => ({
+          activeStreamId,
+          hasUnreadResponse,
           id,
           pinned,
           projectId,
@@ -68,6 +72,7 @@ export async function getChatPageView(
 
   return {
     chat: {
+      activeStreamId: view.chat.activeStreamId,
       id: view.chat.id,
       isOwner: view.isOwner,
       pinned: view.chat.pinned,
