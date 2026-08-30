@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   experimental: {
     exposeTestingApiInProductionBuild: process.env.INSTANT_E2E === "1",
+    // Keep dynamic page segments in client cache for 30 seconds.
+    staleTimes: { dynamic: 30 },
     // TypeScript 7 supplies tsc; TypeScript 6 supplies API used by Next and ESLint.
     useTypeScriptCli: false,
   },
