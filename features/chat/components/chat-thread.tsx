@@ -140,7 +140,6 @@ function ChatThreadContent({
       if (responseCompleted && canMarkCurrentChatRead(chatId)) {
         void markChatReadAction(chatId, message.id);
       }
-      router.refresh();
     },
     resume: activeStreamId !== null,
     transport: CHAT_TRANSPORT,
@@ -408,7 +407,7 @@ function ChatThreadContent({
       <div className="flex size-full min-w-0 flex-col">
         <ChatMessageList
           className="-mb-8"
-          feedbackChatId={initialMessages ? chatId : undefined}
+          feedbackChatId={messages.length > 0 ? chatId : undefined}
           isGenerating={isGenerating}
           messages={messages}
           onRetryMessage={retryChatMessage}
