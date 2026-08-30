@@ -260,17 +260,17 @@ export function ChatConversationItem({
       <div
         ref={conversationActionsRef}
         className={cn(
-          "pointer-events-none absolute inset-y-0 right-1 flex items-center [--conversation-actions-background:var(--sidebar)] peer-data-active/menu-button:[--conversation-actions-background:var(--sidebar-accent)] pointer-fine:group-hover/menu-item:[--conversation-actions-background:var(--sidebar-accent)] group-has-focus-visible/menu-item:[--conversation-actions-background:var(--sidebar-accent)]",
+          "pointer-events-none absolute inset-y-0 right-1 flex items-center [--conversation-actions-background:var(--sidebar)] group-has-focus-visible/menu-item:[--conversation-actions-background:var(--sidebar-accent)] peer-data-active/menu-button:[--conversation-actions-background:var(--sidebar-accent)] pointer-fine:group-hover/menu-item:[--conversation-actions-background:var(--sidebar-accent)]",
           isRenaming && "invisible"
         )}
       >
         {showProjectName && chat.projectName && (
-          <span className="max-w-24 truncate bg-[linear-gradient(to_right,transparent,var(--conversation-actions-background)_1.5rem)] pl-6 text-xs text-muted-foreground transition-transform duration-150 ease-in-out motion-reduce:transition-none lg:pointer-fine:translate-x-12 lg:pointer-fine:group-hover/menu-item:translate-x-0 lg:group-has-focus-visible/menu-item:translate-x-0">
+          <span className="max-w-24 truncate bg-[linear-gradient(to_right,transparent,var(--conversation-actions-background)_1.5rem)] pl-6 text-xs text-muted-foreground transition-transform duration-150 ease-in-out motion-reduce:transition-none lg:group-has-focus-visible/menu-item:translate-x-0 lg:pointer-fine:translate-x-12 lg:pointer-fine:group-hover/menu-item:translate-x-0">
             {chat.projectName}
           </span>
         )}
 
-        <div className="pointer-events-auto flex items-center gap-1 bg-[var(--conversation-actions-background)] pl-1 transition-opacity duration-150 ease-in-out motion-reduce:transition-none lg:pointer-fine:pointer-events-none lg:pointer-fine:opacity-0 lg:pointer-fine:group-hover/menu-item:pointer-events-auto lg:pointer-fine:group-hover/menu-item:opacity-100 lg:group-has-focus-visible/menu-item:pointer-events-auto lg:group-has-focus-visible/menu-item:opacity-100">
+        <div className="pointer-events-auto flex items-center gap-1 bg-(--conversation-actions-background) pl-1 transition-opacity duration-150 ease-in-out motion-reduce:transition-none lg:group-has-focus-visible/menu-item:pointer-events-auto lg:group-has-focus-visible/menu-item:opacity-100 lg:pointer-fine:pointer-events-none lg:pointer-fine:opacity-0 lg:pointer-fine:group-hover/menu-item:pointer-events-auto lg:pointer-fine:group-hover/menu-item:opacity-100">
           {showPinAction && (
             <SidebarMenuAction
               aria-label={`${chat.pinned ? "Unpin" : "Pin"} ${chat.title}`}

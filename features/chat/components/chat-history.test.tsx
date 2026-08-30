@@ -165,7 +165,7 @@ test("chat history defaults pinned Project folders closed", () => {
     markup,
     /class="[^"]*motion-reduce:transition-none[^"]*lg:pointer-fine:translate-x-12[^"]*lg:pointer-fine:group-hover\/menu-item:translate-x-0[^"]*">Backlog<\/span>/
   );
-  assert.match(markup, /bg-\[var\(--conversation-actions-background\)\]/);
+  assert.match(markup, /bg-\(--conversation-actions-background\)/);
   assert.match(markup, />Recent chat</);
   assert.doesNotMatch(markup, /Recent chat ·/);
 

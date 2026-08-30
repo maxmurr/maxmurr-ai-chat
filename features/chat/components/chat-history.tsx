@@ -149,14 +149,14 @@ function PinnedProjectHistoryItem({
           </SidebarMenuButton>
           <SidebarMenuAction
             aria-label={`Open ${project.name} project`}
-            className="top-0.5! right-8! size-7! cursor-pointer text-muted-foreground pointer-fine:opacity-0 pointer-fine:group-hover/project-row:opacity-100 group-focus-within/project-row:opacity-100"
+            className="top-0.5! right-8! size-7! cursor-pointer text-muted-foreground group-focus-within/project-row:opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover/project-row:opacity-100"
             render={<Link href={`/projects/${project.id}`} />}
           >
             <SquarePenIcon />
             <TouchTarget />
           </SidebarMenuAction>
           <ProjectActions
-            className="absolute top-0.5 right-1 data-popup-open:opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover/project-row:opacity-100 group-focus-within/project-row:opacity-100"
+            className="absolute top-0.5 right-1 group-focus-within/project-row:opacity-100 data-popup-open:opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover/project-row:opacity-100"
             deleteRedirect={deleteRedirect}
             project={project}
           />
