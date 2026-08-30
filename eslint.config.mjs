@@ -116,7 +116,6 @@ const eslintConfig = defineConfig([
       "boundaries/no-unknown-dependencies": "error",
     },
   },
-  // ponytail: bypass broken ESLint 10 auto-detect; remove after eslint-plugin-react supports ESLint 10.
   { settings: { react: { version: "19.2" } } },
   // Override default ignores of eslint-config-next.
   globalIgnores([

@@ -223,6 +223,4 @@ export default async function instantNavigationGlobalSetup() {
   } finally {
     await sql.end()
   }
-
-  // ponytail: deterministic fixture rows persist; move to isolated test DB if parallel environments need cleanup.
 }

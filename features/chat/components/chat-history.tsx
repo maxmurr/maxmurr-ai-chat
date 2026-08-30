@@ -266,7 +266,6 @@ export function ChatHistory({
     void refreshChatActivity();
     document.addEventListener("visibilitychange", refreshVisibleChatActivity);
     window.addEventListener("focus", refreshVisibleChatActivity);
-    // ponytail: adaptive polling avoids a persistent socket; replace with push at scale.
 
     return () => {
       isMounted = false;
@@ -282,7 +281,7 @@ export function ChatHistory({
 
   const currentOwnChats =
     polledOwnChats?.workspaceId === activeWorkspaceId &&
-    polledOwnChats.source === ownChats
+      polledOwnChats.source === ownChats
       ? polledOwnChats.chats
       : ownChats;
 
