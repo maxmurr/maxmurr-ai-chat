@@ -55,7 +55,7 @@ export function ChatAppSidebar({
             workspaces={workspaces}
           />
         </SidebarMenu>
-        <ChatPrimaryNavigation chats={[...ownChats, ...teamChats]} />
+        <ChatPrimaryNavigation ownChats={ownChats} teamChats={teamChats} />
       </SidebarHeader>
 
       <SidebarContent>

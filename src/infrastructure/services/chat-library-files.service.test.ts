@@ -4,8 +4,14 @@ import { test } from "node:test";
 import type { UIMessage } from "ai";
 
 import type { LibraryService } from "@/src/application/services/library.service.interface";
-import type { LibraryOwnerScope } from "@/src/entities/models/library";
-import { saveAssistantGeneratedFiles } from "@/src/infrastructure/services/chat-library-files.service";
+import {
+  createLibraryFileDownloadUrl,
+  type LibraryOwnerScope,
+} from "@/src/entities/models/library";
+import {
+  hydrateLibraryFilesForModel,
+  saveAssistantGeneratedFiles,
+} from "@/src/infrastructure/services/chat-library-files.service";
 
 const scope: LibraryOwnerScope = {
   organizationId: "workspace-1",
@@ -13,6 +19,57 @@ const scope: LibraryOwnerScope = {
 };
 const chatId = "30000000-0000-4000-8000-000000000001";
 const folderId = "10000000-0000-4000-8000-000000000001";
+
+test("model File hydration deduplicates bounded parallel downloads", async () => {
+  const fileIds = Array.from(
+    { length: 5 },
+    (_, index) => `20000000-0000-4000-8000-00000000000${index + 1}`
+  );
+  let activeDownloads = 0;
+  let downloadCount = 0;
+  let maxActiveDownloads = 0;
+  const libraryService = {
+    async downloadFile(fileId: string) {
+      activeDownloads += 1;
+      downloadCount += 1;
+      maxActiveDownloads = Math.max(maxActiveDownloads, activeDownloads);
+      await Promise.resolve();
+      activeDownloads -= 1;
+      return {
+        ...scope,
+        bytes: new TextEncoder().encode(fileId),
+        createdAt: new Date("2026-08-30T00:00:00.000Z"),
+        folderId: null,
+        id: fileId,
+        mediaType: "text/plain",
+        name: `${fileId}.txt`,
+        provenanceChatId: null,
+        provenanceChatTitle: null,
+        provenanceMessageId: null,
+        size: fileId.length,
+      };
+    },
+  } as unknown as LibraryService;
+  const fileParts = [...fileIds, fileIds[0]].map((fileId) => ({
+    filename: `${fileId}.txt`,
+    mediaType: "text/plain",
+    type: "file" as const,
+    url: createLibraryFileDownloadUrl(fileId),
+  }));
+
+  const [hydratedMessage] = await hydrateLibraryFilesForModel(
+    [{ id: "message-1", parts: fileParts, role: "user" }],
+    libraryService,
+    scope
+  );
+
+  assert.equal(downloadCount, fileIds.length);
+  assert.equal(maxActiveDownloads, 4);
+  assert.equal(
+    hydratedMessage.parts.filter((part) => part.type === "file").length,
+    fileParts.length
+  );
+});
 
 test("assistant-generated Files resolve Project Folder lazily and keep Provenance", async () => {
   let resolvedFolderCount = 0;

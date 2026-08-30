@@ -52,7 +52,11 @@ export function LibraryGrid({
   return (
     <LibraryGridLayout className={className}>
       {items.map((item) => (
-        <Attachment className="w-full!" key={item.id} orientation="vertical">
+        <Attachment
+          className="w-full! [content-visibility:auto] [contain-intrinsic-size:auto_20rem]"
+          key={item.id}
+          orientation="vertical"
+        >
           <AttachmentTrigger
             aria-label={
               item.kind === "folder"

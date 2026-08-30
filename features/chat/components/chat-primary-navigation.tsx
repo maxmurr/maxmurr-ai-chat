@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FolderIcon, LibraryBigIcon, PlusIcon } from "lucide-react";
@@ -15,8 +16,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { NewProjectDialog } from "@/features/project/components/new-project-dialog";
 import { cn } from "@/lib/utils";
+
+const NewProjectDialog = dynamic(() =>
+  import("@/features/project/components/new-project-dialog").then(
+    (module) => module.NewProjectDialog
+  )
+);
 
 const destinationNavigation = [
   { label: "Projects", href: "/projects", icon: FolderIcon },
@@ -25,14 +31,17 @@ const destinationNavigation = [
 
 /** Renders app navigation with client-derived active route and chat search. */
 export function ChatPrimaryNavigation({
-  chats,
   className,
+  ownChats,
+  teamChats,
 }: {
-  chats: ChatSearchEntry[];
   className?: string;
+  ownChats: readonly ChatSearchEntry[];
+  teamChats: readonly ChatSearchEntry[];
 }) {
   const pathname = usePathname();
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
+  const chats = [...ownChats, ...teamChats];
 
   return (
     <>
@@ -72,10 +81,12 @@ export function ChatPrimaryNavigation({
         ))}
       </SidebarMenu>
 
-      <NewProjectDialog
-        onOpenChange={setIsNewProjectOpen}
-        open={isNewProjectOpen}
-      />
+      {isNewProjectOpen ? (
+        <NewProjectDialog
+          onOpenChange={setIsNewProjectOpen}
+          open={isNewProjectOpen}
+        />
+      ) : null}
     </>
   );
 }

@@ -105,11 +105,10 @@ export async function authorizeAndCreateStreamChat(
   request: ChatStreamRequest,
   context: ChatRequestContext
 ) {
-  const existingChat = await chatRepository.getChatById(request.chatId);
-  const isWorkspaceMember = await chatRepository.isWorkspaceMember(
-    context.organizationId,
-    context.userId
-  );
+  const [existingChat, isWorkspaceMember] = await Promise.all([
+    chatRepository.getChatById(request.chatId),
+    chatRepository.isWorkspaceMember(context.organizationId, context.userId),
+  ]);
 
   if (existingChat) {
     if (
@@ -207,15 +206,18 @@ export function createMastraChatStreamService(
           )
         );
       }
-      const projectInstructions = activeChat.projectId
-        ? (
-            await projectRepository.getOwnedProject(
+      const [activeProject, initialHistory] = await Promise.all([
+        activeChat.projectId
+          ? projectRepository.getOwnedProject(
               activeChat.projectId,
               libraryScope
             )
-          )?.instructions.trim() || undefined
-        : undefined;
-      let history = await chatRepository.getChatMessages(chatId);
+          : null,
+        chatRepository.getChatMessages(chatId),
+      ]);
+      const projectInstructions =
+        activeProject?.instructions.trim() || undefined;
+      let history = initialHistory;
 
       if (trigger === "regenerate-message" && history.length > 0) {
         const pivotId = messageId ?? history.at(-1)!.id;

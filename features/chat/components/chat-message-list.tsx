@@ -2,9 +2,9 @@
 
 import { Fragment, useMemo, useState, useSyncExternalStore } from "react";
 import type { ChatStatus } from "ai";
+import dynamic from "next/dynamic";
 import { MessageCircleIcon } from "lucide-react";
 
-import { ChatMessageItem } from "@/features/chat/components/chat-message";
 import { ChatPromptNavigation } from "@/features/chat/components/chat-prompt-navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,12 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import type { ChatDisplayMessage } from "@/src/interface-adapters/presenters/chat-message.presenter";
 import { cn } from "@/lib/utils";
+
+const ChatMessageItem = dynamic(() =>
+  import("@/features/chat/components/chat-message").then(
+    (module) => module.ChatMessageItem
+  )
+);
 
 const CHAT_SUGGESTIONS = [
   "Why is checkout throwing 500s?",

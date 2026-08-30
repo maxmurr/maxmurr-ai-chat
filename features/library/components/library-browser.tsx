@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SearchXIcon } from "lucide-react";
 
@@ -62,7 +62,11 @@ export function LibraryBrowser({
   const [isUploading, setIsUploading] = useState(false);
   const [query, setQuery] = useState("");
   const [view, setView] = useState<LibraryView>("grid");
-  const matchingItems = filterLibraryItems(items, query, filter);
+  const deferredQuery = useDeferredValue(query);
+  const matchingItems = useMemo(
+    () => filterLibraryItems(items, deferredQuery, filter),
+    [deferredQuery, filter, items]
+  );
 
   function showLibraryError(title: string, description: string) {
     toast.add({ description, title, type: "error" });
@@ -148,8 +152,8 @@ export function LibraryBrowser({
               </EmptyMedia>
               <EmptyTitle>No matches</EmptyTitle>
               <EmptyDescription>
-                {query.trim()
-                  ? `Nothing named “${query.trim()}” here.`
+                {deferredQuery.trim()
+                  ? `Nothing named “${deferredQuery.trim()}” here.`
                   : filter === "all"
                     ? currentFolderName
                       ? "This Folder is empty."

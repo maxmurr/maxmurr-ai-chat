@@ -1,20 +1,21 @@
-"use client"
+"use client";
 
-import * as Sentry from "@sentry/nextjs"
-import { useEffect } from "react"
+import { useEffect } from "react";
+
+import { captureSentryClientException } from "@/lib/sentry-client";
 
 /** Last-resort document shown when the root layout cannot render. */
 export default function GlobalError({
   error,
   retry,
 }: {
-  error: Error & { digest?: string }
-  retry: () => void
+  error: Error & { digest?: string };
+  retry: () => void;
 }) {
   useEffect(() => {
-    console.error(error)
-    Sentry.captureException(error)
-  }, [error])
+    console.error(error);
+    captureSentryClientException(error);
+  }, [error]);
 
   return (
     <html lang="en">
@@ -74,5 +75,5 @@ export default function GlobalError({
         </main>
       </body>
     </html>
-  )
+  );
 }

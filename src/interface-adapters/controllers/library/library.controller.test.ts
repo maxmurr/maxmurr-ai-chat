@@ -294,6 +294,25 @@ test("Library listings stay scoped to owner and workspace without bytes", async 
   assert.equal("bytes" in listing.files[0], false);
 });
 
+test("Library listing starts Folder and File reads together", async () => {
+  const repository = seedRepository();
+  const listOwnedFiles = repository.listOwnedFiles.bind(repository);
+  const listOwnedFolders = repository.listOwnedFolders.bind(repository);
+  let folderReadFinished = false;
+
+  repository.listOwnedFolders = async (scope) => {
+    await Promise.resolve();
+    folderReadFinished = true;
+    return listOwnedFolders(scope);
+  };
+  repository.listOwnedFiles = async (folder, scope) => {
+    assert.equal(folderReadFinished, false);
+    return listOwnedFiles(folder, scope);
+  };
+
+  await createLibraryController(repository).listLibrary(null, ownerScope);
+});
+
 test("Library denies another owner's File and Folder mutations", async () => {
   const controller = createLibraryController(seedRepository());
 

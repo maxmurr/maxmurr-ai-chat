@@ -1,13 +1,13 @@
-import Link from "next/link"
-import { FileTextIcon, FolderIcon } from "lucide-react"
+import Link from "next/link";
+import { FileTextIcon, FolderIcon } from "lucide-react";
 
 import type {
   LibraryFolderOption,
   LibraryItem,
   LibraryItemActions,
-} from "@/features/library/components/library-data"
-import { LibraryItemMenu } from "@/features/library/components/library-item-menu"
-import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
+} from "@/features/library/components/library-data";
+import { LibraryItemMenu } from "@/features/library/components/library-item-menu";
+import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import {
   Table,
   TableBody,
@@ -15,8 +15,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 /** Renders Library Folders and Files as metadata table. */
 export function LibraryList({
@@ -27,9 +27,9 @@ export function LibraryList({
   onDeleteFolder,
   onMoveFile,
 }: {
-  className?: string
-  folders: readonly LibraryFolderOption[]
-  items: readonly LibraryItem[]
+  className?: string;
+  folders: readonly LibraryFolderOption[];
+  items: readonly LibraryItem[];
 } & LibraryItemActions) {
   return (
     <div className={cn("overflow-x-auto rounded-lg border", className)}>
@@ -51,18 +51,17 @@ export function LibraryList({
         </TableHeader>
         <TableBody>
           {items.map((item) => (
-            <TableRow key={item.id}>
+            <TableRow
+              className="[content-visibility:auto] [contain-intrinsic-size:auto_3.5rem]"
+              key={item.id}
+            >
               <TableCell>
                 <Item className="flex-nowrap p-0 text-left" size="sm">
                   <ItemMedia
                     className="size-8 rounded-md bg-muted"
                     variant="icon"
                   >
-                    {item.kind === "folder" ? (
-                      <FolderIcon />
-                    ) : (
-                      <FileTextIcon />
-                    )}
+                    {item.kind === "folder" ? <FolderIcon /> : <FileTextIcon />}
                   </ItemMedia>
                   <ItemContent className="min-w-0">
                     <ItemTitle className="max-w-full truncate">
@@ -109,5 +108,5 @@ export function LibraryList({
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

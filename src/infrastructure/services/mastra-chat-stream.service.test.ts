@@ -67,6 +67,7 @@ function createStreamFixture(
     updatedAt: createdAt,
   };
   let claimAllowed = true;
+  let projectReadFinished = false;
   let projectReads = 0;
   let sourceReads = 0;
   const savedMessages: ChatMessage[] = [];
@@ -82,6 +83,7 @@ function createStreamFixture(
       return chat;
     },
     async getChatMessages() {
+      if (chat.projectId) assert.equal(projectReadFinished, false);
       return [];
     },
     async isWorkspaceMember() {
@@ -93,7 +95,10 @@ function createStreamFixture(
   } as unknown as ChatRepository;
   const projectRepository = {
     async getOwnedProject(id, scope) {
+      projectReadFinished = false;
       projectReads += 1;
+      await Promise.resolve();
+      projectReadFinished = true;
       return id === project.id &&
         scope.organizationId === project.organizationId &&
         scope.ownerId === project.ownerId
@@ -383,6 +388,33 @@ function createRepositories(options?: {
 
   return { chatRepository, createdChats, projectRepository };
 }
+
+test("stream authorization starts Chat and membership reads together", async () => {
+  let chatReadFinished = false;
+  const chatRepository = {
+    async createChat() {
+      throw new Error("Chat creation should not run.");
+    },
+    async getChatById() {
+      await Promise.resolve();
+      chatReadFinished = true;
+      return createChat({ projectId });
+    },
+    async isWorkspaceMember() {
+      assert.equal(chatReadFinished, false);
+      return true;
+    },
+  };
+
+  const result = await authorizeAndCreateStreamChat(
+    chatRepository,
+    createRepositories().projectRepository,
+    request,
+    context
+  );
+
+  assert.equal(result.created, false);
+});
 
 test("new stream Chat binds to owned Project in active Workspace", async () => {
   const repositories = createRepositories({ project: createProject() });

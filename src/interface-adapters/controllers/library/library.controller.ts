@@ -142,7 +142,10 @@ export function createLibraryController(
     /** Lists Folders plus File metadata; listing repository never selects bytes. */
     async listLibrary(folderId: unknown, scope: LibraryOwnerScope) {
       const id = parseLibraryInput(libraryFolderIdSchema, folderId);
-      const folders = await libraryRepository.listOwnedFolders(scope);
+      const [folders, files] = await Promise.all([
+        libraryRepository.listOwnedFolders(scope),
+        libraryRepository.listOwnedFiles(id, scope),
+      ]);
       const folder = id
         ? (folders.find((candidate) => candidate.id === id) ?? null)
         : null;
@@ -151,11 +154,7 @@ export function createLibraryController(
         throw new LibraryAccessDeniedError();
       }
 
-      return {
-        files: await libraryRepository.listOwnedFiles(id, scope),
-        folder,
-        folders,
-      };
+      return { files, folder, folders };
     },
 
     /**

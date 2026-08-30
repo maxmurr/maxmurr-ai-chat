@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { FolderIcon, PlusIcon, SearchIcon, SearchXIcon } from "lucide-react";
 
@@ -27,9 +28,14 @@ import {
   ItemGroup,
   ItemTitle,
 } from "@/components/ui/item";
-import { NewProjectDialog } from "@/features/project/components/new-project-dialog";
 import { ProjectActions } from "@/features/project/components/project-actions";
 import { cn } from "@/lib/utils";
+
+const NewProjectDialog = dynamic(() =>
+  import("@/features/project/components/new-project-dialog").then(
+    (module) => module.NewProjectDialog
+  )
+);
 
 const projectDateFormatter = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
@@ -55,12 +61,15 @@ export function ProjectsListBrowser({
 }) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const normalizedQuery = query.trim().toLowerCase();
-  const matchingProjects = projects.filter(
-    ({ description, name }) =>
-      name.toLowerCase().includes(normalizedQuery) ||
-      description?.toLowerCase().includes(normalizedQuery)
-  );
+  const deferredQuery = useDeferredValue(query);
+  const matchingProjects = useMemo(() => {
+    const normalizedQuery = deferredQuery.trim().toLowerCase();
+    return projects.filter(
+      ({ description, name }) =>
+        name.toLowerCase().includes(normalizedQuery) ||
+        description?.toLowerCase().includes(normalizedQuery)
+    );
+  }, [deferredQuery, projects]);
 
   return (
     <AppPageContainer
@@ -129,7 +138,7 @@ export function ProjectsListBrowser({
                 </EmptyMedia>
                 <EmptyTitle>No matches</EmptyTitle>
                 <EmptyDescription>
-                  No project named “{query.trim()}”.
+                  No project named “{deferredQuery.trim()}”.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
@@ -137,7 +146,7 @@ export function ProjectsListBrowser({
             <ItemGroup className="grid gap-3 @xl:grid-cols-2 @6xl:grid-cols-3">
               {matchingProjects.map((project) => (
                 <Item
-                  className="relative items-start hover:bg-muted has-[a:focus-visible]:border-ring has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50"
+                  className="relative items-start [content-visibility:auto] [contain-intrinsic-size:auto_7rem] hover:bg-muted has-[a:focus-visible]:border-ring has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50"
                   key={project.id}
                   role="listitem"
                   variant="outline"
@@ -172,10 +181,12 @@ export function ProjectsListBrowser({
         </section>
       )}
 
-      <NewProjectDialog
-        onOpenChange={setIsNewProjectOpen}
-        open={isNewProjectOpen}
-      />
+      {isNewProjectOpen ? (
+        <NewProjectDialog
+          onOpenChange={setIsNewProjectOpen}
+          open={isNewProjectOpen}
+        />
+      ) : null}
     </AppPageContainer>
   );
 }

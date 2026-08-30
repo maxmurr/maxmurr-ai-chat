@@ -7,6 +7,10 @@ import {
   ProjectDetail,
   ProjectDetailSkeleton,
 } from "@/features/project/components/project-detail";
+import {
+  ProjectSources,
+  ProjectSourcesSkeleton,
+} from "@/features/project/components/project-sources";
 
 export const metadata: Metadata = {
   title: "Project – AI Chat",
@@ -21,7 +25,16 @@ export default function ProjectByIdPage({
       <ErrorBoundary title="Project did not load">
         <Suspense fallback={<ProjectDetailSkeleton />}>
           {params.then(({ projectId }) => (
-            <ProjectDetail projectId={projectId} />
+            <ProjectDetail
+              projectId={projectId}
+              projectSources={
+                <ErrorBoundary title="Project Sources did not load">
+                  <Suspense fallback={<ProjectSourcesSkeleton />}>
+                    <ProjectSources projectId={projectId} />
+                  </Suspense>
+                </ErrorBoundary>
+              }
+            />
           ))}
         </Suspense>
       </ErrorBoundary>

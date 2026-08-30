@@ -141,17 +141,18 @@ export function ChatConversationItem({
 
     const updateTitleOverflow = () => {
       const titleViewportRect = titleViewport.getBoundingClientRect();
+      const conversationActionsRect =
+        conversationActions.getBoundingClientRect();
+      const movingTitleRect = movingTitle.getBoundingClientRect();
       const titleVisibleWidth =
-        conversationActions.getBoundingClientRect().left -
-        titleViewportRect.left;
+        conversationActionsRect.left - titleViewportRect.left;
+      const isOverflowing = movingTitleRect.width - titleViewportRect.width > 1;
 
       titleViewport.style.setProperty(
         "--conversation-title-visible-width",
         `${titleVisibleWidth}px`
       );
-      setIsTitleOverflowing(
-        movingTitle.getBoundingClientRect().width - titleViewportRect.width > 1
-      );
+      setIsTitleOverflowing(isOverflowing);
     };
 
     const resizeObserver = new ResizeObserver(updateTitleOverflow);

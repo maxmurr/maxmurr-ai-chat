@@ -8,7 +8,7 @@ import { ChatPrimaryNavigation } from "@/features/chat/components/chat-primary-n
 test("Projects navigation exposes quick create on hover and focus", () => {
   const markup = renderToStaticMarkup(
     <SidebarProvider>
-      <ChatPrimaryNavigation chats={[]} />
+      <ChatPrimaryNavigation ownChats={[]} teamChats={[]} />
     </SidebarProvider>
   );
   const newProjectAction = markup.match(

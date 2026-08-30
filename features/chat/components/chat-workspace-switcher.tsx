@@ -7,10 +7,10 @@ import {
   useState,
   useTransition,
 } from "react";
+import dynamic from "next/dynamic";
 import { ChevronsUpDownIcon, PlusIcon } from "lucide-react";
 
 import { ChatSidebarIdentity } from "@/features/chat/components/chat-sidebar-identity";
-import { CreateWorkspaceDialog } from "@/features/workspace/components/create-workspace-dialog";
 import { switchWorkspaceAction } from "@/features/workspace/workspace-actions";
 import {
   DropdownMenu,
@@ -25,6 +25,12 @@ import {
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+
+const CreateWorkspaceDialog = dynamic(() =>
+  import("@/features/workspace/components/create-workspace-dialog").then(
+    (module) => module.CreateWorkspaceDialog
+  )
+);
 
 /** Minimal persisted workspace data rendered by chat navigation. */
 export type ChatWorkspaceSummary = {
@@ -160,10 +166,12 @@ export function ChatWorkspaceSwitcher({
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-      <CreateWorkspaceDialog
-        onOpenChange={setIsCreateWorkspaceOpen}
-        open={isCreateWorkspaceOpen}
-      />
+      {isCreateWorkspaceOpen ? (
+        <CreateWorkspaceDialog
+          onOpenChange={setIsCreateWorkspaceOpen}
+          open={isCreateWorkspaceOpen}
+        />
+      ) : null}
     </SidebarMenuItem>
   );
 }

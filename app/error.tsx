@@ -1,25 +1,25 @@
-"use client"
+"use client";
 
-import * as Sentry from "@sentry/nextjs"
-import { useEffect } from "react"
-import Link from "next/link"
-import { RefreshCwIcon } from "lucide-react"
+import { useEffect } from "react";
+import Link from "next/link";
+import { RefreshCwIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { ErrorState } from "@/components/ui/error-state"
+import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/error-state";
+import { captureSentryClientException } from "@/lib/sentry-client";
 
 /** Recovers unexpected route errors without exposing server details. */
 export default function AppError({
   error,
   retry,
 }: {
-  error: Error & { digest?: string }
-  retry: () => void
+  error: Error & { digest?: string };
+  retry: () => void;
 }) {
   useEffect(() => {
-    console.error(error)
-    Sentry.captureException(error)
-  }, [error])
+    console.error(error);
+    captureSentryClientException(error);
+  }, [error]);
 
   return (
     <ErrorState
@@ -44,5 +44,5 @@ export default function AppError({
         </Button>
       </div>
     </ErrorState>
-  )
+  );
 }

@@ -12,8 +12,11 @@ import {
   type LibraryOwnerScope,
 } from "@/src/entities/models/library";
 
-// ponytail: inline first 1 MB as provider fallback; add extraction/chunking if
-// large text Files must be fully queryable by models that ignore file_data.
+// ponytail: four-file batches cap DB and memory load; tune from stream-start
+// profiles if attachment latency still dominates.
+const MODEL_FILE_DOWNLOAD_CONCURRENCY = 4;
+// ponytail: inline first 1 MB; add extraction/chunking if providers ignore
+// file_data and large text Files must be fully queryable.
 const MODEL_TEXT_FILE_FALLBACK_BYTES = 1_000_000;
 
 /**
@@ -25,12 +28,47 @@ export async function hydrateLibraryFilesForModel(
   libraryService: LibraryService,
   scope: LibraryOwnerScope
 ) {
+  const fileIds = new Set<string>();
+  for (const message of messages) {
+    for (const part of message.parts) {
+      if (part.type !== "file") continue;
+      const fileId = getLibraryFileIdFromDownloadUrl(part.url);
+      if (fileId) fileIds.add(fileId);
+    }
+  }
+
   const fileCache = new Map<
     string,
-    ReturnType<LibraryService["downloadFile"]>
+    | Awaited<ReturnType<LibraryService["downloadFile"]>>
+    | LibraryAccessDeniedError
   >();
-  const hydratedMessages: UIMessage[] = [];
+  const uniqueFileIds = [...fileIds];
+  for (
+    let index = 0;
+    index < uniqueFileIds.length;
+    index += MODEL_FILE_DOWNLOAD_CONCURRENCY
+  ) {
+    const downloads = await Promise.all(
+      uniqueFileIds
+        .slice(index, index + MODEL_FILE_DOWNLOAD_CONCURRENCY)
+        .map(async (fileId) => {
+          try {
+            return [
+              fileId,
+              await libraryService.downloadFile(fileId, scope),
+            ] as const;
+          } catch (error) {
+            if (error instanceof LibraryAccessDeniedError) {
+              return [fileId, error] as const;
+            }
+            throw error;
+          }
+        })
+    );
+    for (const [fileId, file] of downloads) fileCache.set(fileId, file);
+  }
 
+  const hydratedMessages: UIMessage[] = [];
   for (const message of messages) {
     const parts: UIMessage["parts"] = [];
 
@@ -46,43 +84,34 @@ export async function hydrateLibraryFilesForModel(
         continue;
       }
 
-      let filePromise = fileCache.get(fileId);
-      if (!filePromise) {
-        filePromise = libraryService.downloadFile(fileId, scope);
-        fileCache.set(fileId, filePromise);
-      }
-
-      try {
-        const file = await filePromise;
-        parts.push({
-          ...part,
-          filename: file.name,
-          mediaType: file.mediaType,
-          url: `data:${file.mediaType};base64,${Buffer.from(file.bytes).toString("base64")}`,
-        } satisfies FileUIPart);
-
-        if (isLibraryTextMediaType(file.mediaType)) {
-          const fallbackBytes = file.bytes.subarray(
-            0,
-            MODEL_TEXT_FILE_FALLBACK_BYTES
-          );
-          const wasTruncated = fallbackBytes.byteLength < file.bytes.byteLength;
-          parts.push({
-            text: [
-              `Attached File "${file.name}" contents${wasTruncated ? " (first 1 MB)" : ""}:`,
-              "",
-              new TextDecoder().decode(fallbackBytes),
-            ].join("\n"),
-            type: "text",
-          });
-        }
-      } catch (error) {
-        if (!(error instanceof LibraryAccessDeniedError)) {
-          throw error;
-        }
-
+      const file = fileCache.get(fileId);
+      if (!file || file instanceof LibraryAccessDeniedError) {
         parts.push({
           text: `Attached File "${part.filename ?? "Attachment"}" is no longer available.`,
+          type: "text",
+        });
+        continue;
+      }
+
+      parts.push({
+        ...part,
+        filename: file.name,
+        mediaType: file.mediaType,
+        url: `data:${file.mediaType};base64,${Buffer.from(file.bytes).toString("base64")}`,
+      } satisfies FileUIPart);
+
+      if (isLibraryTextMediaType(file.mediaType)) {
+        const fallbackBytes = file.bytes.subarray(
+          0,
+          MODEL_TEXT_FILE_FALLBACK_BYTES
+        );
+        const wasTruncated = fallbackBytes.byteLength < file.bytes.byteLength;
+        parts.push({
+          text: [
+            `Attached File "${file.name}" contents${wasTruncated ? " (first 1 MB)" : ""}:`,
+            "",
+            new TextDecoder().decode(fallbackBytes),
+          ].join("\n"),
           type: "text",
         });
       }

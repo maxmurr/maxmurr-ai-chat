@@ -49,7 +49,7 @@ export function formatChatSearchUpdatedDate(updatedAt: Date, now = new Date()) {
 }
 
 /** Searches loaded chats and provides quick navigation actions. */
-export function ChatSearch({ chats }: { chats: ChatSearchEntry[] }) {
+export function ChatSearch({ chats }: { chats: readonly ChatSearchEntry[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
