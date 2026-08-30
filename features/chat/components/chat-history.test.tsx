@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { ChatConversationEntry } from "@/features/chat/components/chat-conversation-item";
 import {
   ChatHistory,
+  getChatActivityPollIntervalMs,
   groupOwnChats,
 } from "@/features/chat/components/chat-history";
 import type { ProjectActionsEntry } from "@/features/project/components/project-actions";
@@ -102,6 +103,16 @@ test("chat grouping keeps pinned Project Chats inside and outside their folder",
   assert.deepEqual(
     recentSection?.chats.map(({ id }) => id),
     ["project-recent-chat", "recent-chat"]
+  );
+});
+
+test("chat activity polling stays fast only while a response is active", () => {
+  assert.equal(getChatActivityPollIntervalMs(ownChats), 15_000);
+  assert.equal(
+    getChatActivityPollIntervalMs([
+      { ...ownChats[0]!, activeStreamId: "stream-1" },
+    ]),
+    2_000
   );
 });
 

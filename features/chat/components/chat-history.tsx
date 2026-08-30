@@ -55,7 +55,17 @@ type SerializedChatConversationEntry = Omit<
   "updatedAt"
 > & { updatedAt: string };
 
-const CHAT_ACTIVITY_POLL_INTERVAL_MS = 2_000;
+const ACTIVE_CHAT_ACTIVITY_POLL_INTERVAL_MS = 2_000;
+const IDLE_CHAT_ACTIVITY_POLL_INTERVAL_MS = 15_000;
+
+/** Chooses chat activity poll delay in milliseconds from active response state. */
+export function getChatActivityPollIntervalMs(
+  chats: ReadonlyArray<Pick<ChatConversationEntry, "activeStreamId">>
+) {
+  return chats.some(({ activeStreamId }) => activeStreamId !== null)
+    ? ACTIVE_CHAT_ACTIVITY_POLL_INTERVAL_MS
+    : IDLE_CHAT_ACTIVITY_POLL_INTERVAL_MS;
+}
 
 /** Groups pinned Projects while keeping individually pinned Chats standalone. */
 export function groupOwnChats(
@@ -193,13 +203,25 @@ export function ChatHistory({
 
   useEffect(() => {
     let isMounted = true;
+    let isPolling = false;
+    let pollTimer: number | undefined;
+    let latestChats = ownChats;
     const abortController = new AbortController();
 
+    function scheduleNextChatActivityPoll() {
+      window.clearTimeout(pollTimer);
+      pollTimer = window.setTimeout(
+        () => void refreshChatActivity(),
+        getChatActivityPollIntervalMs(latestChats)
+      );
+    }
+
     async function refreshChatActivity() {
-      if (document.visibilityState !== "visible") {
+      if (document.visibilityState !== "visible" || isPolling) {
         return;
       }
 
+      isPolling = true;
       try {
         const response = await fetch("/api/chat/activity", {
           signal: abortController.signal,
@@ -217,30 +239,44 @@ export function ChatHistory({
           return;
         }
 
+        latestChats = result.chats.map((chat) => ({
+          ...chat,
+          updatedAt: new Date(chat.updatedAt),
+        }));
         setPolledOwnChats({
-          chats: result.chats.map((chat) => ({
-            ...chat,
-            updatedAt: new Date(chat.updatedAt),
-          })),
+          chats: latestChats,
           source: ownChats,
           workspaceId: activeWorkspaceId,
         });
       } catch {
         // Keep server-rendered history when background status refresh fails.
+      } finally {
+        isPolling = false;
+        if (isMounted) scheduleNextChatActivityPoll();
       }
     }
 
+    function refreshVisibleChatActivity() {
+      if (document.visibilityState !== "visible") return;
+
+      window.clearTimeout(pollTimer);
+      void refreshChatActivity();
+    }
+
     void refreshChatActivity();
-    // ponytail: polling avoids a persistent socket; replace with push at scale.
-    const interval = window.setInterval(
-      () => void refreshChatActivity(),
-      CHAT_ACTIVITY_POLL_INTERVAL_MS
-    );
+    document.addEventListener("visibilitychange", refreshVisibleChatActivity);
+    window.addEventListener("focus", refreshVisibleChatActivity);
+    // ponytail: adaptive polling avoids a persistent socket; replace with push at scale.
 
     return () => {
       isMounted = false;
       abortController.abort();
-      window.clearInterval(interval);
+      window.clearTimeout(pollTimer);
+      document.removeEventListener(
+        "visibilitychange",
+        refreshVisibleChatActivity
+      );
+      window.removeEventListener("focus", refreshVisibleChatActivity);
     };
   }, [activeWorkspaceId, ownChats]);
 
