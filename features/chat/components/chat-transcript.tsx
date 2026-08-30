@@ -1,10 +1,10 @@
+import { ChatConversationLayout } from "@/features/chat/components/chat-conversation-layout";
 import { ChatFooterNotice } from "@/features/chat/components/chat-footer-notice";
 import { ChatMessageList } from "@/features/chat/components/chat-message-list";
 import {
   convertChatUiMessageToDisplayMessage,
   type ChatUIMessage,
 } from "@/src/interface-adapters/presenters/chat-message.presenter";
-import { cn } from "@/lib/utils";
 
 /** Renders a finished conversation for viewers who cannot write to it. */
 export function ChatTranscript({
@@ -22,21 +22,14 @@ export function ChatTranscript({
   });
 
   return (
-    <section
-      aria-label="Chat conversation"
-      className={cn("flex min-h-0 flex-1 flex-col", className)}
-    >
-      <h1 className="sr-only">{title}</h1>
+    <ChatConversationLayout className={className} title={title}>
+      <ChatMessageList
+        isGenerating={false}
+        messages={displayMessages}
+        status="ready"
+      />
 
-      <div className="flex size-full min-w-0 flex-col">
-        <ChatMessageList
-          isGenerating={false}
-          messages={displayMessages}
-          status="ready"
-        />
-
-        <ChatFooterNotice>This chat is read-only.</ChatFooterNotice>
-      </div>
-    </section>
+      <ChatFooterNotice>This chat is read-only.</ChatFooterNotice>
+    </ChatConversationLayout>
   );
 }

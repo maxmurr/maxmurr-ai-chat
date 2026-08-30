@@ -1,31 +1,30 @@
-"use client"
+"use client";
 
-import { useForm } from "@tanstack/react-form"
+import { useForm } from "@tanstack/react-form";
 
-import { WorkspaceOnboardingStepHeader } from "@/features/workspace/components/workspace-onboarding-step-header"
+import { WorkspaceOnboardingStepForm } from "@/features/workspace/components/workspace-onboarding-step-form";
 import {
   getOnboardingFieldError,
   parseOnboardingInviteEmails,
   validateOnboardingInviteEmails,
-} from "@/features/workspace/workspace-onboarding-validation"
-import { Button } from "@/components/ui/button"
+} from "@/features/workspace/workspace-onboarding-validation";
+import { Button } from "@/components/ui/button";
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Spinner } from "@/components/ui/spinner"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 
 type WorkspaceOnboardingInviteStepProps = {
-  className?: string
-  errorMessage: string | null
-  onErrorClear: () => void
-  onSkip: () => void
-  onSubmit: (emails: string[]) => Promise<void>
-}
+  className?: string;
+  errorMessage: string | null;
+  onErrorClear: () => void;
+  onSkip: () => void;
+  onSubmit: (emails: string[]) => Promise<void>;
+};
 
 /** Collects optional teammate invitations after workspace creation. */
 export function WorkspaceOnboardingInviteStep({
@@ -39,29 +38,26 @@ export function WorkspaceOnboardingInviteStep({
     defaultValues: { teammateEmails: "" },
     onSubmit: async ({ value }) =>
       onSubmit(parseOnboardingInviteEmails(value.teammateEmails)),
-  })
+  });
 
   return (
-    <form
-      className={cn("flex flex-col gap-6", className)}
+    <WorkspaceOnboardingStepForm
+      className={className}
+      description={
+        <>
+          <span translate="no">AI Chat</span> works better with more people. Add
+          your core collaborators.
+        </>
+      }
       noValidate
       onSubmit={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        void form.handleSubmit()
+        event.preventDefault();
+        event.stopPropagation();
+        void form.handleSubmit();
       }}
+      title="Invite your teammates"
+      titleId="workspace-onboarding-title"
     >
-      <WorkspaceOnboardingStepHeader
-        description={
-          <>
-            <span translate="no">AI Chat</span> works better with more people.
-            Add your core collaborators.
-          </>
-        }
-        title="Invite your teammates"
-        titleId="workspace-onboarding-title"
-      />
-
       <FieldGroup>
         <form.Field
           name="teammateEmails"
@@ -70,11 +66,9 @@ export function WorkspaceOnboardingInviteStep({
           }}
         >
           {(field) => {
-            const fieldError = getOnboardingFieldError(
-              field.state.meta.errors,
-            )
-            const displayedError = fieldError ?? errorMessage
-            const isInvalid = Boolean(displayedError)
+            const fieldError = getOnboardingFieldError(field.state.meta.errors);
+            const displayedError = fieldError ?? errorMessage;
+            const isInvalid = Boolean(displayedError);
 
             return (
               <>
@@ -94,8 +88,8 @@ export function WorkspaceOnboardingInviteStep({
                     name={field.name}
                     onBlur={field.handleBlur}
                     onChange={(event) => {
-                      field.handleChange(event.target.value)
-                      onErrorClear()
+                      field.handleChange(event.target.value);
+                      onErrorClear();
                     }}
                     placeholder="alex@example.com, jamie@example.com"
                     spellCheck={false}
@@ -122,9 +116,7 @@ export function WorkspaceOnboardingInviteStep({
                         </Button>
                         <Button
                           className="h-11 sm:h-8"
-                          disabled={
-                            isSubmitting || !field.state.meta.isValid
-                          }
+                          disabled={isSubmitting || !field.state.meta.isValid}
                           type="submit"
                         >
                           {isSubmitting && <Spinner data-icon="inline-start" />}
@@ -135,10 +127,10 @@ export function WorkspaceOnboardingInviteStep({
                   </form.Subscribe>
                 </Field>
               </>
-            )
+            );
           }}
         </form.Field>
       </FieldGroup>
-    </form>
-  )
+    </WorkspaceOnboardingStepForm>
+  );
 }

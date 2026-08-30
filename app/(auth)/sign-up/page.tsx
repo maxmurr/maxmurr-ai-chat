@@ -1,23 +1,21 @@
-import type { Metadata } from "next"
-import { Suspense } from "react"
+import type { Metadata } from "next";
+import { Suspense } from "react";
 
-import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import {
   AuthenticationPage,
   AuthenticationPageSkeleton,
-} from "@/features/user/components/authentication-page"
+} from "@/features/user/components/authentication-page";
 
 export const metadata: Metadata = {
   title: "Sign Up · AI Chat",
   description: "Create an account with verified email.",
-}
+};
 
 /** Composes sign-up from resolved callback query values. */
-export default function SignUpPage({
-  searchParams,
-}: PageProps<"/sign-up">) {
+export default function SignUpPage({ searchParams }: PageProps<"/sign-up">) {
   return (
-    <div className="flex w-full max-w-md" data-testid="sign-up-shell">
+    <div data-testid="sign-up-shell">
       <ErrorBoundary title="Sign up did not load">
         <Suspense fallback={<AuthenticationPageSkeleton />}>
           {searchParams.then(({ callbackURL, error }) => (
@@ -32,5 +30,5 @@ export default function SignUpPage({
         </Suspense>
       </ErrorBoundary>
     </div>
-  )
+  );
 }

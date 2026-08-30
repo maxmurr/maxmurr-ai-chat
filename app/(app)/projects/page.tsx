@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { AppRouteShell } from "@/components/app-route-shell";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ChatPageHeader } from "@/features/chat/components/chat-page-header";
 import {
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 /** Renders searchable workspace project index. */
 export default function ProjectsPage() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col" data-testid="projects-shell">
+    <AppRouteShell data-testid="projects-shell">
       <ChatPageHeader>
         <p className="text-sm font-medium" data-testid="projects-index-content">
           Projects
@@ -28,6 +29,6 @@ export default function ProjectsPage() {
           </Suspense>
         </ErrorBoundary>
       </div>
-    </div>
+    </AppRouteShell>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, useTransition } from "react";
-import { ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
+import { ThumbsDownIcon, ThumbsUpIcon, type LucideIcon } from "lucide-react";
 
 import { updateChatResponseFeedbackAction } from "@/features/chat/chat-actions";
 import {
@@ -34,6 +34,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 type ChatMessageFeedbackProps = {
   chatId: string;
@@ -42,6 +43,49 @@ type ChatMessageFeedbackProps = {
 };
 
 type SubmittedChatFeedback = "negative" | "positive" | null;
+
+function ChatMessageFeedbackButton({
+  active,
+  activeAriaLabel,
+  className,
+  disabled,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  activeAriaLabel: string;
+  className?: string;
+  disabled: boolean;
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) {
+  const tooltipLabel = active ? "Remove feedback" : label;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            aria-label={active ? activeAriaLabel : label}
+            aria-pressed={active}
+            className={cn("relative", className)}
+            disabled={disabled}
+            onClick={onClick}
+            size="icon-sm"
+            type="button"
+            variant="ghost"
+          >
+            <Icon className={active ? "fill-current" : undefined} />
+            <TouchTarget />
+          </Button>
+        }
+      />
+      <TooltipContent>{tooltipLabel}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 /** Collects one thumbs score and optional negative feedback details. */
 export function ChatMessageFeedback({
@@ -107,85 +151,33 @@ export function ChatMessageFeedback({
   return (
     <>
       {submittedFeedback !== "negative" && (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                aria-label={
-                  submittedFeedback === "positive"
-                    ? "Remove positive feedback"
-                    : "Good response"
-                }
-                aria-pressed={submittedFeedback === "positive"}
-                className="relative"
-                disabled={controlsDisabled}
-                onClick={() =>
-                  updateChatResponseFeedback(
-                    submittedFeedback === "positive" ? null : "positive"
-                  )
-                }
-                size="icon-sm"
-                type="button"
-                variant="ghost"
-              >
-                <ThumbsUpIcon
-                  className={
-                    submittedFeedback === "positive"
-                      ? "fill-current"
-                      : undefined
-                  }
-                />
-                <TouchTarget />
-              </Button>
-            }
-          />
-          <TooltipContent>
-            {submittedFeedback === "positive"
-              ? "Remove feedback"
-              : "Good response"}
-          </TooltipContent>
-        </Tooltip>
+        <ChatMessageFeedbackButton
+          active={submittedFeedback === "positive"}
+          activeAriaLabel="Remove positive feedback"
+          disabled={controlsDisabled}
+          icon={ThumbsUpIcon}
+          label="Good response"
+          onClick={() =>
+            updateChatResponseFeedback(
+              submittedFeedback === "positive" ? null : "positive"
+            )
+          }
+        />
       )}
 
       {submittedFeedback !== "positive" && (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                aria-label={
-                  submittedFeedback === "negative"
-                    ? "Remove negative feedback"
-                    : "Bad response"
-                }
-                aria-pressed={submittedFeedback === "negative"}
-                className="relative"
-                disabled={controlsDisabled}
-                onClick={() =>
-                  submittedFeedback === "negative"
-                    ? updateChatResponseFeedback(null)
-                    : setDialogOpen(true)
-                }
-                size="icon-sm"
-                type="button"
-                variant="ghost"
-              >
-                <ThumbsDownIcon
-                  className={
-                    submittedFeedback === "negative"
-                      ? "fill-current"
-                      : undefined
-                  }
-                />
-                <TouchTarget />
-              </Button>
-            }
-          />
-          <TooltipContent>
-            {submittedFeedback === "negative"
-              ? "Remove feedback"
-              : "Bad response"}
-          </TooltipContent>
-        </Tooltip>
+        <ChatMessageFeedbackButton
+          active={submittedFeedback === "negative"}
+          activeAriaLabel="Remove negative feedback"
+          disabled={controlsDisabled}
+          icon={ThumbsDownIcon}
+          label="Bad response"
+          onClick={() =>
+            submittedFeedback === "negative"
+              ? updateChatResponseFeedback(null)
+              : setDialogOpen(true)
+          }
+        />
       )}
 
       <Dialog onOpenChange={setDialogOpen} open={dialogOpen}>

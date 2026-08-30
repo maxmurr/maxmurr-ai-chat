@@ -11,6 +11,7 @@ import {
   ChatComposer,
   type ChatComposerSubmission,
 } from "@/features/chat/components/chat-composer";
+import { ChatConversationLayout } from "@/features/chat/components/chat-conversation-layout";
 import { useChatConversationTitle } from "@/features/chat/components/chat-conversation-title";
 import { ChatFooterNotice } from "@/features/chat/components/chat-footer-notice";
 import { ChatMessageList } from "@/features/chat/components/chat-message-list";
@@ -31,7 +32,6 @@ import {
   type ChatUIMessage,
 } from "@/src/interface-adapters/presenters/chat-message.presenter";
 import { toast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
 import {
   DEFAULT_CHAT_MODEL_ID,
   type ChatModelId,
@@ -397,70 +397,63 @@ function ChatThreadContent({
           : "");
 
   return (
-    <section
+    <ChatConversationLayout
       aria-busy={isGenerating}
-      aria-label="Chat conversation"
-      className={cn("flex min-h-0 flex-1 flex-col", className)}
+      className={className}
+      statusAnnouncement={statusAnnouncement}
+      title={conversationTitle}
     >
-      <h1 className="sr-only">{conversationTitle}</h1>
+      <ChatMessageList
+        className="-mb-8"
+        feedbackChatId={messages.length > 0 ? chatId : undefined}
+        isGenerating={isGenerating}
+        messages={messages}
+        onRetryMessage={retryChatMessage}
+        onSuggestionSelect={submitSuggestedMessage}
+        status={status}
+        streamingMessageId={streamingMessageId}
+      />
 
-      <div className="flex size-full min-w-0 flex-col">
-        <ChatMessageList
-          className="-mb-8"
-          feedbackChatId={messages.length > 0 ? chatId : undefined}
-          isGenerating={isGenerating}
-          messages={messages}
-          onRetryMessage={retryChatMessage}
-          onSuggestionSelect={submitSuggestedMessage}
-          status={status}
-          streamingMessageId={streamingMessageId}
-        />
+      {error && (
+        <div className="mx-auto mb-2 w-full max-w-3xl px-4">
+          <Alert variant="destructive">
+            <CircleAlertIcon />
+            <AlertTitle>Could not generate response</AlertTitle>
+            <AlertDescription>
+              Something interrupted the response. Try again.
+            </AlertDescription>
+            <AlertAction>
+              <Button
+                className="h-11 sm:h-7"
+                onClick={() => retryChatMessage()}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                Try again
+              </Button>
+            </AlertAction>
+          </Alert>
+        </div>
+      )}
 
-        {error && (
-          <div className="mx-auto mb-2 w-full max-w-3xl px-4">
-            <Alert variant="destructive">
-              <CircleAlertIcon />
-              <AlertTitle>Could not generate response</AlertTitle>
-              <AlertDescription>
-                Something interrupted the response. Try again.
-              </AlertDescription>
-              <AlertAction>
-                <Button
-                  className="h-11 sm:h-7"
-                  onClick={() => retryChatMessage()}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  Try again
-                </Button>
-              </AlertAction>
-            </Alert>
-          </div>
-        )}
+      <ChatComposer
+        attachments={attachments}
+        className="mx-auto"
+        draft={draft}
+        isGenerating={isGenerating}
+        onAnnouncementChange={setComposerAnnouncement}
+        onAttachmentsChange={setAttachments}
+        onDraftChange={setDraft}
+        onModelChange={setSelectedModelId}
+        onSendMessage={sendChatMessage}
+        onStopResponse={() => void stopChatResponse()}
+        selectedModelId={selectedModelId}
+      />
 
-        <ChatComposer
-          attachments={attachments}
-          className="mx-auto"
-          draft={draft}
-          isGenerating={isGenerating}
-          onAnnouncementChange={setComposerAnnouncement}
-          onAttachmentsChange={setAttachments}
-          onDraftChange={setDraft}
-          onModelChange={setSelectedModelId}
-          onSendMessage={sendChatMessage}
-          onStopResponse={() => void stopChatResponse()}
-          selectedModelId={selectedModelId}
-        />
-
-        <ChatFooterNotice>
-          AI can make mistakes. Verify important information.
-        </ChatFooterNotice>
-      </div>
-
-      <p className="sr-only" role="status">
-        {statusAnnouncement}
-      </p>
-    </section>
+      <ChatFooterNotice>
+        AI can make mistakes. Verify important information.
+      </ChatFooterNotice>
+    </ChatConversationLayout>
   );
 }

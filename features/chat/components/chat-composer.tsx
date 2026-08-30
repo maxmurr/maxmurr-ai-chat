@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { ChatComposerToolbar } from "@/features/chat/components/chat-composer-toolbar";
 import { ChatSelectedAttachments } from "@/features/chat/components/chat-selected-attachments";
+import { LibraryFileInput } from "@/features/library/components/library-file-input";
 import { FieldError } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import {
   InputGroup,
   InputGroupAddon,
@@ -16,7 +16,6 @@ import {
   DEFAULT_CHAT_MODEL_ID,
   type ChatModelId,
 } from "@/src/entities/models/chat-model";
-import { LIBRARY_FILE_ACCEPT } from "@/src/entities/models/library";
 
 type ChatFilePickerShortcut = Pick<
   KeyboardEvent,
@@ -156,21 +155,12 @@ export function ChatComposer({
     >
       <div className="rounded-lg bg-background">
         {attachmentsEnabled && (
-          <Input
+          <LibraryFileInput
             ref={fileInputRef}
-            accept={LIBRARY_FILE_ACCEPT}
             aria-label="Choose files to attach"
             hidden
-            multiple
             name="attachments"
-            onChange={(event) => {
-              onAttachmentsChange([
-                ...attachments,
-                ...Array.from(event.currentTarget.files ?? []),
-              ]);
-              event.currentTarget.value = "";
-            }}
-            type="file"
+            onFiles={(files) => onAttachmentsChange([...attachments, ...files])}
           />
         )}
 

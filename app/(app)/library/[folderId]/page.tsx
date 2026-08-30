@@ -1,25 +1,23 @@
-import type { Metadata } from "next"
-import { Suspense } from "react"
+import type { Metadata } from "next";
+import { Suspense } from "react";
 
-import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { AppRouteShell } from "@/components/app-route-shell";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import {
   LibraryPageContent,
   LibraryPageContentSkeleton,
-} from "@/features/library/components/library-page-content"
+} from "@/features/library/components/library-page-content";
 
 export const metadata: Metadata = {
   title: "Folder – AI Chat",
-}
+};
 
 /** Composes one owner-scoped Library Folder from resolved route ID. */
 export default function LibraryFolderPage({
   params,
 }: PageProps<"/library/[folderId]">) {
   return (
-    <div
-      className="flex min-h-0 flex-1 flex-col"
-      data-testid="library-shell"
-    >
+    <AppRouteShell data-testid="library-shell">
       <ErrorBoundary title="Folder did not load">
         <Suspense fallback={<LibraryPageContentSkeleton />}>
           {params.then(({ folderId }) => (
@@ -27,6 +25,6 @@ export default function LibraryFolderPage({
           ))}
         </Suspense>
       </ErrorBoundary>
-    </div>
-  )
+    </AppRouteShell>
+  );
 }

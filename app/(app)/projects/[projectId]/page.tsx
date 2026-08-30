@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { AppRouteShell } from "@/components/app-route-shell";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import {
   ProjectDetail,
@@ -16,10 +17,7 @@ export default function ProjectByIdPage({
   params,
 }: PageProps<"/projects/[projectId]">) {
   return (
-    <div
-      className="flex min-h-0 flex-1 flex-col"
-      data-testid="project-detail-shell"
-    >
+    <AppRouteShell data-testid="project-detail-shell">
       <ErrorBoundary title="Project did not load">
         <Suspense fallback={<ProjectDetailSkeleton />}>
           {params.then(({ projectId }) => (
@@ -27,6 +25,6 @@ export default function ProjectByIdPage({
           ))}
         </Suspense>
       </ErrorBoundary>
-    </div>
+    </AppRouteShell>
   );
 }

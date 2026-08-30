@@ -1,28 +1,24 @@
-import { BrainIcon, ChevronDownIcon } from "lucide-react"
+import { BrainIcon } from "lucide-react";
 
-import { ChatMessageMarkdown } from "@/features/chat/components/chat-message-markdown"
-import { Bubble, BubbleContent } from "@/components/ui/bubble"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker"
-import { Spinner } from "@/components/ui/spinner"
-import type { ChatDisplayReasoning } from "@/src/interface-adapters/presenters/chat-message.presenter"
-import { cn } from "@/lib/utils"
+import { ChatMessageDisclosureTrigger } from "@/features/chat/components/chat-message-disclosure-trigger";
+import { ChatMessageMarkdown } from "@/features/chat/components/chat-message-markdown";
+import { Bubble, BubbleContent } from "@/components/ui/bubble";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { Spinner } from "@/components/ui/spinner";
+import type { ChatDisplayReasoning } from "@/src/interface-adapters/presenters/chat-message.presenter";
+import { cn } from "@/lib/utils";
 
 type ChatMessageReasoningProps = {
-  className?: string
-  reasoning: ChatDisplayReasoning
-}
+  className?: string;
+  reasoning: ChatDisplayReasoning;
+};
 
 /** Renders expandable reasoning state for one assistant message. */
 export function ChatMessageReasoning({
   className,
   reasoning,
 }: ChatMessageReasoningProps) {
-  const isRunning = reasoning.state === "running"
+  const isRunning = reasoning.state === "running";
 
   return (
     <Collapsible
@@ -30,24 +26,14 @@ export function ChatMessageReasoning({
       defaultOpen={isRunning}
       key={reasoning.state}
     >
-      <Marker
+      <ChatMessageDisclosureTrigger
         aria-busy={isRunning || undefined}
         className="transition-colors hover:text-foreground"
-        render={<CollapsibleTrigger />}
-      >
-        <MarkerIcon>
-          {isRunning ? <Spinner /> : <BrainIcon />}
-        </MarkerIcon>
-        <MarkerContent
-          className={cn(isRunning && "shimmer")}
-          role={isRunning ? "status" : undefined}
-        >
-          {isRunning ? "Reasoning..." : "Reasoning"}
-        </MarkerContent>
-        <MarkerIcon>
-          <ChevronDownIcon className="transition-transform group-aria-expanded/marker:rotate-180" />
-        </MarkerIcon>
-      </Marker>
+        contentClassName={cn(isRunning && "shimmer")}
+        contentProps={{ role: isRunning ? "status" : undefined }}
+        icon={isRunning ? <Spinner /> : <BrainIcon />}
+        label={isRunning ? "Reasoning..." : "Reasoning"}
+      />
       {reasoning.text && (
         <CollapsibleContent>
           <Bubble variant="muted">
@@ -58,5 +44,5 @@ export function ChatMessageReasoning({
         </CollapsibleContent>
       )}
     </Collapsible>
-  )
+  );
 }

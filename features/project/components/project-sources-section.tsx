@@ -38,21 +38,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { TouchTarget } from "@/components/ui/touch-target";
 import { formatLibraryFileSize } from "@/features/library/components/library-data";
+import { LibraryFileInput } from "@/features/library/components/library-file-input";
 import { uploadLibraryFiles } from "@/features/library/components/upload-library-files";
 import { ProjectSection } from "@/features/project/components/project-section";
 import {
   addProjectSourceAction,
   removeProjectSourceAction,
 } from "@/features/project/project-actions";
-import {
-  createLibraryFileDownloadUrl,
-  LIBRARY_FILE_ACCEPT,
-} from "@/src/entities/models/library";
+import { cn } from "@/lib/utils";
+import { createLibraryFileDownloadUrl } from "@/src/entities/models/library";
 
 type ProjectSourceItem = {
   id: string;
@@ -73,6 +71,51 @@ function formatProjectSourceType(mediaType: string) {
 
 function showProjectSourceError(description: string) {
   toast.add({ description, title: "Source update failed", type: "error" });
+}
+
+function ProjectSourceCard({
+  className,
+  isRemoving,
+  onRemove,
+  removeDisabled,
+  source,
+}: {
+  className?: string;
+  isRemoving: boolean;
+  onRemove: (sourceId: string) => void;
+  removeDisabled: boolean;
+  source: ProjectSourceItem;
+}) {
+  return (
+    <Attachment className={cn("w-full", className)}>
+      <AttachmentTrigger
+        aria-label={`Download ${source.name}`}
+        render={<a download href={createLibraryFileDownloadUrl(source.id)} />}
+      />
+      <AttachmentMedia>
+        <FileTextIcon />
+      </AttachmentMedia>
+      <AttachmentContent>
+        <AttachmentTitle>{source.name}</AttachmentTitle>
+        <AttachmentDescription>
+          {formatProjectSourceType(source.mediaType)} ·{" "}
+          {formatLibraryFileSize(source.size)}
+        </AttachmentDescription>
+      </AttachmentContent>
+      <AttachmentActions>
+        <AttachmentAction
+          aria-label={`Remove ${source.name} from Project`}
+          className="relative opacity-0 group-focus-within/attachment:opacity-100 group-hover/attachment:opacity-100 pointer-coarse:opacity-100"
+          disabled={removeDisabled}
+          onClick={() => onRemove(source.id)}
+          type="button"
+        >
+          {isRemoving ? <Spinner /> : <XIcon />}
+          <TouchTarget />
+        </AttachmentAction>
+      </AttachmentActions>
+    </Attachment>
+  );
 }
 
 function ProjectLibrarySourceDialog({
@@ -232,39 +275,13 @@ export function ProjectSourcesSection({
         <div className="@container">
           <div className="grid gap-2 @sm:grid-cols-2">
             {sources.map((source) => (
-              <Attachment className="w-full" key={source.id}>
-                <AttachmentTrigger
-                  aria-label={`Download ${source.name}`}
-                  render={
-                    <a
-                      download
-                      href={createLibraryFileDownloadUrl(source.id)}
-                    />
-                  }
-                />
-                <AttachmentMedia>
-                  <FileTextIcon />
-                </AttachmentMedia>
-                <AttachmentContent>
-                  <AttachmentTitle>{source.name}</AttachmentTitle>
-                  <AttachmentDescription>
-                    {formatProjectSourceType(source.mediaType)} ·{" "}
-                    {formatLibraryFileSize(source.size)}
-                  </AttachmentDescription>
-                </AttachmentContent>
-                <AttachmentActions>
-                  <AttachmentAction
-                    aria-label={`Remove ${source.name} from Project`}
-                    className="relative opacity-0 group-focus-within/attachment:opacity-100 group-hover/attachment:opacity-100 pointer-coarse:opacity-100"
-                    disabled={removingFileId !== null}
-                    onClick={() => void removeSource(source.id)}
-                    type="button"
-                  >
-                    {removingFileId === source.id ? <Spinner /> : <XIcon />}
-                    <TouchTarget />
-                  </AttachmentAction>
-                </AttachmentActions>
-              </Attachment>
+              <ProjectSourceCard
+                isRemoving={removingFileId === source.id}
+                key={source.id}
+                onRemove={(sourceId) => void removeSource(sourceId)}
+                removeDisabled={removingFileId !== null}
+                source={source}
+              />
             ))}
           </div>
         </div>
@@ -274,19 +291,12 @@ export function ProjectSourcesSection({
         </p>
       )}
 
-      <Input
+      <LibraryFileInput
         ref={fileInputRef}
-        accept={LIBRARY_FILE_ACCEPT}
         aria-label="Choose Project Source Files"
         className="hidden"
-        multiple
         name="project-sources"
-        onChange={(event) => {
-          const files = Array.from(event.currentTarget.files ?? []);
-          event.currentTarget.value = "";
-          void uploadSources(files);
-        }}
-        type="file"
+        onFiles={(files) => void uploadSources(files)}
       />
       <ProjectLibrarySourceDialog
         availableFiles={availableFiles}

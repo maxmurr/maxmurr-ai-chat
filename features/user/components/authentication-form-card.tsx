@@ -4,7 +4,7 @@ import { useForm } from "@tanstack/react-form";
 import { CircleAlertIcon } from "lucide-react";
 import { useState } from "react";
 
-import { AuthenticationField } from "@/features/user/components/authentication-field";
+import { AuthenticationInputField } from "@/features/user/components/authentication-input-field";
 import {
   AuthenticationAlternateLink,
   AuthenticationFormHeader,
@@ -27,7 +27,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FieldGroup, FieldSeparator } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 type AuthenticationMode = "sign-in" | "sign-up";
@@ -277,41 +276,30 @@ export function AuthenticationFormCard({
                     const errorId = "username-error";
 
                     return (
-                      <AuthenticationField
+                      <AuthenticationInputField
+                        autoCapitalize="none"
+                        autoComplete="username"
+                        autoCorrect="off"
                         description="3–31 letters, numbers, underscores, or periods."
                         descriptionId={descriptionId}
                         error={error}
                         errorId={errorId}
-                        htmlFor="username"
+                        id="username"
                         invalid={!field.state.meta.isValid}
                         label="Username"
-                      >
-                        <Input
-                          aria-describedby={
-                            [descriptionId, error ? errorId : undefined]
-                              .filter(Boolean)
-                              .join(" ") || undefined
-                          }
-                          aria-invalid={!field.state.meta.isValid}
-                          autoCapitalize="none"
-                          autoComplete="username"
-                          autoCorrect="off"
-                          className="h-11"
-                          id="username"
-                          maxLength={31}
-                          minLength={3}
-                          name={field.name}
-                          onBlur={field.handleBlur}
-                          onChange={(event) =>
-                            field.handleChange(event.target.value)
-                          }
-                          pattern="[A-Za-z0-9_.]+"
-                          required
-                          spellCheck={false}
-                          type="text"
-                          value={field.state.value}
-                        />
-                      </AuthenticationField>
+                        maxLength={31}
+                        minLength={3}
+                        name={field.name}
+                        onBlur={field.handleBlur}
+                        onChange={(event) =>
+                          field.handleChange(event.target.value)
+                        }
+                        pattern="[A-Za-z0-9_.]+"
+                        required
+                        spellCheck={false}
+                        type="text"
+                        value={field.state.value}
+                      />
                     );
                   }}
                 </form.Field>
@@ -331,34 +319,27 @@ export function AuthenticationFormCard({
                     const errorId = "email-error";
 
                     return (
-                      <AuthenticationField
+                      <AuthenticationInputField
+                        autoCapitalize="none"
+                        autoComplete="email"
+                        autoCorrect="off"
                         error={error}
                         errorId={errorId}
-                        htmlFor="email"
+                        id="email"
                         invalid={!field.state.meta.isValid}
                         label="Email"
-                      >
-                        <Input
-                          aria-describedby={error ? errorId : undefined}
-                          aria-invalid={!field.state.meta.isValid}
-                          autoCapitalize="none"
-                          autoComplete="email"
-                          autoCorrect="off"
-                          className="h-11"
-                          id="email"
-                          maxLength={320}
-                          name={field.name}
-                          onBlur={field.handleBlur}
-                          onChange={(event) =>
-                            field.handleChange(event.target.value)
-                          }
-                          placeholder="m@example.com"
-                          required
-                          spellCheck={false}
-                          type="email"
-                          value={field.state.value}
-                        />
-                      </AuthenticationField>
+                        maxLength={320}
+                        name={field.name}
+                        onBlur={field.handleBlur}
+                        onChange={(event) =>
+                          field.handleChange(event.target.value)
+                        }
+                        placeholder="m@example.com"
+                        required
+                        spellCheck={false}
+                        type="email"
+                        value={field.state.value}
+                      />
                     );
                   }}
                 </form.Field>

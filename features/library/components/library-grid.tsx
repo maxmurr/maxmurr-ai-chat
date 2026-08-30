@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FileTextIcon, FolderIcon } from "lucide-react";
@@ -19,6 +20,22 @@ import {
 } from "@/components/ui/attachment";
 import { cn } from "@/lib/utils";
 
+/** Keeps live and loading Library grids on matching responsive columns. */
+export function LibraryGridLayout({
+  className,
+  ...props
+}: ComponentProps<"div">) {
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-2 gap-3 @lg:grid-cols-3 @3xl:grid-cols-4 @5xl:grid-cols-5 @6xl:grid-cols-6",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
 /** Renders Library Folders and Files as responsive attachment cards. */
 export function LibraryGrid({
   className,
@@ -33,12 +50,7 @@ export function LibraryGrid({
   items: readonly LibraryItem[];
 } & LibraryItemActions) {
   return (
-    <div
-      className={cn(
-        "grid grid-cols-2 gap-3 @lg:grid-cols-3 @3xl:grid-cols-4 @5xl:grid-cols-5 @6xl:grid-cols-6",
-        className
-      )}
-    >
+    <LibraryGridLayout className={className}>
       {items.map((item) => (
         <Attachment className="w-full!" key={item.id} orientation="vertical">
           <AttachmentTrigger
@@ -104,6 +116,6 @@ export function LibraryGrid({
           </AttachmentActions>
         </Attachment>
       ))}
-    </div>
+    </LibraryGridLayout>
   );
 }

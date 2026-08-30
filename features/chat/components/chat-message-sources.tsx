@@ -1,23 +1,14 @@
-import {
-  BookOpenIcon,
-  ChevronDownIcon,
-  FileTextIcon,
-  LinkIcon,
-} from "lucide-react"
+import { BookOpenIcon, FileTextIcon, LinkIcon } from "lucide-react";
 
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker"
-import type { ChatDisplaySource } from "@/src/interface-adapters/presenters/chat-message.presenter"
-import { cn } from "@/lib/utils"
+import { ChatMessageDisclosureTrigger } from "@/features/chat/components/chat-message-disclosure-trigger";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import type { ChatDisplaySource } from "@/src/interface-adapters/presenters/chat-message.presenter";
+import { cn } from "@/lib/utils";
 
 type ChatMessageSourcesProps = {
-  className?: string
-  sources: readonly ChatDisplaySource[]
-}
+  className?: string;
+  sources: readonly ChatDisplaySource[];
+};
 
 /** Renders expandable source links and document references for one message. */
 export function ChatMessageSources({
@@ -26,20 +17,12 @@ export function ChatMessageSources({
 }: ChatMessageSourcesProps) {
   return (
     <Collapsible className={cn("flex flex-col gap-1", className)}>
-      <Marker
+      <ChatMessageDisclosureTrigger
         className="w-fit rounded-sm py-1 text-base outline-none select-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm"
-        render={<CollapsibleTrigger />}
-      >
-        <MarkerIcon>
-          <BookOpenIcon />
-        </MarkerIcon>
-        <MarkerContent className="tabular-nums">
-          {sources.length} sources
-        </MarkerContent>
-        <MarkerIcon>
-          <ChevronDownIcon className="transition-transform group-aria-expanded/marker:rotate-180" />
-        </MarkerIcon>
-      </Marker>
+        contentClassName="tabular-nums"
+        icon={<BookOpenIcon />}
+        label={`${sources.length} sources`}
+      />
 
       <CollapsibleContent>
         <ul className="flex flex-col gap-1" role="list">
@@ -74,5 +57,5 @@ export function ChatMessageSources({
         </ul>
       </CollapsibleContent>
     </Collapsible>
-  )
+  );
 }

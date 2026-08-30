@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChatPageHeader } from "@/features/chat/components/chat-page-header";
 import { LibraryBrowser } from "@/features/library/components/library-browser";
 import { createLibraryBrowserItems } from "@/features/library/components/library-data";
+import { LibraryGridLayout } from "@/features/library/components/library-grid";
 import { getLibraryPageListing } from "@/features/library/library-queries";
 import { AppPageContainer } from "@/components/app-page-container";
 import {
@@ -90,11 +91,11 @@ export function LibraryPageContentSkeleton() {
             <Skeleton className="h-11 w-24 shrink-0 sm:h-8" />
             <Skeleton className="ml-auto h-11 w-20 shrink-0 sm:h-8" />
           </div>
-          <div className="grid grid-cols-2 gap-3 @lg:grid-cols-3 @3xl:grid-cols-4 @5xl:grid-cols-5 @6xl:grid-cols-6">
+          <LibraryGridLayout>
             {Array.from({ length: 6 }).map((_, index) => (
               <Skeleton className="aspect-4/5-full min-w-0" key={index} />
             ))}
-          </div>
+          </LibraryGridLayout>
         </AppPageContainer>
       </div>
     </div>

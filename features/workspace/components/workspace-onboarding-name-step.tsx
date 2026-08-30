@@ -1,35 +1,34 @@
-"use client"
+"use client";
 
-import { useForm } from "@tanstack/react-form"
+import { useForm } from "@tanstack/react-form";
 
-import { WorkspaceOnboardingStepHeader } from "@/features/workspace/components/workspace-onboarding-step-header"
+import { WorkspaceOnboardingStepForm } from "@/features/workspace/components/workspace-onboarding-step-form";
 import {
   getOnboardingFieldError,
   ONBOARDING_WORKSPACE_NAME_MAX_LENGTH,
   validateOnboardingWorkspaceName,
-} from "@/features/workspace/workspace-onboarding-validation"
-import { Button } from "@/components/ui/button"
+} from "@/features/workspace/workspace-onboarding-validation";
+import { Button } from "@/components/ui/button";
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field"
+} from "@/components/ui/field";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
   InputGroupText,
-} from "@/components/ui/input-group"
-import { Spinner } from "@/components/ui/spinner"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/input-group";
+import { Spinner } from "@/components/ui/spinner";
 
 type WorkspaceOnboardingNameStepProps = {
-  className?: string
-  errorMessage: string | null
-  onErrorClear: () => void
-  onSubmit: (workspaceName: string) => Promise<void>
-}
+  className?: string;
+  errorMessage: string | null;
+  onErrorClear: () => void;
+  onSubmit: (workspaceName: string) => Promise<void>;
+};
 
 /** Collects and submits first workspace name during onboarding. */
 export function WorkspaceOnboardingNameStep({
@@ -41,24 +40,21 @@ export function WorkspaceOnboardingNameStep({
   const form = useForm({
     defaultValues: { workspaceName: "" },
     onSubmit: async ({ value }) => onSubmit(value.workspaceName.trim()),
-  })
+  });
 
   return (
-    <form
-      className={cn("flex flex-col gap-6", className)}
+    <WorkspaceOnboardingStepForm
+      className={className}
+      description="Choose something your team will recognize, like your organization or team name. You can update it later."
       noValidate
       onSubmit={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        void form.handleSubmit()
+        event.preventDefault();
+        event.stopPropagation();
+        void form.handleSubmit();
       }}
+      title="Name your workspace"
+      titleId="workspace-onboarding-title"
     >
-      <WorkspaceOnboardingStepHeader
-        description="Choose something your team will recognize, like your organization or team name. You can update it later."
-        title="Name your workspace"
-        titleId="workspace-onboarding-title"
-      />
-
       <FieldGroup>
         <form.Field
           name="workspaceName"
@@ -67,11 +63,9 @@ export function WorkspaceOnboardingNameStep({
           }}
         >
           {(field) => {
-            const fieldError = getOnboardingFieldError(
-              field.state.meta.errors,
-            )
-            const displayedError = fieldError ?? errorMessage
-            const isInvalid = Boolean(displayedError)
+            const fieldError = getOnboardingFieldError(field.state.meta.errors);
+            const displayedError = fieldError ?? errorMessage;
+            const isInvalid = Boolean(displayedError);
 
             return (
               <>
@@ -92,8 +86,8 @@ export function WorkspaceOnboardingNameStep({
                       name={field.name}
                       onBlur={field.handleBlur}
                       onChange={(event) => {
-                        field.handleChange(event.target.value)
-                        onErrorClear()
+                        field.handleChange(event.target.value);
+                        onErrorClear();
                       }}
                       placeholder="Acme Inc."
                       required
@@ -130,10 +124,10 @@ export function WorkspaceOnboardingNameStep({
                   </form.Subscribe>
                 </Field>
               </>
-            )
+            );
           }}
         </form.Field>
       </FieldGroup>
-    </form>
-  )
+    </WorkspaceOnboardingStepForm>
+  );
 }
