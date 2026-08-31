@@ -1,21 +1,17 @@
-"use client"
+"use client";
 
-import { catchError, type ErrorInfo } from "next/error"
-import { RefreshCwIcon } from "lucide-react"
+import { catchError, type ErrorInfo } from "next/error";
+import { RefreshCwIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { ErrorState } from "@/components/ui/error-state"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarRail,
-} from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/error-state";
+import { Sidebar, SidebarContent, SidebarRail } from "@/components/ui/sidebar";
 
 type ErrorFallbackProps = {
-  description?: string
-  title: string
-  variant?: "default" | "sidebar"
-}
+  description?: string;
+  title: string;
+  variant?: "default" | "sidebar";
+};
 
 function RetryButton({ retry }: { retry: () => void }) {
   return (
@@ -23,7 +19,7 @@ function RetryButton({ retry }: { retry: () => void }) {
       <RefreshCwIcon data-icon="inline-start" />
       Try again
     </Button>
-  )
+  );
 }
 
 function ErrorFallback(
@@ -36,7 +32,7 @@ function ErrorFallback(
 ) {
   if (variant === "sidebar") {
     return (
-      <Sidebar collapsible="icon" variant="floating">
+      <Sidebar collapsible="icon" variant="inset">
         <SidebarContent className="p-2">
           <ErrorState
             className="p-3 group-data-[collapsible=icon]:hidden"
@@ -59,15 +55,15 @@ function ErrorFallback(
         </SidebarContent>
         <SidebarRail />
       </Sidebar>
-    )
+    );
   }
 
   return (
     <ErrorState description={description} role="alert" title={title}>
       <RetryButton retry={retry} />
     </ErrorState>
-  )
+  );
 }
 
 /** Catches fallible server sections without swallowing Next.js control flow. */
-export const ErrorBoundary = catchError(ErrorFallback)
+export const ErrorBoundary = catchError(ErrorFallback);

@@ -47,7 +47,7 @@ export function ChatAppSidebar({
   workspaces,
 }: ChatAppSidebarProps) {
   return (
-    <Sidebar className={cn(className)} collapsible="icon" variant="floating">
+    <Sidebar className={cn(className)} collapsible="icon" variant="inset">
       <SidebarHeader>
         <SidebarMenu>
           <ChatWorkspaceSwitcher

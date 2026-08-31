@@ -42,7 +42,7 @@ export function AuthenticatedChatSidebarSkeleton() {
       aria-busy="true"
       aria-label="Loading navigation"
       collapsible="icon"
-      variant="floating"
+      variant="inset"
     >
       <SidebarHeader className="gap-3 p-2">
         <Skeleton className="h-14 w-full lg:h-12" />
