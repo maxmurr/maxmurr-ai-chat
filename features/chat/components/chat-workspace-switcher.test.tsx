@@ -18,6 +18,7 @@ test("chat workspace switcher mounts Workspace creation integration", () => {
   );
 
   assert.match(markup, /Acme Inc\./);
+  assert.doesNotMatch(markup, />Free</);
   assert.match(markup, /rounded-md[^>]*>A<\/span>/);
   assert.doesNotMatch(markup, /lucide-briefcase-business/);
 });

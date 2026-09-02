@@ -1,7 +1,10 @@
 import { ChatAppSidebar } from "@/features/chat/components/chat-app-sidebar";
 import { getChatSidebarEntries } from "@/features/chat/chat-queries";
 import { getProjectsPageData } from "@/features/project/project-queries";
-import { getAuthenticatedWorkspaceContext } from "@/features/workspace/workspace-queries";
+import {
+  getAuthenticatedWorkspaceContext,
+  getCurrentWorkspaceAdminStatus,
+} from "@/features/workspace/workspace-queries";
 import {
   Sidebar,
   SidebarContent,
@@ -13,8 +16,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 /** Loads authenticated workspace navigation and sidebar chat history. */
 export async function AuthenticatedChatSidebar() {
   const workspace = await getAuthenticatedWorkspaceContext();
-  const [chats, projects] = await Promise.all([
+  const [chats, isWorkspaceAdmin, projects] = await Promise.all([
     getChatSidebarEntries(workspace.activeWorkspaceId, workspace.userId),
+    getCurrentWorkspaceAdminStatus(
+      workspace.requestHeaders,
+      workspace.activeWorkspaceId
+    ),
     getProjectsPageData(),
   ]);
 
@@ -22,6 +29,7 @@ export async function AuthenticatedChatSidebar() {
     <ChatAppSidebar
       activeWorkspaceId={workspace.activeWorkspaceId}
       currentUser={workspace.currentUser}
+      isWorkspaceAdmin={isWorkspaceAdmin}
       ownChats={chats.ownChats}
       projects={projects.map(({ description, id, name, pinned }) => ({
         description,

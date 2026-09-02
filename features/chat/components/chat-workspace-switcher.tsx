@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useTransition,
-} from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { ChevronsUpDownIcon, PlusIcon } from "lucide-react";
 
@@ -38,10 +32,6 @@ export type ChatWorkspaceSummary = {
   name: string;
 };
 
-type ChatWorkspace = ChatWorkspaceSummary & {
-  plan: string;
-};
-
 /** Renders server-owned workspaces with client switching controls. */
 export function ChatWorkspaceSwitcher({
   activeWorkspaceId,
@@ -52,18 +42,13 @@ export function ChatWorkspaceSwitcher({
   className?: string;
   workspaces: ChatWorkspaceSummary[];
 }) {
-  const chatWorkspaces = useMemo(
-    () => workspaces.map((workspace) => ({ ...workspace, plan: "Free" })),
-    [workspaces]
-  );
   const activeWorkspace =
-    chatWorkspaces.find(({ id }) => id === activeWorkspaceId) ??
-    chatWorkspaces[0];
+    workspaces.find(({ id }) => id === activeWorkspaceId) ?? workspaces[0];
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const switchChatWorkspace = useCallback(
-    (workspace: ChatWorkspace) => {
+    (workspace: ChatWorkspaceSummary) => {
       if (workspace.id === activeWorkspace?.id) {
         return;
       }
@@ -92,7 +77,7 @@ export function ChatWorkspaceSwitcher({
         return;
       }
 
-      const workspace = chatWorkspaces[Number(event.code.slice(-1)) - 1];
+      const workspace = workspaces[Number(event.code.slice(-1)) - 1];
 
       if (workspace) {
         event.preventDefault();
@@ -102,7 +87,7 @@ export function ChatWorkspaceSwitcher({
 
     window.addEventListener("keydown", handleWorkspaceShortcut);
     return () => window.removeEventListener("keydown", handleWorkspaceShortcut);
-  }, [chatWorkspaces, switchChatWorkspace]);
+  }, [switchChatWorkspace, workspaces]);
 
   if (!activeWorkspace) {
     return null;
@@ -130,16 +115,13 @@ export function ChatWorkspaceSwitcher({
           >
             {activeWorkspace.name.trim().charAt(0).toUpperCase()}
           </span>
-          <ChatSidebarIdentity
-            description={activeWorkspace.plan}
-            title={activeWorkspace.name}
-          />
+          <ChatSidebarIdentity title={activeWorkspace.name} />
           <ChevronsUpDownIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-56" side="bottom">
           <DropdownMenuGroup>
             <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
-            {chatWorkspaces.map((workspace, index) => (
+            {workspaces.map((workspace, index) => (
               <DropdownMenuItem
                 key={workspace.id}
                 onClick={() => switchChatWorkspace(workspace)}

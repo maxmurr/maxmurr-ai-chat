@@ -30,6 +30,7 @@ export type ChatAppSidebarProps = {
     initials: string;
     name: string;
   };
+  isWorkspaceAdmin: boolean;
   ownChats: ChatConversationEntry[];
   projects: ProjectActionsEntry[];
   teamChats: ChatHistoryEntry[];
@@ -41,6 +42,7 @@ export function ChatAppSidebar({
   activeWorkspaceId,
   className,
   currentUser,
+  isWorkspaceAdmin,
   ownChats,
   projects,
   teamChats,
@@ -69,7 +71,10 @@ export function ChatAppSidebar({
 
       <SidebarFooter>
         <SidebarMenu>
-          <ChatUserMenu user={currentUser} />
+          <ChatUserMenu
+            isWorkspaceAdmin={isWorkspaceAdmin}
+            user={currentUser}
+          />
         </SidebarMenu>
       </SidebarFooter>
 

@@ -1,33 +1,33 @@
-import "server-only"
+import "server-only";
 
-import { cache } from "react"
-import { redirect } from "next/navigation"
+import { cache } from "react";
+import { redirect } from "next/navigation";
 
-import { auth } from "@/di/authentication"
-import { getCurrentUserSession } from "@/features/user/user-queries"
-import { resolveActiveWorkspaceId } from "@/lib/active-workspace"
+import { auth } from "@/di/authentication";
+import { getCurrentUserSession } from "@/features/user/user-queries";
+import { resolveActiveWorkspaceId } from "@/lib/active-workspace";
 
 /** Resolves authenticated user and active workspace for app routes. */
 export const getAuthenticatedWorkspaceContext = cache(async () => {
-  const { requestHeaders, session } = await getCurrentUserSession()
+  const { requestHeaders, session } = await getCurrentUserSession();
 
   if (!session) {
-    redirect("/sign-in")
+    redirect("/sign-in");
   }
 
   const workspaces = await auth.api.listOrganizations({
     headers: requestHeaders,
-  })
+  });
 
   if (workspaces.length === 0) {
-    redirect("/onboarding")
+    redirect("/onboarding");
   }
 
   const activeWorkspaceId = resolveActiveWorkspaceId(
     workspaces,
     session.session.activeOrganizationId
-  )!
-  const name = session.user.username ?? session.user.name
+  )!;
+  const name = session.user.username ?? session.user.name;
 
   return {
     activeWorkspaceId,
@@ -43,33 +43,46 @@ export const getAuthenticatedWorkspaceContext = cache(async () => {
       id,
       name: workspaceName,
     })),
-  }
-})
+  };
+});
+
+/** Reports whether current user owns or administers selected workspace. */
+export async function getCurrentWorkspaceAdminStatus(
+  requestHeaders: Headers,
+  workspaceId: string
+) {
+  const { role } = await auth.api.getActiveMemberRole({
+    headers: requestHeaders,
+    query: { organizationId: workspaceId },
+  });
+
+  return role === "owner" || role === "admin";
+}
 
 /** Resolves session and workspace state for first-workspace onboarding. */
 export async function getWorkspaceOnboardingState() {
-  const { requestHeaders, session } = await getCurrentUserSession()
+  const { requestHeaders, session } = await getCurrentUserSession();
 
   if (!session) {
-    redirect("/sign-in")
+    redirect("/sign-in");
   }
 
   const workspaces = await auth.api.listOrganizations({
     headers: requestHeaders,
-  })
+  });
 
   if (workspaces.length > 0) {
-    redirect("/chat")
+    redirect("/chat");
   }
 }
 
 /** Resolves verified user and invitation shown by invitation route. */
 export async function getWorkspaceInvitationPageData(invitationId: string) {
-  const { requestHeaders, session } = await getCurrentUserSession()
-  const invitationPath = `/accept-invitation/${encodeURIComponent(invitationId)}`
+  const { requestHeaders, session } = await getCurrentUserSession();
+  const invitationPath = `/accept-invitation/${encodeURIComponent(invitationId)}`;
 
   if (!session?.user.emailVerified) {
-    redirect(`/sign-in?callbackURL=${encodeURIComponent(invitationPath)}`)
+    redirect(`/sign-in?callbackURL=${encodeURIComponent(invitationPath)}`);
   }
 
   const invitation = await auth.api
@@ -77,29 +90,29 @@ export async function getWorkspaceInvitationPageData(invitationId: string) {
       headers: requestHeaders,
       query: { id: invitationId },
     })
-    .catch(() => null)
+    .catch(() => null);
 
-  return { invitation, userEmail: session.user.email }
+  return { invitation, userEmail: session.user.email };
 }
 
 /** Resolves owner and active workspace scope from supplied request headers. */
 export async function getWorkspaceOwnerScope(requestHeaders: Headers) {
-  const session = await auth.api.getSession({ headers: requestHeaders })
+  const session = await auth.api.getSession({ headers: requestHeaders });
 
   if (!session) {
-    return { status: "unauthorized" as const }
+    return { status: "unauthorized" as const };
   }
 
   const workspaces = await auth.api.listOrganizations({
     headers: requestHeaders,
-  })
+  });
   const workspaceId = resolveActiveWorkspaceId(
     workspaces,
     session.session.activeOrganizationId
-  )
+  );
 
   if (!workspaceId) {
-    return { status: "workspace-required" as const }
+    return { status: "workspace-required" as const };
   }
 
   return {
@@ -108,5 +121,5 @@ export async function getWorkspaceOwnerScope(requestHeaders: Headers) {
       ownerId: session.user.id,
     },
     status: "authorized" as const,
-  }
+  };
 }

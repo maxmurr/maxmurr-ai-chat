@@ -1,16 +1,15 @@
-"use client"
+"use client";
 
+import Link from "next/link";
 import {
-  BadgeCheckIcon,
   BellIcon,
   ChevronsUpDownIcon,
-  CreditCardIcon,
   LogOutIcon,
-  SparklesIcon,
-} from "lucide-react"
+  SettingsIcon,
+} from "lucide-react";
 
-import { ChatSidebarIdentity } from "@/features/chat/components/chat-sidebar-identity"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ChatSidebarIdentity } from "@/features/chat/components/chat-sidebar-identity";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,52 +18,57 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
-import { signOutUserAction } from "@/features/user/user-actions"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/dropdown-menu";
+import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import { signOutUserAction } from "@/features/user/user-actions";
+import { cn } from "@/lib/utils";
 
 type ChatUser = {
-  avatar: string
-  email: string
-  initials: string
-  name: string
-}
+  avatar: string;
+  email: string;
+  initials: string;
+  name: string;
+};
 
 type ChatUserMenuProps = {
-  className?: string
-  user: ChatUser
-}
+  className?: string;
+  isWorkspaceAdmin: boolean;
+  user: ChatUser;
+};
 
 function ChatUserAvatar({
   className,
   user,
 }: {
-  className?: string
-  user: ChatUser
+  className?: string;
+  user: ChatUser;
 }) {
   return (
     <Avatar className={cn(className)}>
       <AvatarImage src={user.avatar} alt={user.name} />
       <AvatarFallback>{user.initials}</AvatarFallback>
     </Avatar>
-  )
+  );
 }
 
 /** Renders current user identity and account actions. */
-export function ChatUserMenu({ className, user }: ChatUserMenuProps) {
+export function ChatUserMenu({
+  className,
+  isWorkspaceAdmin,
+  user,
+}: ChatUserMenuProps) {
   async function signOutCurrentUser() {
     try {
-      const result = await signOutUserAction()
+      const result = await signOutUserAction();
 
       if (!result.ok) {
-        console.error("Sign-out request failed.")
-        return
+        console.error("Sign-out request failed.");
+        return;
       }
 
-      window.location.assign(new URL("/sign-in", window.location.origin))
+      window.location.assign(new URL("/sign-in", window.location.origin));
     } catch {
-      console.error("Sign-out request failed.")
+      console.error("Sign-out request failed.");
     }
   }
 
@@ -102,21 +106,12 @@ export function ChatUserMenu({ className, user }: ChatUserMenuProps) {
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem>
-              <SparklesIcon />
-              Upgrade to Pro
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem>
-              <BadgeCheckIcon />
-              Account
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <CreditCardIcon />
-              Billing
-            </DropdownMenuItem>
+            {isWorkspaceAdmin ? (
+              <DropdownMenuItem render={<Link href="/admin" />}>
+                <SettingsIcon />
+                Settings
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem>
               <BellIcon />
               Notifications
@@ -132,5 +127,5 @@ export function ChatUserMenu({ className, user }: ChatUserMenuProps) {
         </DropdownMenuContent>
       </DropdownMenu>
     </SidebarMenuItem>
-  )
+  );
 }
