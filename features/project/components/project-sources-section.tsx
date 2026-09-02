@@ -233,9 +233,8 @@ export function ProjectSourcesSection({
           <DropdownMenuTrigger
             render={
               <Button
-                className="h-11 sm:h-7"
                 disabled={isUploading}
-                size="sm"
+                size="touch-sm"
                 type="button"
                 variant="outline"
               />

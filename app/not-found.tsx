@@ -1,8 +1,8 @@
-import Link from "next/link"
-import { FileQuestionIcon } from "lucide-react"
+import Link from "next/link";
+import { FileQuestionIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { ErrorState } from "@/components/ui/error-state"
+import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/error-state";
 
 /** Gives unknown routes one clear path back into the app. */
 export default function NotFound() {
@@ -19,13 +19,13 @@ export default function NotFound() {
         title="Page not found"
       >
         <Button
-          className="h-11 sm:h-8"
           nativeButton={false}
           render={<Link href="/chat" />}
+          size="touch"
         >
           Go to chats
         </Button>
       </ErrorState>
     </main>
-  )
+  );
 }

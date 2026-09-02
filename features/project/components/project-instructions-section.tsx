@@ -93,7 +93,7 @@ function ProjectInstructionsDialog({
             />
           </Field>
           <DialogFooter>
-            <Button className="h-11 sm:h-8" disabled={isSaving} type="submit">
+            <Button disabled={isSaving} size="touch" type="submit">
               {isSaving ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
@@ -119,9 +119,8 @@ export function ProjectInstructionsSection({
     <ProjectSection
       action={
         <Button
-          className="h-11 sm:h-7"
           onClick={() => setIsDialogOpen(true)}
-          size="sm"
+          size="touch-sm"
           type="button"
           variant="outline"
         >

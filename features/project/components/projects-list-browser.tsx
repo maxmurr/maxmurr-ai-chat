@@ -90,7 +90,7 @@ export function ProjectsListBrowser({
           </EmptyHeader>
           <EmptyContent>
             <Button
-              className="h-11 sm:h-8"
+              size="touch"
               type="button"
               onClick={() => setIsNewProjectOpen(true)}
             >
@@ -122,8 +122,9 @@ export function ProjectsListBrowser({
               />
             </InputGroup>
             <Button
-              className="h-11 shrink-0 sm:h-8"
+              className="shrink-0"
               onClick={() => setIsNewProjectOpen(true)}
+              size="touch"
               type="button"
             >
               New project

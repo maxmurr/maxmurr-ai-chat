@@ -424,9 +424,8 @@ function ChatThreadContent({
             </AlertDescription>
             <AlertAction>
               <Button
-                className="h-11 sm:h-7"
                 onClick={() => retryChatMessage()}
-                size="sm"
+                size="touch-sm"
                 type="button"
                 variant="outline"
               >

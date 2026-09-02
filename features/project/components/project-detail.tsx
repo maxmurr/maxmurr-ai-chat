@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChatPageHeader } from "@/features/chat/components/chat-page-header";
+import { AppPageHeader } from "@/components/app-page-header";
 import { ProjectActions } from "@/features/project/components/project-actions";
 import { ProjectChatComposer } from "@/features/project/components/project-chat-composer";
 import { ProjectChatsSection } from "@/features/project/components/project-chats-section";
@@ -75,9 +75,9 @@ export function ProjectDetailSkeleton({ className }: { className?: string }) {
       aria-label="Loading project"
       className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}
     >
-      <ChatPageHeader>
+      <AppPageHeader>
         <Skeleton className="h-5 w-28 max-w-full sm:h-4" />
-      </ChatPageHeader>
+      </AppPageHeader>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-4 pb-12">
           <div className="flex min-w-0 flex-col gap-2">

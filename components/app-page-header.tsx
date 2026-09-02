@@ -1,20 +1,20 @@
-import type { ComponentProps, ReactNode } from "react"
+import type { ComponentProps, ReactNode } from "react";
 
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { cn } from "@/lib/utils"
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
-type ChatPageHeaderProps = ComponentProps<"header"> & {
-  actions?: ReactNode
-}
+type AppPageHeaderProps = ComponentProps<"header"> & {
+  actions?: ReactNode;
+};
 
-/** Renders shared sidebar trigger and content slot for app page headers. */
-export function ChatPageHeader({
+/** Renders the sidebar trigger, title slot, and actions for an app page. */
+export function AppPageHeader({
   actions,
   children,
   className,
   ...props
-}: ChatPageHeaderProps) {
+}: AppPageHeaderProps) {
   return (
     <header
       className={cn("flex h-14 shrink-0 items-center gap-2 px-3", className)}
@@ -30,5 +30,5 @@ export function ChatPageHeader({
         <div className="flex shrink-0 items-center gap-1">{actions}</div>
       )}
     </header>
-  )
+  );
 }

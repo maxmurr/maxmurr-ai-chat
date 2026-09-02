@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import {
   EllipsisIcon,
@@ -68,13 +68,10 @@ export function ChatConversationItem({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-  const [isTitleOverflowing, setIsTitleOverflowing] = useState(false);
   const conversationActionsRef = useRef<HTMLDivElement>(null);
   const conversationLinkRef = useRef<HTMLAnchorElement>(null);
-  const movingTitleRef = useRef<HTMLSpanElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const restoreLinkFocusRef = useRef(false);
-  const titleViewportRef = useRef<HTMLSpanElement>(null);
   const sidebarTitle =
     showProjectName && chat.projectName
       ? `${chat.title} · ${chat.projectName}`
@@ -130,40 +127,6 @@ export function ChatConversationItem({
     }
   }, [isRenaming]);
 
-  useEffect(() => {
-    const conversationActions = conversationActionsRef.current;
-    const movingTitle = movingTitleRef.current;
-    const titleViewport = titleViewportRef.current;
-
-    if (!conversationActions || !movingTitle || !titleViewport) {
-      return;
-    }
-
-    const updateTitleOverflow = () => {
-      const titleViewportRect = titleViewport.getBoundingClientRect();
-      const conversationActionsRect =
-        conversationActions.getBoundingClientRect();
-      const movingTitleRect = movingTitle.getBoundingClientRect();
-      const titleVisibleWidth =
-        conversationActionsRect.left - titleViewportRect.left;
-      const isOverflowing = movingTitleRect.width - titleViewportRect.width > 1;
-
-      titleViewport.style.setProperty(
-        "--conversation-title-visible-width",
-        `${titleVisibleWidth}px`
-      );
-      setIsTitleOverflowing(isOverflowing);
-    };
-
-    const resizeObserver = new ResizeObserver(updateTitleOverflow);
-    resizeObserver.observe(conversationActions);
-    resizeObserver.observe(movingTitle);
-    resizeObserver.observe(titleViewport);
-    updateTitleOverflow();
-
-    return () => resizeObserver.disconnect();
-  }, [chat.title]);
-
   return (
     <SidebarMenuItem className={cn(className)}>
       {isRenaming ? (
@@ -210,35 +173,10 @@ export function ChatConversationItem({
           title={sidebarTitle}
         >
           {showPinnedChatIcon && chat.pinned && <MessageCircleIcon />}
-          <span
-            ref={titleViewportRef}
-            className={cn(
-              "@container/title relative min-w-0 flex-1 text-clip!",
-              isTitleOverflowing &&
-                "mask-[linear-gradient(to_right,black,black_calc(100%-0.75rem),transparent)] motion-safe:pointer-fine:group-hover/menu-item:mask-[linear-gradient(to_right,transparent,black_0.75rem,black_calc(100%-0.75rem),transparent)]"
-            )}
-          >
-            <span
-              className={cn(
-                "block overflow-hidden whitespace-nowrap",
-                isTitleOverflowing &&
-                  "motion-safe:pointer-fine:group-hover/menu-item:invisible"
-              )}
-            >
-              {chat.title}
-            </span>
-            <span
-              ref={movingTitleRef}
-              aria-hidden
-              className={cn(
-                "invisible absolute inset-y-0 left-0 inline-block w-max",
-                isTitleOverflowing &&
-                  "motion-safe:pointer-fine:group-hover/menu-item:visible motion-safe:pointer-fine:group-hover/menu-item:translate-x-[calc(var(--conversation-title-visible-width)-100%)] motion-safe:pointer-fine:group-hover/menu-item:transition-transform motion-safe:pointer-fine:group-hover/menu-item:delay-300 motion-safe:pointer-fine:group-hover/menu-item:duration-[2s] motion-safe:pointer-fine:group-hover/menu-item:ease-linear"
-              )}
-            >
-              {chat.title}
-            </span>
-          </span>
+          <ChatSidebarConversationTitle
+            conversationActionsRef={conversationActionsRef}
+            title={chat.title}
+          />
           {(isGeneratingResponse || hasUnreadResponse) && (
             <span
               aria-hidden="true"
@@ -327,5 +265,86 @@ export function ChatConversationItem({
         open={isDeleteDialogOpen}
       />
     </SidebarMenuItem>
+  );
+}
+
+function ChatSidebarConversationTitle({
+  className,
+  conversationActionsRef,
+  title,
+}: {
+  className?: string;
+  conversationActionsRef: RefObject<HTMLDivElement | null>;
+  title: string;
+}) {
+  const [isTitleOverflowing, setIsTitleOverflowing] = useState(false);
+  const movingTitleRef = useRef<HTMLSpanElement>(null);
+  const titleViewportRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const conversationActions = conversationActionsRef.current;
+    const movingTitle = movingTitleRef.current;
+    const titleViewport = titleViewportRef.current;
+
+    if (!conversationActions || !movingTitle || !titleViewport) {
+      return;
+    }
+
+    const updateTitleOverflow = () => {
+      const titleViewportRect = titleViewport.getBoundingClientRect();
+      const conversationActionsRect =
+        conversationActions.getBoundingClientRect();
+      const movingTitleRect = movingTitle.getBoundingClientRect();
+      const titleVisibleWidth =
+        conversationActionsRect.left - titleViewportRect.left;
+      const isOverflowing = movingTitleRect.width - titleViewportRect.width > 1;
+
+      titleViewport.style.setProperty(
+        "--conversation-title-visible-width",
+        `${titleVisibleWidth}px`
+      );
+      setIsTitleOverflowing(isOverflowing);
+    };
+
+    const resizeObserver = new ResizeObserver(updateTitleOverflow);
+    resizeObserver.observe(conversationActions);
+    resizeObserver.observe(movingTitle);
+    resizeObserver.observe(titleViewport);
+    updateTitleOverflow();
+
+    return () => resizeObserver.disconnect();
+  }, [conversationActionsRef, title]);
+
+  return (
+    <span
+      ref={titleViewportRef}
+      className={cn(
+        "@container/title relative min-w-0 flex-1 text-clip!",
+        isTitleOverflowing &&
+          "mask-[linear-gradient(to_right,black,black_calc(100%-0.75rem),transparent)] motion-safe:pointer-fine:group-hover/menu-item:mask-[linear-gradient(to_right,transparent,black_0.75rem,black_calc(100%-0.75rem),transparent)]",
+        className
+      )}
+    >
+      <span
+        className={cn(
+          "block overflow-hidden whitespace-nowrap",
+          isTitleOverflowing &&
+            "motion-safe:pointer-fine:group-hover/menu-item:invisible"
+        )}
+      >
+        {title}
+      </span>
+      <span
+        ref={movingTitleRef}
+        aria-hidden
+        className={cn(
+          "invisible absolute inset-y-0 left-0 inline-block w-max",
+          isTitleOverflowing &&
+            "motion-safe:pointer-fine:group-hover/menu-item:visible motion-safe:pointer-fine:group-hover/menu-item:translate-x-[calc(var(--conversation-title-visible-width)-100%)] motion-safe:pointer-fine:group-hover/menu-item:transition-transform motion-safe:pointer-fine:group-hover/menu-item:delay-300 motion-safe:pointer-fine:group-hover/menu-item:duration-[2s] motion-safe:pointer-fine:group-hover/menu-item:ease-linear"
+        )}
+      >
+        {title}
+      </span>
+    </span>
   );
 }

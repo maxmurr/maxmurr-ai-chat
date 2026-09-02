@@ -1,7 +1,7 @@
-import type { ReactNode } from "react"
-import Link from "next/link"
+import type { ReactNode } from "react";
+import Link from "next/link";
 
-import { ChatPageHeader } from "@/features/chat/components/chat-page-header"
+import { AppPageHeader } from "@/components/app-page-header";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,13 +9,13 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+} from "@/components/ui/breadcrumb";
 
 type ProjectDetailHeaderProps = {
-  actions?: ReactNode
-  className?: string
-  projectName?: string
-}
+  actions?: ReactNode;
+  className?: string;
+  projectName?: string;
+};
 
 /** Renders project breadcrumb and optional project actions. */
 export function ProjectDetailHeader({
@@ -24,7 +24,7 @@ export function ProjectDetailHeader({
   projectName,
 }: ProjectDetailHeaderProps) {
   return (
-    <ChatPageHeader actions={actions} className={className}>
+    <AppPageHeader actions={actions} className={className}>
       <Breadcrumb className="min-w-0">
         <BreadcrumbList className="flex-nowrap">
           <BreadcrumbItem>
@@ -44,6 +44,6 @@ export function ProjectDetailHeader({
           )}
         </BreadcrumbList>
       </Breadcrumb>
-    </ChatPageHeader>
-  )
+    </AppPageHeader>
+  );
 }

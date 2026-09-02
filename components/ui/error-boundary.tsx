@@ -15,7 +15,7 @@ type ErrorFallbackProps = {
 
 function RetryButton({ retry }: { retry: () => void }) {
   return (
-    <Button className="h-11 sm:h-8" onClick={retry} type="button">
+    <Button onClick={retry} size="touch" type="button">
       <RefreshCwIcon data-icon="inline-start" />
       Try again
     </Button>

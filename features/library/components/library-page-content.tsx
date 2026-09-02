@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { ChatPageHeader } from "@/features/chat/components/chat-page-header";
+import { AppPageHeader } from "@/components/app-page-header";
 import { LibraryBrowser } from "@/features/library/components/library-browser";
 import { createLibraryBrowserItems } from "@/features/library/components/library-data";
 import { LibraryGridLayout } from "@/features/library/components/library-grid";
@@ -33,7 +33,7 @@ export async function LibraryPageContent({
 
   return (
     <>
-      <ChatPageHeader data-testid="library-content">
+      <AppPageHeader data-testid="library-content">
         <Breadcrumb>
           <BreadcrumbList>
             {currentFolder ? (
@@ -55,7 +55,7 @@ export async function LibraryPageContent({
             )}
           </BreadcrumbList>
         </Breadcrumb>
-      </ChatPageHeader>
+      </AppPageHeader>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <LibraryBrowser
           activeFolderId={currentFolder?.id}
@@ -76,9 +76,9 @@ export function LibraryPageContentSkeleton() {
       aria-label="Loading Library"
       className="flex min-h-0 min-w-0 flex-1 flex-col"
     >
-      <ChatPageHeader>
+      <AppPageHeader>
         <Skeleton className="h-5 w-28 max-w-full sm:h-4" />
-      </ChatPageHeader>
+      </AppPageHeader>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <AppPageContainer className="mx-auto">
           <div className="mb-6 flex min-w-0 items-center gap-2">

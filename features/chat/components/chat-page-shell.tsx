@@ -2,7 +2,7 @@ import {
   ChatConversationTitle,
   ChatConversationTitleProvider,
 } from "@/features/chat/components/chat-conversation-title";
-import { ChatPageHeader } from "@/features/chat/components/chat-page-header";
+import { AppPageHeader } from "@/components/app-page-header";
 import { ChatShareDialog } from "@/features/chat/components/chat-share-dialog";
 import { ChatThread } from "@/features/chat/components/chat-thread";
 import { ChatThreadActions } from "@/features/chat/components/chat-thread-actions";
@@ -36,7 +36,7 @@ export async function ChatPageShell({
 
   return (
     <ChatConversationTitleProvider key={chat.id} initialTitle={chat.title}>
-      <ChatPageHeader
+      <AppPageHeader
         actions={
           chat.isOwner ? (
             <>
@@ -57,7 +57,7 @@ export async function ChatPageShell({
         data-testid="chat-content"
       >
         <ChatConversationTitle className="min-w-0" />
-      </ChatPageHeader>
+      </AppPageHeader>
       {chat.isOwner ? (
         <ChatThread
           activeStreamId={chat.activeStreamId}

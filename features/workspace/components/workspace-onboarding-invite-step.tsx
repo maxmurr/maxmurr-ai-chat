@@ -106,17 +106,17 @@ export function WorkspaceOnboardingInviteStep({
                     {(isSubmitting) => (
                       <>
                         <Button
-                          className="h-11 sm:h-8"
                           disabled={isSubmitting}
                           onClick={onSkip}
+                          size="touch"
                           type="button"
                           variant="ghost"
                         >
                           Skip this step
                         </Button>
                         <Button
-                          className="h-11 sm:h-8"
                           disabled={isSubmitting || !field.state.meta.isValid}
+                          size="touch"
                           type="submit"
                         >
                           {isSubmitting && <Spinner data-icon="inline-start" />}

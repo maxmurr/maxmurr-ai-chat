@@ -119,8 +119,8 @@ export function ProjectDetailsDialog({
 
           <DialogFooter>
             <Button
-              className="h-11 sm:h-8"
               disabled={!name.trim() || isSubmitting}
+              size="touch"
               type="submit"
             >
               {isSubmitting ? "Saving…" : submitLabel}

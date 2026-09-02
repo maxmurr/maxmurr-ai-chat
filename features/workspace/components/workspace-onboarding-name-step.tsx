@@ -109,12 +109,12 @@ export function WorkspaceOnboardingNameStep({
                   <form.Subscribe selector={(state) => state.isSubmitting}>
                     {(isSubmitting) => (
                       <Button
-                        className="h-11 sm:h-8"
                         disabled={
                           isSubmitting ||
                           !field.state.meta.isValid ||
                           !field.state.value.trim()
                         }
+                        size="touch"
                         type="submit"
                       >
                         {isSubmitting && <Spinner data-icon="inline-start" />}

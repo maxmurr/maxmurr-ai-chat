@@ -332,7 +332,7 @@ export function CreateWorkspaceDialog({
                       ))}
 
                       <Button
-                        className="h-11 w-full sm:h-8"
+                        className="w-full"
                         disabled={
                           membersField.state.value.length >=
                           MAX_WORKSPACE_CREATION_MEMBERS
@@ -344,6 +344,7 @@ export function CreateWorkspaceDialog({
                             role: "member",
                           })
                         }
+                        size="touch"
                         type="button"
                         variant="outline"
                       >
@@ -366,8 +367,8 @@ export function CreateWorkspaceDialog({
 
           <DialogFooter className="mt-5">
             <Button
-              className="h-11 sm:h-8"
               onClick={() => changeDialogOpenState(false)}
+              size="touch"
               type="button"
               variant="outline"
             >
@@ -382,11 +383,7 @@ export function CreateWorkspaceDialog({
               }
             >
               {(isSubmitReady) => (
-                <Button
-                  className="h-11 sm:h-8"
-                  disabled={!isSubmitReady}
-                  type="submit"
-                >
+                <Button disabled={!isSubmitReady} size="touch" type="submit">
                   <form.Subscribe selector={(state) => state.isSubmitting}>
                     {(isSubmitting) => (
                       <>

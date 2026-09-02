@@ -1,6 +1,6 @@
 import { ChatComposerLoading } from "@/features/chat/components/chat-composer";
 import { ChatFooterNotice } from "@/features/chat/components/chat-footer-notice";
-import { ChatPageHeader } from "@/features/chat/components/chat-page-header";
+import { AppPageHeader } from "@/components/app-page-header";
 import { ChatPageShell } from "@/features/chat/components/chat-page-shell";
 import { getChatPageView } from "@/features/chat/chat-queries";
 import { getAuthenticatedWorkspaceContext } from "@/features/workspace/workspace-queries";
@@ -46,9 +46,9 @@ export function ChatPageContentSkeleton() {
       aria-label="Loading chat"
       className="flex min-h-0 min-w-0 flex-1 flex-col"
     >
-      <ChatPageHeader>
+      <AppPageHeader>
         <Skeleton className="h-5 w-2/3 max-w-40 sm:h-4" />
-      </ChatPageHeader>
+      </AppPageHeader>
       <div
         aria-hidden="true"
         className="min-h-0 flex-1 overflow-hidden px-4 py-6"

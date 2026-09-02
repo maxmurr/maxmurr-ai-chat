@@ -129,11 +129,11 @@ function ProjectDeleteDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="h-11 sm:h-8">Cancel</AlertDialogCancel>
+          <AlertDialogCancel size="touch">Cancel</AlertDialogCancel>
           <Button
-            className="h-11 sm:h-8"
             disabled={isDeleting}
             onClick={() => void deleteCurrentProject()}
+            size="touch"
             type="button"
             variant="destructive"
           >

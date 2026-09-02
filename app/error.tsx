@@ -30,14 +30,14 @@ export default function AppError({
       title="AI Chat did not load"
     >
       <div className="flex flex-wrap justify-center gap-2">
-        <Button className="h-11 sm:h-8" onClick={retry} type="button">
+        <Button onClick={retry} size="touch" type="button">
           <RefreshCwIcon data-icon="inline-start" />
           Try again
         </Button>
         <Button
-          className="h-11 sm:h-8"
           nativeButton={false}
           render={<Link href="/chat" />}
+          size="touch"
           variant="outline"
         >
           Go to chats
