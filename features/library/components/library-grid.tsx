@@ -53,7 +53,7 @@ export function LibraryGrid({
     <LibraryGridLayout className={className}>
       {items.map((item) => (
         <Attachment
-          className="w-full! [content-visibility:auto] [contain-intrinsic-size:auto_20rem]"
+          className="w-full! [contain-intrinsic-size:auto_20rem] [content-visibility:auto]"
           key={item.id}
           orientation="vertical"
         >

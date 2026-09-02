@@ -52,7 +52,7 @@ export function LibraryList({
         <TableBody>
           {items.map((item) => (
             <TableRow
-              className="[content-visibility:auto] [contain-intrinsic-size:auto_3.5rem]"
+              className="[contain-intrinsic-size:auto_3.5rem] [content-visibility:auto]"
               key={item.id}
             >
               <TableCell>

@@ -146,7 +146,7 @@ export function ProjectsListBrowser({
             <ItemGroup className="grid gap-3 @xl:grid-cols-2 @6xl:grid-cols-3">
               {matchingProjects.map((project) => (
                 <Item
-                  className="relative items-start [content-visibility:auto] [contain-intrinsic-size:auto_7rem] hover:bg-muted has-[a:focus-visible]:border-ring has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50"
+                  className="relative items-start [contain-intrinsic-size:auto_7rem] [content-visibility:auto] hover:bg-muted has-[a:focus-visible]:border-ring has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50"
                   key={project.id}
                   role="listitem"
                   variant="outline"
