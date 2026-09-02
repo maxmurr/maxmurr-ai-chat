@@ -107,7 +107,11 @@ export function ChatUserMenu({
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             {isWorkspaceAdmin ? (
-              <DropdownMenuItem render={<Link href="/admin" />}>
+              <DropdownMenuItem
+                render={
+                  <Link href="/admin" transitionTypes={["settings-open"]} />
+                }
+              >
                 <SettingsIcon />
                 Settings
               </DropdownMenuItem>

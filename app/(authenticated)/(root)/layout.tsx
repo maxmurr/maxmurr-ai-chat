@@ -1,16 +1,14 @@
-import { Suspense } from "react"
+import { Suspense } from "react";
 
-import { ErrorBoundary } from "@/components/ui/error-boundary"
-import { ChatAppFrame } from "@/features/chat/components/chat-app-shell"
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { ChatAppFrame } from "@/features/chat/components/chat-app-shell";
 import {
   AuthenticatedChatSidebar,
   AuthenticatedChatSidebarSkeleton,
-} from "@/features/chat/components/authenticated-chat-sidebar"
+} from "@/features/chat/components/authenticated-chat-sidebar";
 
 /** Frames authenticated chat, project, and Library routes. */
-export default function AuthenticatedAppLayout({
-  children,
-}: LayoutProps<"/">) {
+export default function AuthenticatedAppLayout({ children }: LayoutProps<"/">) {
   return (
     <ChatAppFrame
       sidebar={
@@ -23,5 +21,5 @@ export default function AuthenticatedAppLayout({
     >
       {children}
     </ChatAppFrame>
-  )
+  );
 }
