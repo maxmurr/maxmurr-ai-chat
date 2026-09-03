@@ -14,7 +14,7 @@ function SettingsAppFrameShell({
 }) {
   return (
     <AppSidebarFrame sidebar={sidebar}>
-      <AppPageHeader>
+      <AppPageHeader className="md:hidden">
         <h1 className="sr-only">Settings</h1>
       </AppPageHeader>
       {children}
