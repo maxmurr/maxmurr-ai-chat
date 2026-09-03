@@ -204,12 +204,19 @@ export function ChatConversationItem({
         )}
       >
         {showProjectName && chat.projectName && (
-          <span className="max-w-24 truncate bg-[linear-gradient(to_right,transparent,var(--conversation-actions-background)_1.5rem)] pl-6 text-xs text-muted-foreground transition-transform duration-150 ease-in-out motion-reduce:transition-none lg:group-has-focus-visible/menu-item:translate-x-0 lg:pointer-fine:translate-x-12 lg:pointer-fine:group-hover/menu-item:translate-x-0">
+          <span className="max-w-24 truncate bg-[linear-gradient(to_right,transparent,var(--conversation-actions-background)_1.5rem)] pl-8 text-xs text-muted-foreground transition-transform duration-150 ease-in-out motion-reduce:transition-none lg:group-has-focus-visible/menu-item:translate-x-0 lg:pointer-fine:translate-x-12 lg:pointer-fine:group-hover/menu-item:translate-x-0">
             {chat.projectName}
           </span>
         )}
 
-        <div className="pointer-events-auto flex items-center gap-1 bg-(--conversation-actions-background) pl-1 transition-opacity duration-150 ease-in-out motion-reduce:transition-none lg:group-has-focus-visible/menu-item:pointer-events-auto lg:group-has-focus-visible/menu-item:opacity-100 lg:pointer-fine:pointer-events-none lg:pointer-fine:opacity-0 lg:pointer-fine:group-hover/menu-item:pointer-events-auto lg:pointer-fine:group-hover/menu-item:opacity-100">
+        <div
+          className={cn(
+            "pointer-events-auto flex items-center gap-1 transition-opacity duration-150 ease-in-out motion-reduce:transition-none lg:group-has-focus-visible/menu-item:pointer-events-auto lg:group-has-focus-visible/menu-item:opacity-100 lg:pointer-fine:pointer-events-none lg:pointer-fine:opacity-0 lg:pointer-fine:group-hover/menu-item:pointer-events-auto lg:pointer-fine:group-hover/menu-item:opacity-100",
+            showProjectName && chat.projectName
+              ? "bg-(--conversation-actions-background) pl-1"
+              : "bg-[linear-gradient(to_right,transparent,var(--conversation-actions-background)_1.5rem)] pl-8"
+          )}
+        >
           {showPinAction && (
             <SidebarMenuAction
               aria-label={`${chat.pinned ? "Unpin" : "Pin"} ${chat.title}`}
@@ -321,7 +328,7 @@ function ChatSidebarConversationTitle({
       className={cn(
         "@container/title relative min-w-0 flex-1 text-clip!",
         isTitleOverflowing &&
-          "mask-[linear-gradient(to_right,black,black_calc(100%-0.75rem),transparent)] motion-safe:pointer-fine:group-hover/menu-item:mask-[linear-gradient(to_right,transparent,black_0.75rem,black_calc(100%-0.75rem),transparent)]",
+        "mask-[linear-gradient(to_right,black,black_calc(100%-0.75rem),transparent)] motion-safe:pointer-fine:group-hover/menu-item:mask-[linear-gradient(to_right,transparent,black_0.75rem,black_calc(100%-0.75rem),transparent)]",
         className
       )}
     >
@@ -329,7 +336,7 @@ function ChatSidebarConversationTitle({
         className={cn(
           "block overflow-hidden whitespace-nowrap",
           isTitleOverflowing &&
-            "motion-safe:pointer-fine:group-hover/menu-item:invisible"
+          "motion-safe:pointer-fine:group-hover/menu-item:invisible"
         )}
       >
         {title}
@@ -340,7 +347,7 @@ function ChatSidebarConversationTitle({
         className={cn(
           "invisible absolute inset-y-0 left-0 inline-block w-max",
           isTitleOverflowing &&
-            "motion-safe:pointer-fine:group-hover/menu-item:visible motion-safe:pointer-fine:group-hover/menu-item:translate-x-[calc(var(--conversation-title-visible-width)-100%)] motion-safe:pointer-fine:group-hover/menu-item:transition-transform motion-safe:pointer-fine:group-hover/menu-item:delay-300 motion-safe:pointer-fine:group-hover/menu-item:duration-[2s] motion-safe:pointer-fine:group-hover/menu-item:ease-linear"
+          "motion-safe:pointer-fine:group-hover/menu-item:visible motion-safe:pointer-fine:group-hover/menu-item:translate-x-[calc(var(--conversation-title-visible-width)+0.6rem-100%)] motion-safe:pointer-fine:group-hover/menu-item:transition-transform motion-safe:pointer-fine:group-hover/menu-item:delay-300 motion-safe:pointer-fine:group-hover/menu-item:duration-[2s] motion-safe:pointer-fine:group-hover/menu-item:ease-linear"
         )}
       >
         {title}
