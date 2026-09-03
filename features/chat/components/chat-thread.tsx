@@ -65,6 +65,20 @@ function canMarkCurrentChatRead(chatId: string) {
   );
 }
 
+/** Replaces user prompt text while preserving its existing file parts. */
+export function replaceChatUserMessageText(
+  message: ChatUIMessage,
+  content: string
+): ChatUIMessage {
+  return {
+    ...message,
+    parts: [
+      ...message.parts.filter((part) => part.type !== "text"),
+      { text: content, type: "text" },
+    ],
+  };
+}
+
 /** Routes uploads after a Chat exists locally or has loaded from persistence. */
 export function resolveChatFileUploadDestination(
   chatId: string,
@@ -122,6 +136,7 @@ function ChatThreadContent({
     regenerate,
     resumeStream,
     sendMessage,
+    setMessages,
     status,
     stop,
   } = useChat<ChatUIMessage>({
@@ -345,6 +360,24 @@ function ChatThreadContent({
     }
   }
 
+  function editChatMessage(messageId: string, content: string) {
+    if (activeStreamIdRef.current || isGenerating) return;
+
+    const messageToEdit = chatMessages.find(
+      (message) => message.id === messageId && message.role === "user"
+    );
+    if (!messageToEdit) return;
+
+    setMessages((currentMessages) =>
+      currentMessages.map((message) =>
+        message.id === messageId
+          ? replaceChatUserMessageText(message, content)
+          : message
+      )
+    );
+    retryChatMessage(messageId);
+  }
+
   function retryChatMessage(messageId?: string) {
     clearError();
     setComposerAnnouncement("");
@@ -408,6 +441,7 @@ function ChatThreadContent({
         feedbackChatId={messages.length > 0 ? chatId : undefined}
         isGenerating={isGenerating}
         messages={messages}
+        onEditMessage={editChatMessage}
         onRetryMessage={retryChatMessage}
         onSuggestionSelect={submitSuggestedMessage}
         status={status}

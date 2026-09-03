@@ -1,4 +1,4 @@
-import { RefreshCwIcon } from "lucide-react";
+import { PencilIcon, RefreshCwIcon } from "lucide-react";
 
 import {
   ChatCopyButton,
@@ -24,10 +24,11 @@ type ChatMessageActionsProps = {
   isGenerating: boolean;
   messageId: string;
   onCopyMessage: () => void;
+  onEditMessage?: () => void;
   onRetryMessage?: (messageId: string) => void;
 };
 
-/** Renders copy and retry actions for one chat message. */
+/** Renders copy, edit, feedback, and retry actions for one chat message. */
 export function ChatMessageActions({
   className,
   copyResult,
@@ -37,6 +38,7 @@ export function ChatMessageActions({
   isGenerating,
   messageId,
   onCopyMessage,
+  onEditMessage,
   onRetryMessage,
 }: ChatMessageActionsProps) {
   return (
@@ -58,7 +60,7 @@ export function ChatMessageActions({
             />
           }
         />
-        <TooltipContent>
+        <TooltipContent side="bottom">
           {copyResult === "copied"
             ? "Copied"
             : copyResult === "error"
@@ -66,6 +68,27 @@ export function ChatMessageActions({
               : "Copy"}
         </TooltipContent>
       </Tooltip>
+      {!isAssistant && onEditMessage && (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                aria-label="Edit message"
+                className="relative"
+                disabled={isGenerating}
+                onClick={onEditMessage}
+                size="icon-sm"
+                type="button"
+                variant="ghost"
+              >
+                <PencilIcon />
+                <TouchTarget />
+              </Button>
+            }
+          />
+          <TooltipContent side="bottom">Edit message</TooltipContent>
+        </Tooltip>
+      )}
       {isAssistant && feedbackEnabled && feedbackChatId && (
         <ChatMessageFeedback
           chatId={feedbackChatId}
@@ -91,7 +114,7 @@ export function ChatMessageActions({
               </Button>
             }
           />
-          <TooltipContent>Regenerate</TooltipContent>
+          <TooltipContent side="bottom">Regenerate</TooltipContent>
         </Tooltip>
       )}
     </MessageFooter>

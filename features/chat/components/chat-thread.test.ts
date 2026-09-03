@@ -10,7 +10,10 @@ import {
 } from "@/features/chat/components/chat-composer";
 import { getChatGreeting } from "@/features/chat/components/chat-message-list";
 import { DEFAULT_CHAT_MODEL_ID } from "@/src/entities/models/chat-model";
-import { resolveChatFileUploadDestination } from "@/features/chat/components/chat-thread";
+import {
+  replaceChatUserMessageText,
+  resolveChatFileUploadDestination,
+} from "@/features/chat/components/chat-thread";
 
 test("chat composer mounts native form controls", () => {
   const markup = renderToStaticMarkup(
@@ -66,6 +69,36 @@ test("chat greeting follows local time of day", () => {
   assert.equal(getChatGreeting(12), "Good afternoon");
   assert.equal(getChatGreeting(16), "Good afternoon");
   assert.equal(getChatGreeting(17), "Good evening");
+});
+
+test("edited Chat prompt keeps its file parts", () => {
+  const editedMessage = replaceChatUserMessageText(
+    {
+      id: "message-1",
+      metadata: { createdAt: "2026-08-28T01:02:03.000Z" },
+      parts: [
+        {
+          filename: "brief.txt",
+          mediaType: "text/plain",
+          type: "file",
+          url: "/api/library/files/file-1",
+        },
+        { text: "Original prompt", type: "text" },
+      ],
+      role: "user",
+    },
+    "Edited prompt"
+  );
+
+  assert.deepEqual(editedMessage.parts, [
+    {
+      filename: "brief.txt",
+      mediaType: "text/plain",
+      type: "file",
+      url: "/api/library/files/file-1",
+    },
+    { text: "Edited prompt", type: "text" },
+  ]);
 });
 
 test("second-turn Chat uploads use persisted Chat destination before refresh", () => {

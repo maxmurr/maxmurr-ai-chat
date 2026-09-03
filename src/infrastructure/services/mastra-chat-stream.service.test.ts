@@ -40,7 +40,8 @@ function createStreamFixture(
   instructions: string,
   projectId: string | null,
   projectFolderId: string | null = null,
-  slackThread: Awaited<ReturnType<typeof findSlackLinkedThread>> = null
+  slackThread: Awaited<ReturnType<typeof findSlackLinkedThread>> = null,
+  initialHistory: ChatMessage[] = []
 ) {
   let chat: Chat = {
     activeStreamId: null,
@@ -72,6 +73,10 @@ function createStreamFixture(
   let projectReadFinished = false;
   let projectReads = 0;
   let sourceReads = 0;
+  const deletedMessagePivots: {
+    inclusive: boolean;
+    messageId: string;
+  }[] = [];
   const savedMessages: ChatMessage[] = [];
   const streamedMemories: unknown[] = [];
   const streamedMessages: unknown[][] = [];
@@ -81,13 +86,19 @@ function createStreamFixture(
     async claimChatResponseStream() {
       return claimAllowed;
     },
+    async deleteMessagesFrom(
+      _chatId: string,
+      pivot: { inclusive: boolean; messageId: string }
+    ) {
+      deletedMessagePivots.push(pivot);
+    },
     async finishChatResponseStream() {},
     async getChatById() {
       return chat;
     },
     async getChatMessages() {
       if (chat.projectId) assert.equal(projectReadFinished, false);
-      return [];
+      return initialHistory;
     },
     async isWorkspaceMember() {
       return true;
@@ -180,6 +191,9 @@ function createStreamFixture(
   let messageNumber = 0;
 
   return {
+    get deletedMessagePivots() {
+      return deletedMessagePivots;
+    },
     denyStreamClaim() {
       claimAllowed = false;
     },
@@ -188,6 +202,26 @@ function createStreamFixture(
     },
     get projectReads() {
       return projectReads;
+    },
+    async editMessage(messageId: string, text: string) {
+      messageNumber += 1;
+      return streamChat(
+        {
+          chatId: chat.id,
+          message: {
+            id: messageId,
+            parts: [{ text, type: "text" }],
+            role: "user",
+          },
+          messageId,
+          modelId: DEFAULT_CHAT_MODEL_ID,
+          streamId: `40000000-0000-4000-8000-${messageNumber
+            .toString()
+            .padStart(12, "0")}`,
+          trigger: "regenerate-message",
+        },
+        context
+      );
     },
     savedMessages,
     get sourceReads() {
@@ -249,6 +283,36 @@ test("web-only Chat streams its own history without thread memory", async () => 
   await fixture.sendMessage();
 
   assert.deepEqual(fixture.streamedMemories, [undefined]);
+});
+
+test("edited Chat prompt replaces its turn and removes later messages", async () => {
+  const fixture = createStreamFixture("", null, null, null, [
+    {
+      id: "user-1",
+      parts: [{ text: "Original prompt", type: "text" }],
+      role: "user",
+    },
+    {
+      id: "assistant-1",
+      parts: [{ text: "Original response", type: "text" }],
+      role: "assistant",
+    },
+  ]);
+
+  await fixture.editMessage("user-1", "Edited prompt");
+
+  assert.deepEqual(fixture.deletedMessagePivots, [
+    { inclusive: false, messageId: "user-1" },
+  ]);
+  assert.deepEqual(fixture.streamedMessages, [
+    [
+      {
+        id: "user-1",
+        parts: [{ text: "Edited prompt", type: "text" }],
+        role: "user",
+      },
+    ],
+  ]);
 });
 
 test("active Chat stream rejects a second producer before side effects", async () => {

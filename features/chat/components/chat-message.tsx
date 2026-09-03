@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { FileTextIcon } from "lucide-react";
 
 import type { ChatCopyResult } from "@/features/chat/components/chat-copy-button";
@@ -16,6 +19,12 @@ import {
   AttachmentTrigger,
 } from "@/components/ui/attachment";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
+import { Button } from "@/components/ui/button";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupTextarea,
+} from "@/components/ui/input-group";
 import { Message, MessageContent } from "@/components/ui/message";
 import { MessageScrollerItem } from "@/components/ui/message-scroller";
 import {
@@ -62,6 +71,79 @@ function ChatMessageAttachments({
   );
 }
 
+function ChatMessageEditor({
+  content,
+  isGenerating,
+  onCancel,
+  onSave,
+}: {
+  content: string;
+  isGenerating: boolean;
+  onCancel: () => void;
+  onSave: (content: string) => void;
+}) {
+  const [draft, setDraft] = useState(content);
+  const editedContent = draft.trim();
+  const canSave =
+    !isGenerating &&
+    editedContent.length > 0 &&
+    editedContent !== content.trim();
+
+  return (
+    <Bubble align="end" className="w-full max-w-[80%]" variant="ghost">
+      <BubbleContent className="w-full">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (canSave) onSave(editedContent);
+          }}
+        >
+          <InputGroup>
+            <InputGroupTextarea
+              aria-label="Edit message"
+              autoComplete="off"
+              autoFocus
+              className="min-h-24"
+              data-1p-ignore
+              data-lpignore="true"
+              enterKeyHint="send"
+              name="edited-message"
+              onChange={(event) => setDraft(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  onCancel();
+                } else if (
+                  event.key === "Enter" &&
+                  !event.shiftKey &&
+                  !event.nativeEvent.isComposing
+                ) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
+              value={draft}
+            />
+            <InputGroupAddon align="block-end" className="justify-end">
+              <Button
+                onClick={onCancel}
+                size="touch-sm"
+                type="button"
+                variant="ghost"
+              >
+                Cancel
+              </Button>
+              <Button disabled={!canSave} size="touch-sm" type="submit">
+                Send
+              </Button>
+            </InputGroupAddon>
+          </InputGroup>
+        </form>
+      </BubbleContent>
+    </Bubble>
+  );
+}
+
 type ChatMessageItemProps = {
   className?: string;
   copyResult: ChatCopyResult;
@@ -70,6 +152,7 @@ type ChatMessageItemProps = {
   isStreaming: boolean;
   message: ChatDisplayMessage;
   onCopyMessage: () => void;
+  onEditMessage?: (messageId: string, content: string) => void;
   onRetryMessage?: (messageId: string) => void;
 };
 
@@ -82,8 +165,10 @@ export function ChatMessageItem({
   isStreaming,
   message,
   onCopyMessage,
+  onEditMessage,
   onRetryMessage,
 }: ChatMessageItemProps) {
+  const [isEditing, setIsEditing] = useState(false);
   const isAssistant = message.role === "assistant";
 
   return (
@@ -110,33 +195,51 @@ export function ChatMessageItem({
             <ChatMessageAttachments attachments={message.attachments} />
           )}
 
-          {message.content && (
-            <Bubble
-              align={isAssistant ? "start" : "end"}
-              variant={isAssistant ? "ghost" : "default"}
-            >
-              <BubbleContent>
-                <ChatMessageMarkdown isAnimating={isAssistant && isStreaming}>
-                  {message.content}
-                </ChatMessageMarkdown>
-              </BubbleContent>
-            </Bubble>
-          )}
+          {message.content &&
+            (isEditing ? (
+              <ChatMessageEditor
+                content={message.content}
+                isGenerating={isGenerating}
+                onCancel={() => setIsEditing(false)}
+                onSave={(content) => {
+                  setIsEditing(false);
+                  onEditMessage?.(message.id, content);
+                }}
+              />
+            ) : (
+              <Bubble
+                align={isAssistant ? "start" : "end"}
+                variant={isAssistant ? "ghost" : "default"}
+              >
+                <BubbleContent>
+                  <ChatMessageMarkdown isAnimating={isAssistant && isStreaming}>
+                    {message.content}
+                  </ChatMessageMarkdown>
+                </BubbleContent>
+              </Bubble>
+            ))}
 
           {message.sources && message.sources.length > 0 && (
             <ChatMessageSources sources={message.sources} />
           )}
 
-          <ChatMessageActions
-            copyResult={copyResult}
-            feedbackChatId={feedbackChatId}
-            feedbackEnabled={message.feedbackEnabled === true}
-            isAssistant={isAssistant}
-            isGenerating={isGenerating}
-            messageId={message.id}
-            onCopyMessage={onCopyMessage}
-            onRetryMessage={onRetryMessage}
-          />
+          {!isEditing && (
+            <ChatMessageActions
+              copyResult={copyResult}
+              feedbackChatId={feedbackChatId}
+              feedbackEnabled={message.feedbackEnabled === true}
+              isAssistant={isAssistant}
+              isGenerating={isGenerating}
+              messageId={message.id}
+              onCopyMessage={onCopyMessage}
+              onEditMessage={
+                message.content && onEditMessage
+                  ? () => setIsEditing(true)
+                  : undefined
+              }
+              onRetryMessage={onRetryMessage}
+            />
+          )}
         </MessageContent>
       </Message>
     </MessageScrollerItem>

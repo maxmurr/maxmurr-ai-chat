@@ -187,6 +187,7 @@ type ChatMessageListProps = {
   feedbackChatId?: string;
   isGenerating: boolean;
   messages: readonly ChatDisplayMessage[];
+  onEditMessage?: (messageId: string, content: string) => void;
   onRetryMessage?: (messageId: string) => void;
   onSuggestionSelect?: (suggestion: string) => void;
   status: ChatStatus;
@@ -199,6 +200,7 @@ export function ChatMessageList({
   feedbackChatId,
   isGenerating,
   messages,
+  onEditMessage,
   onRetryMessage,
   onSuggestionSelect,
   status,
@@ -280,6 +282,7 @@ export function ChatMessageList({
                       isStreaming={streamingMessageId === message.id}
                       message={message}
                       onCopyMessage={() => void copyChatMessage(message)}
+                      onEditMessage={onEditMessage}
                       onRetryMessage={onRetryMessage}
                     />
                   </Fragment>

@@ -67,3 +67,27 @@ test("chat message composes reasoning, tools, files, sources, and actions", () =
     assert.match(markup, new RegExp(text));
   }
 });
+
+test("user chat message offers prompt editing", () => {
+  const markup = renderToStaticMarkup(
+    <TooltipProvider>
+      <MessageScrollerProvider>
+        <ChatMessageItem
+          copyResult={null}
+          isGenerating={false}
+          isStreaming={false}
+          message={{
+            content: "Original prompt",
+            createdAt: "2026-08-28T01:02:03.000Z",
+            id: "message-1",
+            role: "user",
+          }}
+          onCopyMessage={() => {}}
+          onEditMessage={() => {}}
+        />
+      </MessageScrollerProvider>
+    </TooltipProvider>
+  );
+
+  assert.match(markup, /aria-label="Edit message"/);
+});

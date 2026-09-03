@@ -82,7 +82,7 @@ function ChatMessageFeedbackButton({
           </Button>
         }
       />
-      <TooltipContent>{tooltipLabel}</TooltipContent>
+      <TooltipContent side="bottom">{tooltipLabel}</TooltipContent>
     </Tooltip>
   );
 }
