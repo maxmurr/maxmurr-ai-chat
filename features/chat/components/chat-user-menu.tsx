@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useTheme } from "next-themes";
 import {
   BellIcon,
   ChevronsUpDownIcon,
   LogOutIcon,
+  MoonIcon,
+  PaletteIcon,
   SettingsIcon,
+  SunIcon,
 } from "lucide-react";
 
 import { ChatSidebarIdentity } from "@/features/chat/components/chat-sidebar-identity";
@@ -16,7 +20,12 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
@@ -57,6 +66,8 @@ export function ChatUserMenu({
   isWorkspaceAdmin,
   user,
 }: ChatUserMenuProps) {
+  const { setTheme, theme } = useTheme();
+
   async function signOutCurrentUser() {
     try {
       const result = await signOutUserAction();
@@ -106,6 +117,28 @@ export function ChatUserMenu({
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <PaletteIcon />
+                Theme
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="min-w-44">
+                <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                  <DropdownMenuRadioItem value="system">
+                    <PaletteIcon />
+                    System (default)
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="light">
+                    <SunIcon />
+                    Light
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="dark">
+                    <MoonIcon />
+                    Dark
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
             {isWorkspaceAdmin ? (
               <DropdownMenuItem
                 render={
