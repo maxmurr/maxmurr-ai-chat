@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "account_role" text DEFAULT 'workspace' NOT NULL;

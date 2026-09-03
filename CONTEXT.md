@@ -15,6 +15,10 @@ One turn in a Chat, from either the user or the assistant. Stored as the full AI
 The team container users belong to and chat within. Backed by Better Auth's `organization` table — "organization" is the storage name only.
 _Avoid_: Organization, team, org
 
+**Account Role**:
+Platform-level access assigned to a User, independent of their role inside each Workspace. `Super Admin` may enter Backoffice; `Workspace` may not.
+_Avoid_: Workspace role, account type
+
 **Owner (of a Chat)**:
 The User who created the Chat. The only person who can append Messages to it, rename it, change its Visibility, or delete it. Ownership never transfers.
 
