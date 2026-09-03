@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by ADR-0006
 ---
 
 # Mastra storage owns Agent Controller channel threads, not app Chats

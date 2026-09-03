@@ -72,6 +72,7 @@ oauth_config:
       - channels:read
       - chat:write
       - users:read
+      - users:read.email
       - im:read
       - im:history
   pkce_enabled: false
@@ -113,11 +114,11 @@ If Slack could not verify the URL during manifest import, add the credentials, r
 /invite @maxmurr-ai-chat
 ```
 
-Slack verifies webhook signatures. Any workspace member can message the bot directly; channel membership controls channel access. Avoid Slack Connect channels unless external members may use the assistant.
+Slack verifies webhook signatures. The bot answers only Slack users whose email matches a signed-in Workspace member; others get a sign-in hint. `users:read.email` is required for that match. Avoid Slack Connect channels unless external members may use the assistant.
 
 Slack runs through Mastra Agent Controller sessions. PostgreSQL stores channel threads in the `mastra` schema, and Redis Streams coordinates signals between app processes. Run Next.js on a long-lived Node server because live controller sessions and pending approvals remain process-local.
 
-Web Chats keep their existing app-owned history. Slack threads use separate Mastra history; linking one conversation across both surfaces needs explicit Slack User and Workspace mapping.
+Each Slack thread is one Chat, owned by the member who started it and visible in the web sidebar. Slack turns are mirrored into the Chat, and web turns on that Chat are posted back into the Slack thread with the assistant's reply. See `docs/adr/0006-slack-threads-link-to-app-chats.md`.
 
 ## Architecture
 

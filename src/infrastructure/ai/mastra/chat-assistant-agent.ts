@@ -1,5 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { RequestContext } from "@mastra/core/request-context";
+import { Memory } from "@mastra/memory";
 
 import {
   DEFAULT_CHAT_MODEL_ID,
@@ -29,6 +30,8 @@ export const chatAssistantAgent = new Agent({
     "Use concise Markdown when structure helps.",
     "State uncertainty instead of inventing facts, sources, or completed actions.",
   ],
+  // Slack-linked Chats read history from Mastra threads; web-only Chats pass no thread and stay stateless.
+  memory: new Memory({ options: { generateTitle: false, lastMessages: 40 } }),
   model: ({ requestContext }) =>
     requestContext.get(CHAT_ASSISTANT_MODEL_CONTEXT_KEY) ??
     DEFAULT_CHAT_ASSISTANT_MODEL,

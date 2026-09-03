@@ -5,7 +5,7 @@ A workspace-based AI chat app: users sign in with email OTP, belong to workspace
 ## Language
 
 **Chat**:
-A single linear conversation between one user and the assistant — an append-only sequence of Messages. Owned by exactly one User (its creator, forever) and scoped to exactly one Workspace. May belong to at most one Project; the owner can attach or detach it at any time.
+A single linear conversation between one user and the assistant — an append-only sequence of Messages. Owned by exactly one User (its creator, forever) and scoped to exactly one Workspace. May belong to at most one Project; the owner can attach or detach it at any time. A Chat linked to a Slack thread also records Messages from other Workspace members posting in that thread (see ADR 0006).
 _Avoid_: Conversation, thread, session
 
 **Message**:

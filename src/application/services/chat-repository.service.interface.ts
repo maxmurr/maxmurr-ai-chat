@@ -20,6 +20,10 @@ export type ChatRepository = {
     chatId: string,
     pivot: { messageId: string; inclusive: boolean }
   ): Promise<void>;
+  findWorkspaceMemberByEmail(
+    email: string,
+    organizationId?: string
+  ): Promise<{ organizationId: string; userId: string } | null>;
   finishChatResponseStream(
     chatId: string,
     streamId: string,

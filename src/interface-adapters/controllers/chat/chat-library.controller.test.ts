@@ -35,6 +35,9 @@ function createChatRepository(): ChatRepository {
       return true;
     },
     async deleteMessagesFrom() {},
+    async findWorkspaceMemberByEmail() {
+      return null;
+    },
     async finishChatResponseStream() {},
     async getChatById() {
       return chat;

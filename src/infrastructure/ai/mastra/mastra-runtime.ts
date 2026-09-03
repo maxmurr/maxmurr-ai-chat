@@ -58,3 +58,29 @@ export const mastraRuntime = new Mastra({
   pubsub: mastraPubSub,
   storage: mastraStorage,
 });
+
+/** Resolves the Slack-linked Mastra thread for a Chat so web turns share its history and reply into Slack. */
+export async function findSlackLinkedThread(chatId: string) {
+  const controller = mastraRuntime.getAgentController(
+    chatAssistantController.id
+  );
+  const thread = await controller?.queryThreadById({ threadId: chatId });
+  const externalThreadId = thread?.metadata?.channel_externalThreadId;
+
+  if (!controller || !thread || typeof externalThreadId !== "string") {
+    return null;
+  }
+
+  // Attaches channel output processors to the agent before any Slack message reaches this process.
+  await controller.init();
+
+  return {
+    async postToSlack(markdown: string) {
+      await controller
+        .getChannels()
+        ?.sdk?.thread(externalThreadId)
+        .post({ markdown });
+    },
+    resourceId: thread.resourceId,
+  };
+}

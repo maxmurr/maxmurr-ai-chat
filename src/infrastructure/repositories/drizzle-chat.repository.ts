@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gt, isNull, ne, or, sql } from "drizzle-orm";
 
 import { appDatabase } from "@/drizzle/app-database";
-import { chat, chatMessage, member, project } from "@/drizzle/app-schema";
+import { chat, chatMessage, member, project, user } from "@/drizzle/app-schema";
 import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface";
 import type {
   Chat,
@@ -93,6 +93,22 @@ export const drizzleChatRepository: ChatRepository = {
           )
         )
       );
+  },
+
+  async findWorkspaceMemberByEmail(email, organizationId) {
+    const [row] = await appDatabase
+      .select({ organizationId: member.organizationId, userId: member.userId })
+      .from(member)
+      .innerJoin(user, eq(user.id, member.userId))
+      .where(
+        and(
+          eq(sql`lower(${user.email})`, email.toLowerCase()),
+          organizationId ? eq(member.organizationId, organizationId) : undefined
+        )
+      )
+      .orderBy(asc(member.createdAt))
+      .limit(1);
+    return row ?? null;
   },
 
   async finishChatResponseStream(chatId, streamId, hasUnreadResponse) {

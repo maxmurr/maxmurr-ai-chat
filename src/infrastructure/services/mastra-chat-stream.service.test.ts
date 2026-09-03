@@ -24,6 +24,7 @@ import type {
   ChatStreamRequest,
 } from "@/src/entities/models/chat-stream-request";
 import type { Project } from "@/src/entities/models/project";
+import type { findSlackLinkedThread } from "@/src/infrastructure/ai/mastra/mastra-runtime";
 import {
   authorizeAndCreateStreamChat,
   createMastraChatStreamService,
@@ -38,7 +39,8 @@ const createdAt = new Date("2026-08-30T00:00:00.000Z");
 function createStreamFixture(
   instructions: string,
   projectId: string | null,
-  projectFolderId: string | null = null
+  projectFolderId: string | null = null,
+  slackThread: Awaited<ReturnType<typeof findSlackLinkedThread>> = null
 ) {
   let chat: Chat = {
     activeStreamId: null,
@@ -71,6 +73,7 @@ function createStreamFixture(
   let projectReads = 0;
   let sourceReads = 0;
   const savedMessages: ChatMessage[] = [];
+  const streamedMemories: unknown[] = [];
   const streamedMessages: unknown[][] = [];
   const streamedModels: unknown[] = [];
   const streamedSystems: (string | undefined)[] = [];
@@ -161,6 +164,7 @@ function createStreamFixture(
     crashReporterService,
     instrumentationService,
     async (options) => {
+      streamedMemories.push(options.params.memory);
       streamedMessages.push(options.params.messages);
       streamedModels.push(
         options.params.requestContext?.get("chat-assistant-model")
@@ -170,7 +174,8 @@ function createStreamFixture(
         ReturnType<typeof handleChatStream>
       >;
     },
-    () => {}
+    () => {},
+    async () => slackThread
   );
   let messageNumber = 0;
 
@@ -210,11 +215,41 @@ function createStreamFixture(
     setInstructions(nextInstructions: string) {
       project = { ...project, instructions: nextInstructions };
     },
+    streamedMemories,
     streamedMessages,
     streamedModels,
     streamedSystems,
   };
 }
+
+test("Slack-linked Chat sends only the new turn with shared thread memory and posts it to Slack", async () => {
+  const posted: string[] = [];
+  const fixture = createStreamFixture("", null, null, {
+    async postToSlack(markdown: string) {
+      posted.push(markdown);
+    },
+    resourceId: "channel:slack:C1:1.1",
+  });
+
+  await fixture.sendMessage();
+
+  assert.deepEqual(posted, ["**From web:** Hello"]);
+  assert.equal(fixture.streamedMessages[0].length, 1);
+  assert.deepEqual(fixture.streamedMemories, [
+    {
+      resource: "channel:slack:C1:1.1",
+      thread: "30000000-0000-4000-8000-000000000001",
+    },
+  ]);
+});
+
+test("web-only Chat streams its own history without thread memory", async () => {
+  const fixture = createStreamFixture("", null);
+
+  await fixture.sendMessage();
+
+  assert.deepEqual(fixture.streamedMemories, [undefined]);
+});
 
 test("active Chat stream rejects a second producer before side effects", async () => {
   const fixture = createStreamFixture("", null);

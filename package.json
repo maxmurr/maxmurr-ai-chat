@@ -26,6 +26,7 @@
     "@mastra/ai-sdk": "1.10.0",
     "@mastra/core": "1.63.2",
     "@mastra/langfuse": "1.5.3",
+    "@mastra/memory": "1.28.1",
     "@mastra/observability": "1.17.4",
     "@mastra/pg": "1.22.2",
     "@mastra/redis-streams": "0.4.0",

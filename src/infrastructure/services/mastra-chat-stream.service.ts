@@ -30,7 +30,10 @@ import type {
 } from "@/src/entities/models/chat-stream-request";
 import { getMessageLibraryFileIds } from "@/src/entities/models/library";
 import { createChatAssistantRequestContext } from "@/src/infrastructure/ai/mastra/chat-assistant-agent";
-import { mastraRuntime } from "@/src/infrastructure/ai/mastra/mastra-runtime";
+import {
+  findSlackLinkedThread,
+  mastraRuntime,
+} from "@/src/infrastructure/ai/mastra/mastra-runtime";
 import {
   hydrateLibraryFilesForModel,
   saveAssistantGeneratedFiles,
@@ -158,7 +161,8 @@ export function createMastraChatStreamService(
   crashReporterService: CrashReporterService,
   instrumentationService: InstrumentationService,
   streamAgentChat: StreamMastraAgentChat = handleChatStream,
-  defer: (callback: () => void | Promise<void>) => void = after
+  defer: (callback: () => void | Promise<void>) => void = after,
+  findLinkedThread: typeof findSlackLinkedThread = findSlackLinkedThread
 ): StreamChatResponse {
   return async (request, context) => {
     const {
@@ -251,6 +255,20 @@ export function createMastraChatStreamService(
         libraryService,
         libraryScope
       );
+      const slackThread = await findLinkedThread(chatId);
+      const messageText = extractMessageText(message).trim();
+
+      if (slackThread && messageText) {
+        try {
+          await slackThread.postToSlack(`**From web:** ${messageText}`);
+        } catch (error) {
+          crashReporterService.report(error);
+          console.error(
+            "Slack web turn post failed.",
+            error instanceof Error ? error.message : "Unknown error"
+          );
+        }
+      }
       const langfuseTraceId = crypto.randomUUID().replaceAll("-", "");
       const responseAbortController = new AbortController();
       let streamWasStopped = false;
@@ -281,7 +299,13 @@ export function createMastraChatStreamService(
             },
             params: {
               abortSignal: responseAbortController.signal,
-              messages: providerMessages,
+              // Slack-linked Chats read history from the shared Mastra thread; web-only Chats send their own.
+              ...(slackThread && {
+                memory: { resource: slackThread.resourceId, thread: chatId },
+              }),
+              messages: slackThread
+                ? providerMessages.slice(-1)
+                : providerMessages,
               providerOptions: {
                 // OpenAI Responses accepts text/code file_data after adapter opt-in.
                 openai: { passThroughUnsupportedFiles: true },

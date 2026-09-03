@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronRightIcon,
   FolderIcon,
@@ -57,6 +57,29 @@ type SerializedChatConversationEntry = Omit<
 
 const ACTIVE_CHAT_ACTIVITY_POLL_INTERVAL_MS = 2_000;
 const IDLE_CHAT_ACTIVITY_POLL_INTERVAL_MS = 15_000;
+
+/** Detects the open Chat's response stream ending between two activity polls. */
+export function hasOpenChatResponseFinished(
+  previousChats: ReadonlyArray<
+    Pick<ChatConversationEntry, "activeStreamId" | "id" | "updatedAt">
+  >,
+  nextChats: ReadonlyArray<
+    Pick<ChatConversationEntry, "activeStreamId" | "id" | "updatedAt">
+  >,
+  pathname: string
+) {
+  const chatId = /^\/chat\/([^/]+)$/.exec(pathname)?.[1];
+  const previous = previousChats.find((chat) => chat.id === chatId);
+  const next = nextChats.find((chat) => chat.id === chatId);
+
+  return (
+    previous !== undefined &&
+    next !== undefined &&
+    next.activeStreamId === null &&
+    (previous.activeStreamId !== null ||
+      previous.updatedAt.getTime() !== next.updatedAt.getTime())
+  );
+}
 
 /** Chooses chat activity poll delay in milliseconds from active response state. */
 export function getChatActivityPollIntervalMs(
@@ -195,6 +218,7 @@ export function ChatHistory({
   teamChats: ChatHistoryEntry[];
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [polledOwnChats, setPolledOwnChats] = useState<{
     chats: ChatConversationEntry[];
     source: ChatConversationEntry[];
@@ -239,10 +263,15 @@ export function ChatHistory({
           return;
         }
 
+        const previousChats = latestChats;
         latestChats = result.chats.map((chat) => ({
           ...chat,
           updatedAt: new Date(chat.updatedAt),
         }));
+        // A response finished elsewhere (Slack, another tab): reload the open Chat once it is idle.
+        if (hasOpenChatResponseFinished(previousChats, latestChats, pathname)) {
+          router.refresh();
+        }
         setPolledOwnChats({
           chats: latestChats,
           source: ownChats,
@@ -277,11 +306,11 @@ export function ChatHistory({
       );
       window.removeEventListener("focus", refreshVisibleChatActivity);
     };
-  }, [activeWorkspaceId, ownChats]);
+  }, [activeWorkspaceId, ownChats, pathname, router]);
 
   const currentOwnChats =
     polledOwnChats?.workspaceId === activeWorkspaceId &&
-      polledOwnChats.source === ownChats
+    polledOwnChats.source === ownChats
       ? polledOwnChats.chats
       : ownChats;
 

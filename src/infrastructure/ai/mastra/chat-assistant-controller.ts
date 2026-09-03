@@ -3,12 +3,15 @@ import { AgentController } from "@mastra/core/agent-controller";
 
 import { DEFAULT_CHAT_MODEL_ID } from "@/src/entities/models/chat-model";
 import { chatAssistantAgent } from "@/src/infrastructure/ai/mastra/chat-assistant-agent";
+import { createSlackChatLink } from "@/src/infrastructure/ai/mastra/slack-chat-link";
+import { drizzleChatRepository } from "@/src/infrastructure/repositories/drizzle-chat.repository";
 
 /** Stable Agent Controller ID used by Mastra routes and registration. */
 export const CHAT_ASSISTANT_CONTROLLER_ID = "chat-assistant-controller";
 
 const slackBotToken = process.env.SLACK_BOT_TOKEN;
 const slackSigningSecret = process.env.SLACK_SIGNING_SECRET;
+const slackChatLink = createSlackChatLink(drizzleChatRepository);
 const slackChannels =
   slackBotToken && slackSigningSecret
     ? {
@@ -18,6 +21,13 @@ const slackChannels =
             signingSecret: slackSigningSecret,
           }),
         },
+        handlers: {
+          onDirectMessage: slackChatLink.handleMessage,
+          onMention: slackChatLink.handleMessage,
+          onSubscribedMessage: slackChatLink.handleMessage,
+        },
+        onSessionStart: slackChatLink.onSessionStart,
+        resolveThreadId: slackChatLink.resolveThreadId,
       }
     : undefined;
 
