@@ -22,6 +22,7 @@ export async function NewChatPageContent() {
         title: "New chat",
         visibility: "private",
       }}
+      isChatPersisted={false}
     />
   );
 }
@@ -35,7 +36,13 @@ export async function ChatByIdPageContent({ chatId }: { chatId: string }) {
     workspace.activeWorkspaceId
   );
 
-  return <ChatPageShell chat={view.chat} initialMessages={view.messages} />;
+  return (
+    <ChatPageShell
+      chat={view.chat}
+      initialMessages={view.messages}
+      isChatPersisted
+    />
+  );
 }
 
 /** Reserves chat header and top of transcript while chat data loads. */

@@ -26,11 +26,14 @@ export type ChatPageShellChat = {
 export async function ChatPageShell({
   chat,
   initialMessages,
+  isChatPersisted,
 }: {
   chat: ChatPageShellChat;
   initialMessages?: ChatUIMessage[];
+  isChatPersisted: boolean;
 }) {
-  const projects = chat.isOwner
+  const canManageChat = chat.isOwner && isChatPersisted;
+  const projects = canManageChat
     ? (await getProjectsPageData()).map(({ id, name }) => ({ id, name }))
     : [];
 
@@ -38,7 +41,7 @@ export async function ChatPageShell({
     <ChatConversationTitleProvider key={chat.id} initialTitle={chat.title}>
       <AppPageHeader
         actions={
-          chat.isOwner ? (
+          canManageChat ? (
             <>
               <ChatShareDialog
                 chatId={chat.id}
