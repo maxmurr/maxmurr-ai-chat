@@ -10,21 +10,23 @@ import { cn } from "@/lib/utils";
 
 type ChatMessageReasoningProps = {
   className?: string;
+  isStreaming: boolean;
   reasoning: ChatDisplayReasoning;
 };
 
 /** Renders expandable reasoning state for one assistant message. */
 export function ChatMessageReasoning({
   className,
+  isStreaming,
   reasoning,
 }: ChatMessageReasoningProps) {
-  const isRunning = reasoning.state === "running";
+  const isRunning = isStreaming && reasoning.state === "running";
 
   return (
     <Collapsible
       className={cn("flex flex-col gap-2", className)}
       defaultOpen={isRunning}
-      key={reasoning.state}
+      key={isRunning ? "running" : "completed"}
     >
       <ChatMessageDisclosureTrigger
         aria-busy={isRunning || undefined}

@@ -88,6 +88,33 @@ test("chat message composes reasoning, tools, files, sources, and actions", () =
   }
 });
 
+test("inactive chat message does not show stale reasoning as running", () => {
+  const markup = renderToStaticMarkup(
+    <TooltipProvider>
+      <MessageScrollerProvider>
+        <ChatMessageItem
+          copyResult={null}
+          isGenerating={false}
+          isStreaming={false}
+          message={{
+            content: "Partial response",
+            createdAt: "2026-09-04T07:03:00.000Z",
+            id: "aborted-response",
+            reasoning: { state: "running", text: "Partial reasoning" },
+            role: "assistant",
+          }}
+          onCopyMessage={() => {}}
+          onRetryMessage={() => {}}
+        />
+      </MessageScrollerProvider>
+    </TooltipProvider>
+  );
+
+  assert.doesNotMatch(markup, /aria-busy="true"/);
+  assert.doesNotMatch(markup, /Reasoning\.\.\./);
+  assert.match(markup, />Reasoning</);
+});
+
 test("user chat message offers prompt editing", () => {
   const markup = renderToStaticMarkup(
     <TooltipProvider>

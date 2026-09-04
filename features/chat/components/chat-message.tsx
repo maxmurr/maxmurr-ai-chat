@@ -181,7 +181,10 @@ export function ChatMessageItem({
       <Message align={isAssistant ? "start" : "end"}>
         <MessageContent>
           {message.reasoning !== undefined && (
-            <ChatMessageReasoning reasoning={message.reasoning} />
+            <ChatMessageReasoning
+              isStreaming={isStreaming}
+              reasoning={message.reasoning}
+            />
           )}
 
           {message.webSearches && message.webSearches.length > 0 && (
