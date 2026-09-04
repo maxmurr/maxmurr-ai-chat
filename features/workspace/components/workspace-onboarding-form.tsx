@@ -1,87 +1,89 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 
-import { WorkspaceOnboardingInviteStep } from "@/features/workspace/components/workspace-onboarding-invite-step"
-import { WorkspaceOnboardingNameStep } from "@/features/workspace/components/workspace-onboarding-name-step"
-import { Progress } from "@/components/ui/progress"
+import { WorkspaceOnboardingInviteStep } from "@/features/workspace/components/workspace-onboarding-invite-step";
+import { WorkspaceOnboardingNameStep } from "@/features/workspace/components/workspace-onboarding-name-step";
+import { Progress } from "@/components/ui/progress";
 import {
   createFirstWorkspaceAction,
   inviteFirstWorkspaceMembersAction,
-} from "@/features/workspace/workspace-actions"
-import { cn } from "@/lib/utils"
+} from "@/features/workspace/workspace-actions";
+import { cn } from "@/lib/utils";
 
 export {
   parseOnboardingInviteEmails,
   validateOnboardingInviteEmails,
   validateOnboardingWorkspaceName,
-} from "@/features/workspace/workspace-onboarding-validation"
+} from "@/features/workspace/workspace-onboarding-validation";
 
-type OnboardingStep = "workspace" | "teammates"
-
-function finishWorkspaceOnboarding() {
-  window.location.assign(new URL("/chat", window.location.origin))
-}
+type OnboardingStep = "workspace" | "teammates";
 
 /** Creates first workspace, then offers optional teammate invitations. */
 export function WorkspaceOnboardingForm({
+  callbackPath = "/chat",
   className,
 }: {
-  className?: string
+  callbackPath?: string;
+  className?: string;
 }) {
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [step, setStep] = useState<OnboardingStep>("workspace")
-  const [workspaceId, setWorkspaceId] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [step, setStep] = useState<OnboardingStep>("workspace");
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+
+  function finishWorkspaceOnboarding() {
+    window.location.assign(new URL(callbackPath, window.location.origin));
+  }
 
   async function createOnboardingWorkspace(workspaceName: string) {
-    setErrorMessage(null)
+    setErrorMessage(null);
 
     try {
-      const result = await createFirstWorkspaceAction(workspaceName)
+      const result = await createFirstWorkspaceAction(workspaceName);
 
       if (!result.ok) {
-        setErrorMessage(result.error)
-        return
+        setErrorMessage(result.error);
+        return;
       }
 
-      setWorkspaceId(result.workspace.id)
-      setStep("teammates")
+      setWorkspaceId(result.workspace.id);
+      setStep("teammates");
     } catch {
-      setErrorMessage("Workspace creation is unavailable. Try again.")
+      setErrorMessage("Workspace creation is unavailable. Try again.");
     }
   }
 
   async function inviteOnboardingTeammates(emails: string[]) {
     if (!workspaceId) {
-      setErrorMessage("Workspace is unavailable. Reload and try again.")
-      return
+      setErrorMessage("Workspace is unavailable. Reload and try again.");
+      return;
     }
 
     if (emails.length === 0) {
-      finishWorkspaceOnboarding()
-      return
+      finishWorkspaceOnboarding();
+      return;
     }
 
-    setErrorMessage(null)
+    setErrorMessage(null);
 
     try {
       const result = await inviteFirstWorkspaceMembersAction(
         workspaceId,
         emails
-      )
+      );
 
       if (!result.ok || result.failedInvitationEmails.length > 0) {
         setErrorMessage(
-          "Some invitations could not be created. Try again or skip this step.",
-        )
-        return
+          "Some invitations could not be created. Try again or skip this step."
+        );
+        return;
       }
 
-      finishWorkspaceOnboarding()
+      finishWorkspaceOnboarding();
     } catch {
       setErrorMessage(
-        "Invitations are unavailable. Try again or skip this step.",
-      )
+        "Invitations are unavailable. Try again or skip this step."
+      );
     }
   }
 
@@ -112,5 +114,5 @@ export function WorkspaceOnboardingForm({
         />
       )}
     </section>
-  )
+  );
 }

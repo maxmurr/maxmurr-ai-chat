@@ -11,13 +11,16 @@ import type {
 /** Persists chats and their messages behind the infrastructure boundary. */
 export type ChatRepository = {
   claimChatResponseStream(chatId: string, streamId: string): Promise<boolean>;
-  createChat(chat: {
-    id: string;
-    organizationId: string;
-    ownerId: string;
-    projectId: string | null;
-    title: string;
-  }): Promise<Chat>;
+  createChat(
+    chat: {
+      id: string;
+      organizationId: string;
+      ownerId: string;
+      projectId: string | null;
+      title: string;
+    },
+    initialMessages?: readonly ChatMessage[]
+  ): Promise<Chat>;
   deleteChat(chatId: string): Promise<boolean>;
   deleteOwnedChats(
     chatIds: readonly string[],

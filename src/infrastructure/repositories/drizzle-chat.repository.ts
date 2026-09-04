@@ -54,6 +54,19 @@ function toChatMessage(row: typeof chatMessage.$inferSelect): ChatMessage {
   };
 }
 
+function getInitialChatMessageCreatedAt(message: ChatMessage) {
+  const createdAt =
+    typeof message.metadata === "object" &&
+    message.metadata !== null &&
+    "createdAt" in message.metadata
+      ? message.metadata.createdAt
+      : null;
+
+  return typeof createdAt === "string" && !Number.isNaN(Date.parse(createdAt))
+    ? new Date(createdAt)
+    : null;
+}
+
 /** Drizzle-backed chat persistence for the app PostgreSQL database. */
 export const drizzleChatRepository: ChatRepository = {
   async claimChatResponseStream(chatId, streamId) {
@@ -69,9 +82,29 @@ export const drizzleChatRepository: ChatRepository = {
     return rows.length === 1;
   },
 
-  async createChat(newChat) {
-    const [row] = await appDatabase.insert(chat).values(newChat).returning();
-    return toChat(row);
+  async createChat(newChat, initialMessages = []) {
+    if (initialMessages.length === 0) {
+      const [row] = await appDatabase.insert(chat).values(newChat).returning();
+      return toChat(row);
+    }
+
+    return appDatabase.transaction(async (transaction) => {
+      const [row] = await transaction.insert(chat).values(newChat).returning();
+      const fallbackCreatedAt = Date.now();
+      await transaction.insert(chatMessage).values(
+        initialMessages.map((message, index) => ({
+          chatId: row.id,
+          createdAt:
+            getInitialChatMessageCreatedAt(message) ??
+            new Date(fallbackCreatedAt + index),
+          id: message.id,
+          metadata: message.metadata ?? null,
+          parts: message.parts,
+          role: message.role,
+        }))
+      );
+      return toChat(row);
+    });
   },
 
   async deleteChat(chatId) {

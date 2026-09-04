@@ -18,8 +18,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 /** Loads authenticated workspace navigation and sidebar chat history. */
-export async function AuthenticatedChatSidebar() {
-  const workspace = await getAuthenticatedWorkspaceContext();
+export async function AuthenticatedChatSidebar({
+  onboardingCallbackPath,
+}: {
+  onboardingCallbackPath?: string;
+}) {
+  const workspace = await getAuthenticatedWorkspaceContext(
+    onboardingCallbackPath
+  );
   const [chats, isWorkspaceAdmin, projects] = await Promise.all([
     getChatSidebarEntries(workspace.activeWorkspaceId, workspace.userId),
     getCurrentWorkspaceAdminStatus(
@@ -50,15 +56,19 @@ export async function AuthenticatedChatSidebar() {
 /** Frames content with authenticated Chat sidebar and loading states. */
 export function AuthenticatedChatAppFrame({
   children,
+  onboardingCallbackPath,
 }: {
   children: ReactNode;
+  onboardingCallbackPath?: string;
 }) {
   return (
     <AppSidebarFrame
       sidebar={
         <ErrorBoundary title="Navigation did not load" variant="sidebar">
           <Suspense fallback={<AuthenticatedChatSidebarSkeleton />}>
-            <AuthenticatedChatSidebar />
+            <AuthenticatedChatSidebar
+              onboardingCallbackPath={onboardingCallbackPath}
+            />
           </Suspense>
         </ErrorBoundary>
       }

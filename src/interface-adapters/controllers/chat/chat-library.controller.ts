@@ -73,6 +73,21 @@ function withFileAvailability(
   };
 }
 
+function copyPublicChatMessage(message: ChatMessage): ChatMessage {
+  if (
+    typeof message.metadata !== "object" ||
+    message.metadata === null ||
+    Array.isArray(message.metadata)
+  ) {
+    return message;
+  }
+
+  const metadata: Record<string, unknown> = { ...message.metadata };
+  delete metadata.langfuseTraceId;
+  delete metadata.libraryFileAvailability;
+  return { ...message, metadata };
+}
+
 /** Validated chat library controller resolved by application composition root. */
 export type ChatLibraryController = ReturnType<
   typeof createChatLibraryController
@@ -236,6 +251,36 @@ export function createChatLibraryController(
           null
         ),
       };
+    },
+
+    /** Opens an owned public Chat or copies it into the viewer's Workspace. */
+    async continuePublicChat(publicToken: string, scope: ChatOwnerScope) {
+      const publicChat = await chatRepository.getChatByPublicToken(publicToken);
+
+      if (!publicChat) {
+        throw new ChatAccessDeniedError();
+      }
+
+      if (
+        publicChat.ownerId === scope.ownerId &&
+        publicChat.organizationId === scope.organizationId
+      ) {
+        return publicChat;
+      }
+
+      const messages = (
+        await chatRepository.getChatMessages(publicChat.id)
+      ).map(copyPublicChatMessage);
+
+      return chatRepository.createChat(
+        {
+          ...scope,
+          id: crypto.randomUUID(),
+          projectId: null,
+          title: publicChat.title,
+        },
+        messages
+      );
     },
 
     /** Lists one validated cursor page of owner Chats. */

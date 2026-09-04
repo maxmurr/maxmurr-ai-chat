@@ -21,6 +21,7 @@ import {
 import type { ChatVisibility } from "@/src/entities/models/chat";
 
 const chatIdSchema = z.uuid();
+const publicChatTokenSchema = z.string().min(1).max(200);
 const chatIdsSchema = z
   .array(chatIdSchema)
   .min(1)
@@ -101,6 +102,49 @@ function reportUnexpectedChatActionError(error: unknown) {
   ) {
     reportUnexpectedServerError(error);
   }
+}
+
+/** Copies a public Chat into the active Workspace and opens it for writing. */
+export async function continueSharedChatAction(publicToken: unknown) {
+  return traceServerAction("continueSharedChatAction", async () => {
+    const parsedPublicToken = publicChatTokenSchema.safeParse(publicToken);
+
+    if (!parsedPublicToken.success) {
+      return { error: "Could not continue this chat.", ok: false as const };
+    }
+
+    const sharedChatPath = `/share/${encodeURIComponent(parsedPublicToken.data)}`;
+    const workspace = await getWorkspaceOwnerScope(await headers());
+
+    if (workspace.status === "unauthorized") {
+      return {
+        ok: false as const,
+        redirectTo: `/sign-in?callbackURL=${encodeURIComponent(sharedChatPath)}`,
+      };
+    }
+
+    if (workspace.status === "workspace-required") {
+      return {
+        ok: false as const,
+        redirectTo: `/onboarding?callbackURL=${encodeURIComponent(sharedChatPath)}`,
+      };
+    }
+
+    let chatId: string;
+    try {
+      chatId = (
+        await chatLibrary().continuePublicChat(
+          parsedPublicToken.data,
+          workspace.scope
+        )
+      ).id;
+    } catch (error) {
+      reportUnexpectedChatActionError(error);
+      return { error: "Could not continue this chat.", ok: false as const };
+    }
+
+    return { chatId, ok: true as const };
+  });
 }
 
 /** Creates, replaces, or removes owner feedback for one traced response. */

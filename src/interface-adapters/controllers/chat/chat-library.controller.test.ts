@@ -4,6 +4,7 @@ import { test } from "node:test";
 import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface";
 import type { LibraryService } from "@/src/application/services/library.service.interface";
 import {
+  ChatAccessDeniedError,
   ChatStreamConflictError,
   InvalidChatRequestError,
 } from "@/src/entities/errors/chat-errors";
@@ -161,6 +162,85 @@ test("Chat owner sees File availability and resolves assistant feedback trace", 
       "assistant-message"
     ),
     "0123456789abcdef0123456789abcdef"
+  );
+});
+
+test("public Chat continuation reopens ownership or copies safe history", async () => {
+  const repository = createChatRepository();
+  const publicChat = {
+    ...chat,
+    organizationId: "source-workspace",
+    ownerId: "source-owner",
+    projectId: "10000000-0000-4000-8000-000000000002",
+    publicToken: "public-token",
+    visibility: "public" as const,
+  };
+  const sourceMessages = [
+    {
+      id: "assistant-message",
+      metadata: {
+        createdAt: "2026-08-28T00:00:00.000Z",
+        langfuseTraceId: "0123456789abcdef0123456789abcdef",
+        libraryFileAvailability: { [fileId]: false },
+      },
+      parts: [{ text: "Shared answer", type: "text" }],
+      role: "assistant" as const,
+    },
+  ];
+  let copiedInput: Parameters<ChatRepository["createChat"]>[0] | undefined;
+  let copiedMessages: Parameters<ChatRepository["createChat"]>[1];
+  let createCount = 0;
+  repository.getChatByPublicToken = async (publicToken) =>
+    publicToken === publicChat.publicToken ? publicChat : null;
+  repository.getChatMessages = async () => sourceMessages;
+  repository.createChat = async (input, initialMessages) => {
+    createCount += 1;
+    copiedInput = input;
+    copiedMessages = initialMessages;
+    return {
+      ...publicChat,
+      ...input,
+      publicToken: null,
+      visibility: "private",
+    };
+  };
+  const controller = createChatLibraryController(repository, {
+    async findExistingFileIds() {
+      return [];
+    },
+  } as unknown as LibraryService);
+  const targetScope = {
+    organizationId: "target-workspace",
+    ownerId: "target-owner",
+  };
+
+  const continuedChat = await controller.continuePublicChat(
+    "public-token",
+    targetScope
+  );
+
+  assert.equal(continuedChat.ownerId, targetScope.ownerId);
+  assert.equal(copiedInput?.organizationId, targetScope.organizationId);
+  assert.equal(copiedInput?.projectId, null);
+  assert.deepEqual(copiedMessages, [
+    {
+      ...sourceMessages[0],
+      metadata: { createdAt: "2026-08-28T00:00:00.000Z" },
+    },
+  ]);
+  assert.equal(
+    (
+      await controller.continuePublicChat("public-token", {
+        organizationId: publicChat.organizationId,
+        ownerId: publicChat.ownerId,
+      })
+    ).id,
+    publicChat.id
+  );
+  assert.equal(createCount, 1);
+  await assert.rejects(
+    controller.continuePublicChat("revoked-token", targetScope),
+    ChatAccessDeniedError
   );
 });
 

@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getPublicChatView } from "@/features/chat/chat-queries";
 import { AuthenticatedChatAppFrame } from "@/features/chat/components/authenticated-chat-sidebar";
 import { ChatTranscript } from "@/features/chat/components/chat-transcript";
+import { SharedChatContinueButton } from "@/features/chat/components/shared-chat-continue-button";
 import { SharedChatThemeToggle } from "@/features/chat/components/shared-chat-theme-toggle";
 import { getCurrentUserSession } from "@/features/user/user-queries";
 
@@ -59,15 +60,17 @@ export async function SharedChatContent({
       <ChatTranscript
         footer={
           <div className="flex shrink-0 justify-center px-4 pt-2 pb-[calc(--spacing(4)+env(safe-area-inset-bottom))]">
-            <Button
-              nativeButton={false}
-              render={<Link href={isAuthenticated ? "/chat" : signInHref} />}
-              size="touch"
-            >
-              {isAuthenticated
-                ? "Continue conversation"
-                : "Sign in to continue conversation"}
-            </Button>
+            {isAuthenticated ? (
+              <SharedChatContinueButton publicToken={publicToken} />
+            ) : (
+              <Button
+                nativeButton={false}
+                render={<Link href={signInHref} />}
+                size="touch"
+              >
+                Sign in to continue conversation
+              </Button>
+            )}
           </div>
         }
         messages={view.messages}
@@ -77,7 +80,9 @@ export async function SharedChatContent({
   );
 
   return isAuthenticated ? (
-    <AuthenticatedChatAppFrame>{sharedChat}</AuthenticatedChatAppFrame>
+    <AuthenticatedChatAppFrame onboardingCallbackPath={sharedChatPath}>
+      {sharedChat}
+    </AuthenticatedChatAppFrame>
   ) : (
     <main id="main-content" className="flex h-svh min-w-0 flex-col">
       {sharedChat}

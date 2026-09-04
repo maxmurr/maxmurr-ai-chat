@@ -3,9 +3,13 @@ import { WorkspaceOnboardingForm } from "@/features/workspace/components/workspa
 import { getWorkspaceOnboardingState } from "@/features/workspace/workspace-queries";
 
 /** Verifies first-workspace state before rendering onboarding form. */
-export async function WorkspaceOnboarding() {
-  await getWorkspaceOnboardingState();
-  return <WorkspaceOnboardingForm />;
+export async function WorkspaceOnboarding({
+  callbackValue,
+}: {
+  callbackValue?: string;
+}) {
+  const { callbackPath } = await getWorkspaceOnboardingState(callbackValue);
+  return <WorkspaceOnboardingForm callbackPath={callbackPath} />;
 }
 
 /** Reserves onboarding progress and form while workspace state loads. */

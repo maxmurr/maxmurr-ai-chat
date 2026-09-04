@@ -6,9 +6,12 @@ import { redirect } from "next/navigation";
 import { auth } from "@/di/authentication";
 import { getCurrentUserSession } from "@/features/user/user-queries";
 import { resolveActiveWorkspaceId } from "@/lib/active-workspace";
+import { getSafeAuthenticationCallbackPath } from "@/lib/authentication-callback";
 
 /** Resolves authenticated user and active workspace for app routes. */
-export const getAuthenticatedWorkspaceContext = cache(async () => {
+async function getAuthenticatedWorkspaceContextUncached(
+  onboardingCallbackValue?: unknown
+) {
   const { requestHeaders, session } = await getCurrentUserSession();
 
   if (!session) {
@@ -20,7 +23,14 @@ export const getAuthenticatedWorkspaceContext = cache(async () => {
   });
 
   if (workspaces.length === 0) {
-    redirect("/onboarding");
+    const callbackPath = getSafeAuthenticationCallbackPath(
+      onboardingCallbackValue
+    );
+    redirect(
+      callbackPath === "/chat"
+        ? "/onboarding"
+        : `/onboarding?callbackURL=${encodeURIComponent(callbackPath)}`
+    );
   }
 
   const activeWorkspaceId = resolveActiveWorkspaceId(
@@ -44,7 +54,11 @@ export const getAuthenticatedWorkspaceContext = cache(async () => {
       name: workspaceName,
     })),
   };
-});
+}
+
+export const getAuthenticatedWorkspaceContext = cache(
+  getAuthenticatedWorkspaceContextUncached
+);
 
 /** Reports whether current user owns or administers selected workspace. */
 export async function getCurrentWorkspaceAdminStatus(
@@ -59,8 +73,9 @@ export async function getCurrentWorkspaceAdminStatus(
   return role === "owner" || role === "admin";
 }
 
-/** Resolves session and workspace state for first-workspace onboarding. */
-export async function getWorkspaceOnboardingState() {
+/** Resolves session, safe callback, and first-workspace onboarding state. */
+export async function getWorkspaceOnboardingState(callbackValue?: unknown) {
+  const callbackPath = getSafeAuthenticationCallbackPath(callbackValue);
   const { requestHeaders, session } = await getCurrentUserSession();
 
   if (!session) {
@@ -72,8 +87,10 @@ export async function getWorkspaceOnboardingState() {
   });
 
   if (workspaces.length > 0) {
-    redirect("/chat");
+    redirect(callbackPath);
   }
+
+  return { callbackPath };
 }
 
 /** Resolves verified user and invitation shown by invitation route. */
