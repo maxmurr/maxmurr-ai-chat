@@ -10,9 +10,12 @@ import {
 import {
   canViewChat,
   CHAT_RESPONSE_STREAM_STALE_AFTER_MS,
+  chatListFilters,
   chatVisibilities,
   type Chat,
+  type ChatListEntry,
   type ChatMessage,
+  type ChatOwnerScope,
 } from "@/src/entities/models/chat";
 import {
   getMessageLibraryFileIds,
@@ -20,6 +23,15 @@ import {
 } from "@/src/entities/models/library";
 
 const chatTitleSchema = z.string().trim().min(1).max(80);
+const chatListPageRequestSchema = z.object({
+  cursor: z
+    .object({ id: z.uuid(), updatedAt: z.date() })
+    .nullable()
+    .default(null),
+  filter: z.enum(chatListFilters).default("all"),
+  limit: z.number().int().min(1).max(50).default(30),
+  query: z.string().trim().max(200).default(""),
+});
 const chatVisibilitySchema = z.enum(chatVisibilities);
 const chatMessageFeedbackMetadataSchema = z.object({
   langfuseTraceId: z.string().regex(/^[0-9a-f]{32}$/),
@@ -98,6 +110,34 @@ export function createChatLibraryController(
     return chat;
   }
 
+  async function finishStaleChatStreams(
+    chats: ReadonlyArray<
+      Pick<ChatListEntry, "activeStreamId" | "id" | "updatedAt">
+    >
+  ) {
+    const staleStreams = chats.filter(
+      (chat) =>
+        chat.activeStreamId &&
+        Date.now() - chat.updatedAt.getTime() >=
+          CHAT_RESPONSE_STREAM_STALE_AFTER_MS
+    );
+
+    if (staleStreams.length === 0) {
+      return false;
+    }
+
+    await Promise.all(
+      staleStreams.map((chat) =>
+        chatRepository.finishChatResponseStream(
+          chat.id,
+          chat.activeStreamId!,
+          false
+        )
+      )
+    );
+    return true;
+  }
+
   return {
     async deleteChat(chatId: string, userId: string) {
       await requireOwnedChat(chatId, userId);
@@ -105,6 +145,20 @@ export function createChatLibraryController(
       if (!(await chatRepository.deleteChat(chatId))) {
         throw new ChatStreamConflictError();
       }
+    },
+
+    /** Deletes inactive owner Chats in one scoped operation. */
+    async deleteOwnedChats(chatIds: readonly string[], scope: ChatOwnerScope) {
+      const deletedChatIds = await chatRepository.deleteOwnedChats(
+        chatIds,
+        scope
+      );
+      const deletedChatIdSet = new Set(deletedChatIds);
+
+      return {
+        blockedChatIds: chatIds.filter((id) => !deletedChatIdSet.has(id)),
+        deletedChatIds,
+      };
     },
 
     /** Returns the Langfuse trace only for an owned assistant message. */
@@ -184,31 +238,37 @@ export function createChatLibraryController(
       };
     },
 
+    /** Lists one validated cursor page of owner Chats. */
+    async listOwnChatsPage(request: unknown, scope: ChatOwnerScope) {
+      const parsedRequest = chatListPageRequestSchema.safeParse(request);
+
+      if (!parsedRequest.success) {
+        throw new InvalidChatRequestError({ cause: parsedRequest.error });
+      }
+
+      let page = await chatRepository.listOwnChatsPage({
+        ...parsedRequest.data,
+        ...scope,
+      });
+
+      if (await finishStaleChatStreams(page.chats)) {
+        page = await chatRepository.listOwnChatsPage({
+          ...parsedRequest.data,
+          ...scope,
+        });
+      }
+
+      return page;
+    },
+
     async listSidebarChats(organizationId: string, userId: string) {
       const [initialOwnChats, teamChats] = await Promise.all([
         chatRepository.listOwnChats(organizationId, userId),
         chatRepository.listTeamChats(organizationId, userId),
       ]);
-      let ownChats = initialOwnChats;
-      const staleStreams = ownChats.filter(
-        (chat) =>
-          chat.activeStreamId &&
-          Date.now() - chat.updatedAt.getTime() >=
-            CHAT_RESPONSE_STREAM_STALE_AFTER_MS
-      );
-
-      if (staleStreams.length > 0) {
-        await Promise.all(
-          staleStreams.map((chat) =>
-            chatRepository.finishChatResponseStream(
-              chat.id,
-              chat.activeStreamId!,
-              false
-            )
-          )
-        );
-        ownChats = await chatRepository.listOwnChats(organizationId, userId);
-      }
+      const ownChats = (await finishStaleChatStreams(initialOwnChats))
+        ? await chatRepository.listOwnChats(organizationId, userId)
+        : initialOwnChats;
 
       return { ownChats, teamChats };
     },

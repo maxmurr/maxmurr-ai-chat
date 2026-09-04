@@ -58,6 +58,9 @@ type SerializedChatConversationEntry = Omit<
 const ACTIVE_CHAT_ACTIVITY_POLL_INTERVAL_MS = 2_000;
 const IDLE_CHAT_ACTIVITY_POLL_INTERVAL_MS = 15_000;
 
+/** Browser event carrying latest owner Chat loading and unread states. */
+export const CHAT_ACTIVITY_UPDATED_EVENT = "chat-activity-updated";
+
 /** Detects the open Chat's response stream ending between two activity polls. */
 export function hasOpenChatResponseFinished(
   previousChats: ReadonlyArray<
@@ -271,6 +274,9 @@ export function ChatHistory({
           ...chat,
           updatedAt: new Date(chat.updatedAt),
         }));
+        window.dispatchEvent(
+          new CustomEvent(CHAT_ACTIVITY_UPDATED_EVENT, { detail: latestChats })
+        );
         // A response finished elsewhere (Slack, another tab): reload the open Chat once it is idle.
         if (hasOpenChatResponseFinished(previousChats, latestChats, pathname)) {
           router.refresh();

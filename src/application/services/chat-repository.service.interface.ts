@@ -1,6 +1,9 @@
 import type {
   Chat,
+  ChatListPage,
+  ChatListPageRequest,
   ChatMessage,
+  ChatOwnerScope,
   ChatSidebarEntry,
   ChatVisibility,
 } from "@/src/entities/models/chat";
@@ -16,6 +19,10 @@ export type ChatRepository = {
     title: string;
   }): Promise<Chat>;
   deleteChat(chatId: string): Promise<boolean>;
+  deleteOwnedChats(
+    chatIds: readonly string[],
+    scope: ChatOwnerScope
+  ): Promise<string[]>;
   deleteMessagesFrom(
     chatId: string,
     pivot: { messageId: string; inclusive: boolean }
@@ -38,6 +45,9 @@ export type ChatRepository = {
     organizationId: string,
     ownerId: string
   ): Promise<ChatSidebarEntry[]>;
+  listOwnChatsPage(
+    request: ChatListPageRequest & ChatOwnerScope
+  ): Promise<ChatListPage>;
   listTeamChats(
     organizationId: string,
     excludedOwnerId: string

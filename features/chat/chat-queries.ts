@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { resolveApplicationDependency } from "@/di/application-container";
 import { applicationInjectionTokens } from "@/di/application-container.registry";
+import { getAuthenticatedWorkspaceContext } from "@/features/workspace/workspace-queries";
 import type { ChatUIMessage } from "@/src/interface-adapters/presenters/chat-message.presenter";
 
 function chatLibraryController() {
@@ -53,6 +54,17 @@ export const getChatSidebarEntries = cache(
     };
   }
 );
+
+/** Lists first owner Chat page for authenticated Chats index. */
+export async function getChatsPageData() {
+  const { activeWorkspaceId, userId } =
+    await getAuthenticatedWorkspaceContext();
+
+  return chatLibraryController().listOwnChatsPage(
+    { cursor: null, filter: "all", limit: 30, query: "" },
+    { organizationId: activeWorkspaceId, ownerId: userId }
+  );
+}
 
 /** Reads one workspace-scoped chat or renders route not-found state. */
 export async function getChatPageView(

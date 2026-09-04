@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FolderIcon, LibraryBigIcon, PlusIcon, SearchIcon } from "lucide-react";
+import {
+  FolderIcon,
+  LibraryBigIcon,
+  MessageSquareIcon,
+  PlusIcon,
+  SearchIcon,
+} from "lucide-react";
 
 import {
   Command,
@@ -23,6 +29,7 @@ const chatSearchDateFormatter = new Intl.DateTimeFormat("en-US", {
 
 const chatSearchActions = [
   { href: "/chat", icon: PlusIcon, label: "New chat" },
+  { href: "/chats", icon: MessageSquareIcon, label: "Chats" },
   { href: "/projects", icon: FolderIcon, label: "Projects" },
   { href: "/library", icon: LibraryBigIcon, label: "Library" },
 ];

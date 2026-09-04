@@ -3,7 +3,10 @@ import { test } from "node:test";
 
 import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface";
 import type { LibraryService } from "@/src/application/services/library.service.interface";
-import { ChatStreamConflictError } from "@/src/entities/errors/chat-errors";
+import {
+  ChatStreamConflictError,
+  InvalidChatRequestError,
+} from "@/src/entities/errors/chat-errors";
 import type { Chat } from "@/src/entities/models/chat";
 import { createChatLibraryController } from "@/src/interface-adapters/controllers/chat/chat-library.controller";
 
@@ -33,6 +36,9 @@ function createChatRepository(): ChatRepository {
     },
     async deleteChat() {
       return true;
+    },
+    async deleteOwnedChats(chatIds) {
+      return [...chatIds];
     },
     async deleteMessagesFrom() {},
     async findWorkspaceMemberByEmail() {
@@ -77,6 +83,9 @@ function createChatRepository(): ChatRepository {
     },
     async listOwnChats() {
       return [];
+    },
+    async listOwnChatsPage() {
+      return { chats: [], nextCursor: null };
     },
     async listTeamChats() {
       return [];
@@ -152,5 +161,52 @@ test("Chat owner sees File availability and resolves assistant feedback trace", 
       "assistant-message"
     ),
     "0123456789abcdef0123456789abcdef"
+  );
+});
+
+test("bulk Chat deletion stays owner-scoped and reports blocked rows", async () => {
+  const repository = createChatRepository();
+  const secondChatId = "30000000-0000-4000-8000-000000000002";
+  repository.deleteOwnedChats = async (chatIds, scope) => {
+    assert.deepEqual(chatIds, [chat.id, secondChatId]);
+    assert.deepEqual(scope, {
+      organizationId: chat.organizationId,
+      ownerId: chat.ownerId,
+    });
+    return [chat.id];
+  };
+  const controller = createChatLibraryController(repository, {
+    async findExistingFileIds() {
+      return [];
+    },
+  } as unknown as LibraryService);
+
+  assert.deepEqual(
+    await controller.deleteOwnedChats([chat.id, secondChatId], {
+      organizationId: chat.organizationId,
+      ownerId: chat.ownerId,
+    }),
+    { blockedChatIds: [secondChatId], deletedChatIds: [chat.id] }
+  );
+});
+
+test("Chat list validates cursor requests before persistence", async () => {
+  const controller = createChatLibraryController(createChatRepository(), {
+    async findExistingFileIds() {
+      return [];
+    },
+  } as unknown as LibraryService);
+
+  await assert.rejects(
+    controller.listOwnChatsPage(
+      {
+        cursor: { id: "not-a-chat-id", updatedAt: new Date() },
+        filter: "all",
+        limit: 30,
+        query: "",
+      },
+      { organizationId: chat.organizationId, ownerId: chat.ownerId }
+    ),
+    InvalidChatRequestError
   );
 });

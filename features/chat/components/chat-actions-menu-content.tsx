@@ -9,6 +9,7 @@ import {
   PinIcon,
   PinOffIcon,
   ShareIcon,
+  SquareCheckBigIcon,
   Trash2Icon,
 } from "lucide-react";
 
@@ -34,7 +35,9 @@ type ChatActionsMenuContentProps = Omit<
 > & {
   chatId: string;
   onDelete: () => void;
+  onProjectChange?: (projectId: string | null) => void;
   onRename: () => void;
+  onSelect?: () => void;
   onShare?: () => void;
   onTogglePin: () => void;
   pinned: boolean;
@@ -47,7 +50,9 @@ export function ChatActionsMenuContent({
   chatId,
   className,
   onDelete,
+  onProjectChange,
   onRename,
+  onSelect,
   onShare,
   onTogglePin,
   pinned,
@@ -65,18 +70,39 @@ export function ChatActionsMenuContent({
 
   function attachToProject(nextProjectId: string) {
     void attachChatToProjectAction(nextProjectId, chatId).then((result) => {
-      if (!result.ok) showProjectActionError(result.error);
+      if (!result.ok) {
+        showProjectActionError(result.error);
+        return;
+      }
+
+      onProjectChange?.(nextProjectId);
     });
   }
 
   function detachFromProject() {
     void detachChatFromProjectAction(chatId).then((result) => {
-      if (!result.ok) showProjectActionError(result.error);
+      if (!result.ok) {
+        showProjectActionError(result.error);
+        return;
+      }
+
+      onProjectChange?.(null);
     });
   }
 
   return (
     <DropdownMenuContent className={cn("w-48", className)} {...props}>
+      {onSelect && (
+        <>
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={onSelect}>
+              <SquareCheckBigIcon />
+              Select
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+        </>
+      )}
       <DropdownMenuGroup>
         <DropdownMenuItem onClick={onTogglePin}>
           {pinned ? <PinOffIcon /> : <PinIcon />}

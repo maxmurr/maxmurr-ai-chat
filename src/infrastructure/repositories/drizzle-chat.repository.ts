@@ -1,4 +1,16 @@
-import { and, asc, desc, eq, gt, isNull, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lt,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import { appDatabase } from "@/drizzle/app-database";
 import { chat, chatMessage, member, project, user } from "@/drizzle/app-schema";
@@ -68,6 +80,25 @@ export const drizzleChatRepository: ChatRepository = {
       .where(and(eq(chat.id, chatId), isNull(chat.activeStreamId)))
       .returning({ id: chat.id });
     return rows.length === 1;
+  },
+
+  async deleteOwnedChats(chatIds, scope) {
+    if (chatIds.length === 0) {
+      return [];
+    }
+
+    const rows = await appDatabase
+      .delete(chat)
+      .where(
+        and(
+          inArray(chat.id, chatIds),
+          eq(chat.organizationId, scope.organizationId),
+          eq(chat.ownerId, scope.ownerId),
+          isNull(chat.activeStreamId)
+        )
+      )
+      .returning({ id: chat.id });
+    return rows.map(({ id }) => id);
   },
 
   async deleteMessagesFrom(chatId, pivot) {
@@ -165,6 +196,95 @@ export const drizzleChatRepository: ChatRepository = {
       .where(eq(chat.projectId, projectId))
       .orderBy(desc(chat.updatedAt));
     return rows.map(toChat);
+  },
+
+  async listOwnChatsPage({
+    cursor,
+    filter,
+    limit,
+    organizationId,
+    ownerId,
+    query,
+  }) {
+    const normalizedQuery = query.toLowerCase();
+    // ponytail: text-part scan keeps schema simple; add a tsvector/GIN index when measured search latency warrants it.
+    const matchingMessageContent =
+      normalizedQuery.length > 0
+        ? sql<boolean>`exists (
+            select 1
+            from ${chatMessage}, jsonb_array_elements(${chatMessage.parts}) as searched_part
+            where ${chatMessage.chatId} = ${chat.id}
+              and searched_part->>'type' = 'text'
+              and position(${normalizedQuery} in lower(coalesce(searched_part->>'text', ''))) > 0
+          )`
+        : undefined;
+    const searchFilter =
+      normalizedQuery.length > 0
+        ? or(
+            sql<boolean>`position(${normalizedQuery} in lower(${chat.title})) > 0`,
+            matchingMessageContent
+          )
+        : undefined;
+    const cursorFilter = cursor
+      ? or(
+          lt(chat.updatedAt, cursor.updatedAt),
+          and(eq(chat.updatedAt, cursor.updatedAt), lt(chat.id, cursor.id))
+        )
+      : undefined;
+    const stateFilter =
+      filter === "pinned"
+        ? eq(chat.pinned, true)
+        : filter === "unread"
+          ? eq(chat.hasUnreadResponse, true)
+          : undefined;
+    const searchSnippet =
+      normalizedQuery.length > 0
+        ? sql<string | null>`(
+            select substring(
+              coalesce(searched_part->>'text', '')
+              from greatest(
+                position(${normalizedQuery} in lower(coalesce(searched_part->>'text', ''))) - 72,
+                1
+              )
+              for 200
+            )
+            from ${chatMessage}, jsonb_array_elements(${chatMessage.parts}) as searched_part
+            where ${chatMessage.chatId} = ${chat.id}
+              and searched_part->>'type' = 'text'
+              and position(${normalizedQuery} in lower(coalesce(searched_part->>'text', ''))) > 0
+            order by ${chatMessage.createdAt} desc, ${chatMessage.id} desc
+            limit 1
+          )`
+        : sql<string | null>`null`;
+    const rows = await appDatabase
+      .select({ chat, projectName: project.name, searchSnippet })
+      .from(chat)
+      .leftJoin(project, eq(chat.projectId, project.id))
+      .where(
+        and(
+          eq(chat.organizationId, organizationId),
+          eq(chat.ownerId, ownerId),
+          cursorFilter,
+          stateFilter,
+          searchFilter
+        )
+      )
+      .orderBy(desc(chat.updatedAt), desc(chat.id))
+      .limit(limit + 1);
+    const pageRows = rows.slice(0, limit);
+    const lastRow = pageRows.at(-1);
+
+    return {
+      chats: pageRows.map((row) => ({
+        ...toChat(row.chat),
+        projectName: row.projectName,
+        searchSnippet: row.searchSnippet?.replace(/\s+/g, " ").trim() || null,
+      })),
+      nextCursor:
+        rows.length > limit && lastRow
+          ? { id: lastRow.chat.id, updatedAt: lastRow.chat.updatedAt }
+          : null,
+    };
   },
 
   async listOwnChats(organizationId, ownerId) {

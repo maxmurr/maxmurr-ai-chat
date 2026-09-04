@@ -21,6 +21,11 @@ import {
 import type { ChatVisibility } from "@/src/entities/models/chat";
 
 const chatIdSchema = z.uuid();
+const chatIdsSchema = z
+  .array(chatIdSchema)
+  .min(1)
+  .max(1_000)
+  .transform((chatIds) => [...new Set(chatIds)]);
 const chatMessageIdSchema = z.string().min(1).max(200);
 const chatResponseFeedbackSchema = z
   .object({
@@ -257,6 +262,35 @@ export async function renameChatAction(chatId: unknown, title: unknown) {
     } catch (error) {
       reportUnexpectedChatActionError(error);
       return { error: "Could not rename chat.", ok: false as const };
+    }
+  });
+}
+
+/** Bulk deletes inactive owner Chats from current Workspace. */
+export async function deleteChatsAction(chatIds: unknown) {
+  return traceServerAction("deleteChatsAction", async () => {
+    const parsedChatIds = chatIdsSchema.safeParse(chatIds);
+
+    if (!parsedChatIds.success) {
+      return { error: "Could not delete chats.", ok: false as const };
+    }
+
+    const workspace = await getWorkspaceOwnerScope(await headers());
+
+    if (workspace.status !== "authorized") {
+      return { error: "Could not delete chats.", ok: false as const };
+    }
+
+    try {
+      const deletion = await chatLibrary().deleteOwnedChats(
+        parsedChatIds.data,
+        workspace.scope
+      );
+      refresh();
+      return { ...deletion, ok: true as const };
+    } catch (error) {
+      reportUnexpectedChatActionError(error);
+      return { error: "Could not delete chats.", ok: false as const };
     }
   });
 }
