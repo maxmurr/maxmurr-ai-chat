@@ -1,4 +1,5 @@
 import { Agent } from "@mastra/core/agent";
+import { ProviderHistoryCompat } from "@mastra/core/processors";
 import { RequestContext } from "@mastra/core/request-context";
 import { Memory } from "@mastra/memory";
 import { gateway } from "ai";
@@ -32,6 +33,7 @@ export const chatAssistantAgent = new Agent({
     "State uncertainty instead of inventing facts, sources, or completed actions.",
     "Use web search when current or source-grounded information would improve the answer.",
   ],
+  inputProcessors: [new ProviderHistoryCompat()],
   // Slack-linked Chats use one resource per thread; web-only Chats stay stateless in Mastra.
   memory: new Memory({
     options: {
