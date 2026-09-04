@@ -32,8 +32,17 @@ export const chatAssistantAgent = new Agent({
     "State uncertainty instead of inventing facts, sources, or completed actions.",
     "Use web search when current or source-grounded information would improve the answer.",
   ],
-  // Slack-linked Chats read history from Mastra threads; web-only Chats pass no thread and stay stateless.
-  memory: new Memory({ options: { generateTitle: false, lastMessages: 40 } }),
+  // Slack-linked Chats use one resource per thread; web-only Chats stay stateless in Mastra.
+  memory: new Memory({
+    options: {
+      generateTitle: false,
+      lastMessages: 40,
+      observationalMemory: {
+        model: "vercel/google/gemini-2.5-flash",
+        scope: "resource",
+      },
+    },
+  }),
   model: ({ requestContext }) =>
     requestContext.get(CHAT_ASSISTANT_MODEL_CONTEXT_KEY) ??
     DEFAULT_CHAT_ASSISTANT_MODEL,
