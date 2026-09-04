@@ -8,6 +8,7 @@ export type PendingProjectChat = {
   readonly modelId: ChatModelId;
   readonly projectId: string;
   readonly text: string;
+  readonly webSearchEnabled: boolean;
 };
 
 const PENDING_PROJECT_CHAT_STORAGE_KEY = "pending-project-chat";
@@ -43,12 +44,15 @@ export function takePendingProjectChat(
       typeof pendingChat.projectId === "string" &&
       "text" in pendingChat &&
       typeof pendingChat.text === "string" &&
-      pendingChat.text.trim()
+      pendingChat.text.trim() &&
+      "webSearchEnabled" in pendingChat &&
+      typeof pendingChat.webSearchEnabled === "boolean"
     ) {
       return {
         modelId: pendingChat.modelId,
         projectId: pendingChat.projectId,
         text: pendingChat.text.trim(),
+        webSearchEnabled: pendingChat.webSearchEnabled,
       };
     }
   } catch {

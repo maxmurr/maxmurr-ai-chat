@@ -123,6 +123,7 @@ function ChatThreadContent({
   const [selectedModelId, setSelectedModelId] = useState<ChatModelId>(
     DEFAULT_CHAT_MODEL_ID
   );
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
 
   function updateActiveResponseStreamId(streamId: string | null) {
     activeStreamIdRef.current = streamId;
@@ -173,7 +174,7 @@ function ChatThreadContent({
     status === "streaming" ? chatMessages.at(-1)?.id : undefined;
 
   async function sendChatMessage(
-    { attachments, modelId, text }: ChatComposerSubmission,
+    { attachments, modelId, text, webSearchEnabled }: ChatComposerSubmission,
     projectId?: string
   ) {
     if (
@@ -232,6 +233,7 @@ function ChatThreadContent({
             ...(projectId ? { projectId } : {}),
             modelId,
             streamId,
+            webSearchEnabled,
           },
         }
       );
@@ -251,11 +253,13 @@ function ChatThreadContent({
   const sendPendingProjectChat = useEffectEvent(
     (pendingProjectChat: PendingProjectChat) => {
       setSelectedModelId(pendingProjectChat.modelId);
+      setWebSearchEnabled(pendingProjectChat.webSearchEnabled);
       void sendChatMessage(
         {
           attachments: [],
           modelId: pendingProjectChat.modelId,
           text: pendingProjectChat.text,
+          webSearchEnabled: pendingProjectChat.webSearchEnabled,
         },
         pendingProjectChat.projectId
       );
@@ -402,7 +406,7 @@ function ChatThreadContent({
     const streamId = crypto.randomUUID();
     updateActiveResponseStreamId(streamId);
     void regenerate({
-      body: { modelId: selectedModelId, streamId },
+      body: { modelId: selectedModelId, streamId, webSearchEnabled },
       messageId,
     }).catch(() => {
       updateActiveResponseStreamId(null);
@@ -416,6 +420,7 @@ function ChatThreadContent({
       attachments,
       modelId: selectedModelId,
       text: suggestion,
+      webSearchEnabled,
     });
   }
 
@@ -481,7 +486,9 @@ function ChatThreadContent({
         onModelChange={setSelectedModelId}
         onSendMessage={sendChatMessage}
         onStopResponse={() => void stopChatResponse()}
+        onWebSearchChange={setWebSearchEnabled}
         selectedModelId={selectedModelId}
+        webSearchEnabled={webSearchEnabled}
       />
 
       <ChatFooterNotice>

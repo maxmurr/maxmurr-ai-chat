@@ -32,6 +32,7 @@ export type ChatComposerSubmission = {
   readonly attachments: readonly File[];
   readonly modelId: ChatModelId;
   readonly text: string;
+  readonly webSearchEnabled: boolean;
 };
 
 /** Validates that chat composer has text or at least one attachment. */
@@ -58,7 +59,9 @@ type ChatComposerProps = {
   onModelChange: (modelId: ChatModelId) => void;
   onSendMessage: (submission: ChatComposerSubmission) => Promise<void>;
   onStopResponse: () => void;
+  onWebSearchChange: (checked: boolean) => void;
   selectedModelId: ChatModelId;
+  webSearchEnabled: boolean;
 };
 
 const ignoreChatComposerLoadingAction = () => {};
@@ -84,7 +87,9 @@ export function ChatComposerLoading({ className }: { className?: string }) {
         onModelChange={ignoreChatComposerLoadingAction}
         onSendMessage={ignoreChatComposerLoadingSubmission}
         onStopResponse={ignoreChatComposerLoadingAction}
+        onWebSearchChange={ignoreChatComposerLoadingAction}
         selectedModelId={DEFAULT_CHAT_MODEL_ID}
+        webSearchEnabled={false}
       />
     </fieldset>
   );
@@ -103,7 +108,9 @@ export function ChatComposer({
   onModelChange,
   onSendMessage,
   onStopResponse,
+  onWebSearchChange,
   selectedModelId,
+  webSearchEnabled,
 }: ChatComposerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
@@ -150,6 +157,7 @@ export function ChatComposer({
           attachments,
           modelId: selectedModelId,
           text: messageText,
+          webSearchEnabled,
         });
       }}
     >
@@ -227,7 +235,9 @@ export function ChatComposer({
             }}
             onModelChange={onModelChange}
             onStopResponse={onStopResponse}
+            onWebSearchChange={onWebSearchChange}
             selectedModelId={selectedModelId}
+            webSearchEnabled={webSearchEnabled}
           />
         </InputGroup>
       </div>

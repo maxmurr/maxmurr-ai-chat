@@ -288,7 +288,9 @@ type ChatComposerToolbarProps = {
   onChooseFiles: () => void;
   onModelChange: (modelId: ChatModelId) => void;
   onStopResponse: () => void;
+  onWebSearchChange: (checked: boolean) => void;
   selectedModelId: ChatModelId;
+  webSearchEnabled: boolean;
 };
 
 /** Renders chat composer tools, model selection, and submit control. */
@@ -300,12 +302,13 @@ export function ChatComposerToolbar({
   onChooseFiles,
   onModelChange,
   onStopResponse,
+  onWebSearchChange,
   selectedModelId,
+  webSearchEnabled,
 }: ChatComposerToolbarProps) {
   const [figmaConnected, setFigmaConnected] = useState(true);
   const [googleDriveConnected, setGoogleDriveConnected] = useState(false);
   const [researchModeEnabled, setResearchModeEnabled] = useState(false);
-  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
 
   return (
     <InputGroupAddon
@@ -321,7 +324,7 @@ export function ChatComposerToolbar({
         onFigmaConnectedChange={setFigmaConnected}
         onGoogleDriveConnectedChange={setGoogleDriveConnected}
         onResearchModeChange={setResearchModeEnabled}
-        onWebSearchChange={setWebSearchEnabled}
+        onWebSearchChange={onWebSearchChange}
         researchModeEnabled={researchModeEnabled}
         webSearchEnabled={webSearchEnabled}
       />

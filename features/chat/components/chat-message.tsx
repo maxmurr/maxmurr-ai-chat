@@ -9,6 +9,7 @@ import { ChatMessageMarkdown } from "@/features/chat/components/chat-message-mar
 import { ChatMessageReasoning } from "@/features/chat/components/chat-message-reasoning";
 import { ChatMessageSources } from "@/features/chat/components/chat-message-sources";
 import { ChatMessageTool } from "@/features/chat/components/chat-message-tool";
+import { ChatMessageWebSearchActivity } from "@/features/chat/components/chat-message-web-search-activity";
 import {
   Attachment,
   AttachmentContent,
@@ -181,6 +182,10 @@ export function ChatMessageItem({
         <MessageContent>
           {message.reasoning !== undefined && (
             <ChatMessageReasoning reasoning={message.reasoning} />
+          )}
+
+          {message.webSearches && message.webSearches.length > 0 && (
+            <ChatMessageWebSearchActivity webSearches={message.webSearches} />
           )}
 
           {message.tools && message.tools.length > 0 && (

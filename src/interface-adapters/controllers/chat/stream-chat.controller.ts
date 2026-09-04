@@ -64,6 +64,7 @@ const chatStreamRequestSchema = z.object({
   projectId: z.uuid().optional(),
   streamId: z.uuid(),
   trigger: z.enum(["submit-message", "regenerate-message"]).optional(),
+  webSearchEnabled: z.boolean().default(false),
 });
 
 /** Validated chat controller resolved by application composition root. */
@@ -82,8 +83,16 @@ export function createStreamChatController(
       throw new InvalidChatRequestError({ cause: result.error });
     }
 
-    const { id, message, messageId, modelId, projectId, streamId, trigger } =
-      result.data;
+    const {
+      id,
+      message,
+      messageId,
+      modelId,
+      projectId,
+      streamId,
+      trigger,
+      webSearchEnabled,
+    } = result.data;
 
     return streamChatResponse(
       {
@@ -94,6 +103,7 @@ export function createStreamChatController(
         projectId,
         streamId,
         trigger,
+        webSearchEnabled,
       },
       context
     );

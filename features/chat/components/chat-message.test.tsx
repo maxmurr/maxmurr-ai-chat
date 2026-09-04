@@ -46,6 +46,23 @@ test("chat message composes reasoning, tools, files, sources, and actions", () =
                 state: "completed",
               },
             ],
+            webSearches: [
+              {
+                id: "search-1",
+                query: "current Stripe Billing pricing and fees",
+                status: "searching",
+              },
+              {
+                id: "search-2",
+                query: "Stripe Billing pricing",
+                status: "searched",
+              },
+              {
+                id: "search-3",
+                query: "Stripe Billing volume discounts",
+                status: "failed",
+              },
+            ],
           }}
           onCopyMessage={() => {}}
           onRetryMessage={() => {}}
@@ -57,6 +74,9 @@ test("chat message composes reasoning, tools, files, sources, and actions", () =
   for (const text of [
     "Reasoning",
     "Search",
+    "Searching the web for current Stripe Billing pricing and fees",
+    "Searched the web for Stripe Billing pricing",
+    "Web search failed",
     "report.pdf",
     "Finished",
     "1 sources",

@@ -27,7 +27,9 @@ test("chat composer mounts native form controls", () => {
       onModelChange() {},
       async onSendMessage() {},
       onStopResponse() {},
+      onWebSearchChange() {},
       selectedModelId: DEFAULT_CHAT_MODEL_ID,
+      webSearchEnabled: false,
     })
   );
 

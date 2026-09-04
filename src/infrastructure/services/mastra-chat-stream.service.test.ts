@@ -16,6 +16,7 @@ import {
 } from "@/src/entities/errors/chat-errors";
 import type { Chat, ChatMessage } from "@/src/entities/models/chat";
 import {
+  chatModelOptions,
   DEFAULT_CHAT_MODEL_ID,
   type ChatModelId,
 } from "@/src/entities/models/chat-model";
@@ -78,6 +79,7 @@ function createStreamFixture(
     messageId: string;
   }[] = [];
   const savedMessages: ChatMessage[] = [];
+  const streamedActiveTools: unknown[] = [];
   const streamedMemories: unknown[] = [];
   const streamedMessages: unknown[][] = [];
   const streamedModels: unknown[] = [];
@@ -175,6 +177,7 @@ function createStreamFixture(
     crashReporterService,
     instrumentationService,
     async (options) => {
+      streamedActiveTools.push(options.params.activeTools);
       streamedMemories.push(options.params.memory);
       streamedMessages.push(options.params.messages);
       streamedModels.push(
@@ -219,6 +222,7 @@ function createStreamFixture(
             .toString()
             .padStart(12, "0")}`,
           trigger: "regenerate-message",
+          webSearchEnabled: false,
         },
         context
       );
@@ -227,7 +231,10 @@ function createStreamFixture(
     get sourceReads() {
       return sourceReads;
     },
-    async sendMessage(modelId: ChatModelId = DEFAULT_CHAT_MODEL_ID) {
+    async sendMessage(
+      modelId: ChatModelId = DEFAULT_CHAT_MODEL_ID,
+      webSearchEnabled = false
+    ) {
       messageNumber += 1;
       return streamChat(
         {
@@ -242,6 +249,7 @@ function createStreamFixture(
             .toString()
             .padStart(12, "0")}`,
           trigger: "submit-message",
+          webSearchEnabled,
         },
         context
       );
@@ -249,6 +257,7 @@ function createStreamFixture(
     setInstructions(nextInstructions: string) {
       project = { ...project, instructions: nextInstructions };
     },
+    streamedActiveTools,
     streamedMemories,
     streamedMessages,
     streamedModels,
@@ -324,12 +333,24 @@ test("active Chat stream rejects a second producer before side effects", async (
   assert.deepEqual(fixture.streamedMessages, []);
 });
 
-test("Chat streams selected response model through Vercel AI Gateway", async () => {
+test("Chat enables Gateway web search for every response model", async () => {
   const fixture = createStreamFixture("", null);
 
-  await fixture.sendMessage("anthropic/claude-opus-5");
+  for (const { id } of chatModelOptions) {
+    await fixture.sendMessage(id, true);
+  }
+  await fixture.sendMessage(DEFAULT_CHAT_MODEL_ID, false);
 
-  assert.deepEqual(fixture.streamedModels, ["vercel/anthropic/claude-opus-5"]);
+  assert.deepEqual(
+    fixture.streamedModels,
+    [...chatModelOptions, { id: DEFAULT_CHAT_MODEL_ID }].map(
+      ({ id }) => `vercel/${id}`
+    )
+  );
+  assert.deepEqual(fixture.streamedActiveTools, [
+    ...chatModelOptions.map(() => ["webSearch"]),
+    [],
+  ]);
 });
 
 test("Project Chat streams current Custom Instructions as non-persisted system context", async () => {
@@ -417,6 +438,7 @@ const request: ChatStreamRequest = {
   modelId: DEFAULT_CHAT_MODEL_ID,
   projectId,
   streamId: "8f1f429e-84f3-4a10-9f2c-58a1a7a8f003",
+  webSearchEnabled: false,
 };
 
 function createProject(overrides: Partial<Project> = {}): Project {

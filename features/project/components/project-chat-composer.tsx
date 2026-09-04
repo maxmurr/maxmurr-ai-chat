@@ -27,11 +27,12 @@ export function ProjectChatComposer({
   return (
     <ProjectChatComposerForm
       className={className}
-      onStartProjectChat={(text, modelId) => {
+      onStartProjectChat={(text, modelId, webSearchEnabled) => {
         storePendingProjectChat(window.sessionStorage, {
           modelId,
           projectId,
           text,
+          webSearchEnabled,
         });
         router.push("/chat");
       }}
@@ -45,16 +46,25 @@ export function ProjectChatComposerForm({
   onStartProjectChat,
 }: {
   className?: string;
-  onStartProjectChat: (text: string, modelId: ChatModelId) => void;
+  onStartProjectChat: (
+    text: string,
+    modelId: ChatModelId,
+    webSearchEnabled: boolean
+  ) => void;
 }) {
   const [announcement, setAnnouncement] = useState("");
   const [draft, setDraft] = useState("");
   const [selectedModelId, setSelectedModelId] = useState<ChatModelId>(
     DEFAULT_CHAT_MODEL_ID
   );
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
 
-  async function startProjectChat({ modelId, text }: ChatComposerSubmission) {
-    onStartProjectChat(text, modelId);
+  async function startProjectChat({
+    modelId,
+    text,
+    webSearchEnabled,
+  }: ChatComposerSubmission) {
+    onStartProjectChat(text, modelId, webSearchEnabled);
   }
 
   return (
@@ -71,7 +81,9 @@ export function ProjectChatComposerForm({
         onModelChange={setSelectedModelId}
         onSendMessage={startProjectChat}
         onStopResponse={() => {}}
+        onWebSearchChange={setWebSearchEnabled}
         selectedModelId={selectedModelId}
+        webSearchEnabled={webSearchEnabled}
       />
       <p className="sr-only" role="status">
         {announcement}

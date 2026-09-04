@@ -25,6 +25,7 @@ export type ChatStreamRequest = {
   readonly projectId?: string;
   readonly streamId: string;
   readonly trigger?: "submit-message" | "regenerate-message";
+  readonly webSearchEnabled: boolean;
 };
 
 /** Session-derived identity the framework layer attaches to chat requests. */

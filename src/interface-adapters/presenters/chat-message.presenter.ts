@@ -3,6 +3,7 @@ import { getToolName, isToolUIPart, type UIMessage } from "ai";
 import { getLibraryFileIdFromDownloadUrl } from "@/src/entities/models/library";
 
 const LANGFUSE_TRACE_ID_PATTERN = /^[0-9a-f]{32}$/;
+const WEB_SEARCH_TOOL_NAME = "webSearch";
 
 /** Describes one file shown with a chat message. */
 export type ChatDisplayAttachment = {
@@ -26,6 +27,13 @@ export type ChatDisplaySource = {
   readonly title: string;
 };
 
+/** Describes one web search shown with a chat message. */
+export type ChatDisplayWebSearch = {
+  readonly id: string;
+  readonly query?: string;
+  readonly status: "failed" | "searched" | "searching";
+};
+
 /** Describes one tool call shown with a chat message. */
 export type ChatDisplayTool = {
   readonly id: string;
@@ -45,6 +53,7 @@ export type ChatDisplayMessage = {
   readonly role: "assistant" | "user";
   readonly sources?: readonly ChatDisplaySource[];
   readonly tools?: readonly ChatDisplayTool[];
+  readonly webSearches?: readonly ChatDisplayWebSearch[];
 };
 
 /** Client metadata for message creation time, feedback trace, and File presentation. */
@@ -67,6 +76,52 @@ function getChatSourceLabel(url: string) {
   } catch {
     return url;
   }
+}
+
+function getWebSearchSources(output: unknown): ChatDisplaySource[] {
+  if (
+    typeof output !== "object" ||
+    output === null ||
+    !("results" in output) ||
+    !Array.isArray(output.results)
+  ) {
+    return [];
+  }
+
+  return output.results.flatMap((result): ChatDisplaySource[] => {
+    if (
+      typeof result !== "object" ||
+      result === null ||
+      !("title" in result) ||
+      typeof result.title !== "string" ||
+      !("url" in result) ||
+      typeof result.url !== "string"
+    ) {
+      return [];
+    }
+
+    try {
+      const url = new URL(result.url);
+      if (url.protocol !== "http:" && url.protocol !== "https:") return [];
+
+      return [{ href: result.url, label: url.hostname, title: result.title }];
+    } catch {
+      return [];
+    }
+  });
+}
+
+function getWebSearchQuery(input: unknown) {
+  if (
+    typeof input !== "object" ||
+    input === null ||
+    !("query" in input) ||
+    typeof input.query !== "string"
+  ) {
+    return undefined;
+  }
+
+  return input.query.trim() || undefined;
 }
 
 function getChatMessageCreatedAt(metadata?: ChatMessageMetadata) {
@@ -124,30 +179,67 @@ export function convertChatUiMessageToDisplayMessage(
       ];
     }),
   ];
-  const sources = message.parts.flatMap((part): ChatDisplaySource[] => {
-    if (part.type === "source-url") {
-      return [
-        {
-          href: part.url,
-          label: getChatSourceLabel(part.url),
-          title: part.title ?? part.url,
-        },
-      ];
+  const sourceUrls = new Set<string>();
+  const sources = message.parts
+    .flatMap((part): ChatDisplaySource[] => {
+      if (part.type === "source-url") {
+        return [
+          {
+            href: part.url,
+            label: getChatSourceLabel(part.url),
+            title: part.title ?? part.url,
+          },
+        ];
+      }
+
+      if (part.type === "source-document") {
+        return [
+          {
+            label: part.filename ?? part.mediaType,
+            title: part.title,
+          },
+        ];
+      }
+
+      if (
+        isToolUIPart(part) &&
+        getToolName(part) === WEB_SEARCH_TOOL_NAME &&
+        part.state === "output-available"
+      ) {
+        return getWebSearchSources(part.output);
+      }
+
+      return [];
+    })
+    .filter((source) => {
+      if (!source.href) return true;
+      if (sourceUrls.has(source.href)) return false;
+      sourceUrls.add(source.href);
+      return true;
+    });
+  const webSearches = message.parts.flatMap((part): ChatDisplayWebSearch[] => {
+    if (!isToolUIPart(part) || getToolName(part) !== WEB_SEARCH_TOOL_NAME) {
+      return [];
     }
 
-    if (part.type === "source-document") {
-      return [
-        {
-          label: part.filename ?? part.mediaType,
-          title: part.title,
-        },
-      ];
-    }
+    const query = getWebSearchQuery(part.input);
+    const status =
+      part.state === "output-available"
+        ? "searched"
+        : part.state === "output-error" || part.state === "output-denied"
+          ? "failed"
+          : "searching";
 
-    return [];
+    return [
+      {
+        id: part.toolCallId,
+        ...(query ? { query } : {}),
+        status,
+      },
+    ];
   });
   const tools = message.parts.flatMap((part): ChatDisplayTool[] => {
-    if (!isToolUIPart(part)) {
+    if (!isToolUIPart(part) || getToolName(part) === WEB_SEARCH_TOOL_NAME) {
       return [];
     }
 
@@ -201,5 +293,6 @@ export function convertChatUiMessageToDisplayMessage(
       : {}),
     ...(sources.length > 0 ? { sources } : {}),
     ...(tools.length > 0 ? { tools } : {}),
+    ...(webSearches.length > 0 ? { webSearches } : {}),
   };
 }

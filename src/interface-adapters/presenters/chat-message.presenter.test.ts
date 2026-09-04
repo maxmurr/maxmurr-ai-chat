@@ -84,6 +84,108 @@ test("streamed AI SDK parts map to chat reasoning, tools, files, and sources", (
   });
 });
 
+test("Gateway web search uses sources UI instead of generic tool UI", () => {
+  const message: ChatUIMessage = {
+    id: "assistant-response",
+    role: "assistant",
+    parts: [
+      {
+        type: "tool-webSearch",
+        toolCallId: "web-search-call",
+        state: "output-available",
+        input: { query: "latest AI news" },
+        output: {
+          requestId: "request-1",
+          results: [
+            {
+              id: "result-1",
+              title: "AI update",
+              url: "https://example.com/ai-update",
+            },
+            {
+              id: "result-2",
+              title: "Unsafe result",
+              url: "javascript:alert(1)",
+            },
+          ],
+        },
+      },
+      {
+        type: "tool-webSearch",
+        toolCallId: "web-search-call-2",
+        state: "output-available",
+        input: { query: "AI news today" },
+        output: {
+          requestId: "request-2",
+          results: [
+            {
+              id: "result-3",
+              title: "Duplicate AI update",
+              url: "https://example.com/ai-update",
+            },
+          ],
+        },
+      },
+      {
+        type: "tool-webSearch",
+        toolCallId: "web-search-call-3",
+        state: "input-available",
+        input: { query: "AI announcements" },
+      },
+      {
+        type: "tool-webSearch",
+        toolCallId: "web-search-call-4",
+        state: "output-error",
+        input: { query: "AI reports" },
+        errorText: "Search failed",
+      },
+      { type: "text", text: "Latest update." },
+    ],
+  };
+
+  const displayMessage = convertChatUiMessageToDisplayMessage(message);
+
+  assert.deepEqual(
+    {
+      sources: displayMessage?.sources,
+      tools: displayMessage?.tools,
+      webSearches: displayMessage?.webSearches,
+    },
+    {
+      sources: [
+        {
+          href: "https://example.com/ai-update",
+          label: "example.com",
+          title: "AI update",
+        },
+      ],
+      tools: undefined,
+      webSearches: [
+        {
+          id: "web-search-call",
+          query: "latest AI news",
+          status: "searched",
+        },
+        {
+          id: "web-search-call-2",
+          query: "AI news today",
+          status: "searched",
+        },
+        {
+          id: "web-search-call-3",
+          query: "AI announcements",
+          status: "searching",
+        },
+        {
+          id: "web-search-call-4",
+          query: "AI reports",
+          status: "failed",
+        },
+      ],
+    }
+  );
+});
+
 test("deleted Library File maps to unavailable Chat placeholder", () => {
   const fileId = "20000000-0000-4000-8000-000000000001";
   const message: ChatUIMessage = {

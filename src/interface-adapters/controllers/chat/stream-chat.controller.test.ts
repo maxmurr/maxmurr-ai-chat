@@ -38,6 +38,7 @@ test("chat controller validates input before streaming", async () => {
     projectId,
     streamId,
     trigger: "submit-message" as const,
+    webSearchEnabled: true,
   };
   const context: ChatRequestContext = {
     organizationId: "workspace-1",
@@ -58,6 +59,7 @@ test("chat controller validates input before streaming", async () => {
     projectId,
     streamId,
     trigger: "submit-message",
+    webSearchEnabled: true,
   });
 
   assert.throws(

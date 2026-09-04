@@ -299,6 +299,7 @@ export function createMastraChatStreamService(
             },
             params: {
               abortSignal: responseAbortController.signal,
+              activeTools: request.webSearchEnabled ? ["webSearch"] : [],
               // Slack-linked Chats read history from the shared Mastra thread; web-only Chats send their own.
               ...(slackThread && {
                 memory: { resource: slackThread.resourceId, thread: chatId },
