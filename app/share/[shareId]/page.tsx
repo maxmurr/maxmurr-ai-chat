@@ -1,17 +1,17 @@
-import { Suspense } from "react"
+import { Suspense } from "react";
 
-import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import {
   SharedChatContent,
   SharedChatContentSkeleton,
-} from "@/features/chat/components/shared-chat-content"
+} from "@/features/chat/components/shared-chat-content";
 
 /** Composes public read-only chat from resolved public-link token. */
 export default function SharedChatPage({
   params,
 }: PageProps<"/share/[shareId]">) {
   return (
-    <main className="flex h-svh flex-col" data-testid="shared-chat-shell">
+    <div className="h-svh" data-testid="shared-chat-shell">
       <ErrorBoundary title="Shared chat did not load">
         <Suspense fallback={<SharedChatContentSkeleton />}>
           {params.then(({ shareId }) => (
@@ -19,6 +19,6 @@ export default function SharedChatPage({
           ))}
         </Suspense>
       </ErrorBoundary>
-    </main>
-  )
+    </div>
+  );
 }

@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { ChatConversationLayout } from "@/features/chat/components/chat-conversation-layout";
 import { ChatFooterNotice } from "@/features/chat/components/chat-footer-notice";
 import { ChatMessageList } from "@/features/chat/components/chat-message-list";
@@ -9,10 +11,12 @@ import {
 /** Renders a finished conversation for viewers who cannot write to it. */
 export function ChatTranscript({
   className,
+  footer = <ChatFooterNotice>This chat is read-only.</ChatFooterNotice>,
   messages,
   title,
 }: {
   className?: string;
+  footer?: ReactNode;
   messages: ChatUIMessage[];
   title: string;
 }) {
@@ -29,7 +33,7 @@ export function ChatTranscript({
         status="ready"
       />
 
-      <ChatFooterNotice>This chat is read-only.</ChatFooterNotice>
+      {footer}
     </ChatConversationLayout>
   );
 }

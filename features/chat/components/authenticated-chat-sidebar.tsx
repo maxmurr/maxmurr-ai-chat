@@ -1,3 +1,7 @@
+import { Suspense, type ReactNode } from "react";
+
+import { AppSidebarFrame } from "@/components/app-sidebar-frame";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ChatAppSidebar } from "@/features/chat/components/chat-app-sidebar";
 import { getChatSidebarEntries } from "@/features/chat/chat-queries";
 import { getProjectsPageData } from "@/features/project/project-queries";
@@ -40,6 +44,27 @@ export async function AuthenticatedChatSidebar() {
       teamChats={chats.teamChats}
       workspaces={workspace.workspaces}
     />
+  );
+}
+
+/** Frames content with authenticated Chat sidebar and loading states. */
+export function AuthenticatedChatAppFrame({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <AppSidebarFrame
+      sidebar={
+        <ErrorBoundary title="Navigation did not load" variant="sidebar">
+          <Suspense fallback={<AuthenticatedChatSidebarSkeleton />}>
+            <AuthenticatedChatSidebar />
+          </Suspense>
+        </ErrorBoundary>
+      }
+    >
+      {children}
+    </AppSidebarFrame>
   );
 }
 
