@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import {
   ChevronDownIcon,
   FolderPlusIcon,
@@ -10,7 +9,6 @@ import {
   UploadIcon,
 } from "lucide-react";
 
-import { LibraryFileInput } from "@/features/library/components/library-file-input";
 import type { LibraryFilter } from "@/features/library/components/library-data";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,9 +52,9 @@ export function LibraryBrowserToolbar({
   filter,
   isUploading,
   onCreateFolder,
-  onFiles,
   onFilterChange,
   onQueryChange,
+  onUpload,
   onViewChange,
   query,
   view,
@@ -65,24 +63,15 @@ export function LibraryBrowserToolbar({
   filter: LibraryFilter;
   isUploading: boolean;
   onCreateFolder: () => void;
-  onFiles: (files: File[]) => void;
   onFilterChange: (filter: LibraryFilter) => void;
   onQueryChange: (query: string) => void;
+  onUpload: () => void;
   onViewChange: (view: LibraryView) => void;
   query: string;
   view: LibraryView;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   return (
     <div className={cn("flex flex-col gap-6", className)}>
-      <LibraryFileInput
-        ref={fileInputRef}
-        aria-label="Choose Files to upload"
-        className="hidden"
-        onFiles={onFiles}
-      />
-
       <div className="flex items-center gap-2">
         <InputGroup className="max-w-xs pointer-coarse:h-11">
           <InputGroupAddon>
@@ -125,7 +114,7 @@ export function LibraryBrowserToolbar({
             <DropdownMenuGroup>
               <DropdownMenuItem
                 className="pointer-coarse:min-h-11"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={onUpload}
               >
                 <UploadIcon />
                 Upload Files

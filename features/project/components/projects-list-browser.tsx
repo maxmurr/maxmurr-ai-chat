@@ -3,7 +3,12 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { FolderIcon, PlusIcon, SearchIcon, SearchXIcon } from "lucide-react";
+import {
+  FolderPlusIcon,
+  PlusIcon,
+  SearchIcon,
+  SearchXIcon,
+} from "lucide-react";
 
 import { AppPageContainer } from "@/components/app-page-container";
 import { Button } from "@/components/ui/button";
@@ -76,111 +81,108 @@ export function ProjectsListBrowser({
       className={cn("mx-auto", className)}
       data-testid="projects-list-content"
     >
-      {projects.length === 0 ? (
-        <Empty className="min-h-64">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <FolderIcon />
-            </EmptyMedia>
-            <EmptyTitle>No projects yet</EmptyTitle>
-            <EmptyDescription>
-              Projects keep related chats together with shared instructions and
-              files.
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <Button
-              size="touch"
-              type="button"
-              onClick={() => setIsNewProjectOpen(true)}
-            >
-              <PlusIcon data-icon="inline-start" />
-              New project
-            </Button>
-          </EmptyContent>
-        </Empty>
-      ) : (
-        <section
-          aria-label="Projects"
-          className="flex flex-col gap-6"
-          id="project-list"
-        >
-          <div className="flex min-w-0 items-center justify-between gap-2">
-            <InputGroup className="h-11 max-w-xs min-w-0 flex-1 sm:h-8">
-              <InputGroupAddon>
-                <SearchIcon />
-              </InputGroupAddon>
-              <InputGroupInput
-                aria-label="Search projects"
-                autoComplete="off"
-                name="project-search"
-                onChange={(event) => setQuery(event.currentTarget.value)}
-                placeholder="Search projects…"
-                spellCheck={false}
-                type="search"
-                value={query}
-              />
-            </InputGroup>
-            <Button
-              className="shrink-0"
-              onClick={() => setIsNewProjectOpen(true)}
-              size="touch"
-              type="button"
-            >
-              New project
-            </Button>
-          </div>
+      <section
+        aria-label="Projects"
+        className="flex flex-col gap-6"
+        id="project-list"
+      >
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <InputGroup className="h-11 max-w-xs min-w-0 flex-1 sm:h-8">
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput
+              aria-label="Search projects"
+              autoComplete="off"
+              name="project-search"
+              onChange={(event) => setQuery(event.currentTarget.value)}
+              placeholder="Search projects…"
+              spellCheck={false}
+              type="search"
+              value={query}
+            />
+          </InputGroup>
+          <Button
+            className="shrink-0"
+            onClick={() => setIsNewProjectOpen(true)}
+            size="touch"
+            type="button"
+          >
+            New project
+          </Button>
+        </div>
 
-          {matchingProjects.length === 0 ? (
-            <Empty className="min-h-56">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <SearchXIcon />
-                </EmptyMedia>
-                <EmptyTitle>No matches</EmptyTitle>
-                <EmptyDescription>
-                  No project named “{deferredQuery.trim()}”.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <ItemGroup className="grid gap-3 @xl:grid-cols-2 @6xl:grid-cols-3">
-              {matchingProjects.map((project) => (
-                <Item
-                  className="relative items-start [contain-intrinsic-size:auto_7rem] [content-visibility:auto] hover:bg-muted has-[a:focus-visible]:border-ring has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50"
-                  key={project.id}
-                  role="listitem"
-                  variant="outline"
-                >
-                  <ItemContent>
-                    <ItemTitle>
-                      <Link
-                        className="outline-none after:absolute after:inset-0"
-                        href={`/projects/${project.id}`}
-                      >
-                        {project.name}
-                      </Link>
-                    </ItemTitle>
-                    {project.description && (
-                      <ItemDescription>{project.description}</ItemDescription>
-                    )}
-                    <ItemDescription className="pt-1">
-                      <time dateTime={project.updatedAt}>
-                        {projectDateFormatter.format(
-                          new Date(project.updatedAt)
-                        )}
-                      </time>
-                    </ItemDescription>
-                  </ItemContent>
-                  <ItemActions className="relative self-start">
-                    <ProjectActions project={project} />
-                  </ItemActions>
-                </Item>
-              ))}
-            </ItemGroup>
-          )}
-        </section>
-      )}
+        {projects.length === 0 ? (
+          <Empty className="min-h-80" variant="panel">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FolderPlusIcon />
+              </EmptyMedia>
+              <EmptyTitle>No projects yet</EmptyTitle>
+              <EmptyDescription>
+                Create a project to keep related chats, instructions, and files
+                together.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button
+                onClick={() => setIsNewProjectOpen(true)}
+                size="touch"
+                type="button"
+                variant="secondary"
+              >
+                <PlusIcon data-icon="inline-start" />
+                Create project
+              </Button>
+            </EmptyContent>
+          </Empty>
+        ) : matchingProjects.length === 0 ? (
+          <Empty className="min-h-56">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <SearchXIcon />
+              </EmptyMedia>
+              <EmptyTitle>No matches</EmptyTitle>
+              <EmptyDescription>
+                No project named “{deferredQuery.trim()}”.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <ItemGroup className="grid gap-3 @xl:grid-cols-2 @6xl:grid-cols-3">
+            {matchingProjects.map((project) => (
+              <Item
+                className="relative items-start [contain-intrinsic-size:auto_7rem] [content-visibility:auto] hover:bg-muted has-[a:focus-visible]:border-ring has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50"
+                key={project.id}
+                role="listitem"
+                variant="outline"
+              >
+                <ItemContent>
+                  <ItemTitle>
+                    <Link
+                      className="outline-none after:absolute after:inset-0"
+                      href={`/projects/${project.id}`}
+                    >
+                      {project.name}
+                    </Link>
+                  </ItemTitle>
+                  {project.description && (
+                    <ItemDescription>{project.description}</ItemDescription>
+                  )}
+                  <ItemDescription className="pt-1">
+                    <time dateTime={project.updatedAt}>
+                      {projectDateFormatter.format(new Date(project.updatedAt))}
+                    </time>
+                  </ItemDescription>
+                </ItemContent>
+                <ItemActions className="relative self-start">
+                  <ProjectActions project={project} />
+                </ItemActions>
+              </Item>
+            ))}
+          </ItemGroup>
+        )}
+      </section>
 
       {isNewProjectOpen ? (
         <NewProjectDialog
