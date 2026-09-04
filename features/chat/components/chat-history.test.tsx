@@ -148,7 +148,28 @@ test("chat history defaults pinned Project folders closed", () => {
     markup,
     /lucide-folder-open[^\"]*group-not-data-panel-open\/menu-button:hidden/
   );
-  assert.match(markup, /aria-label="Open Launch project"/);
+  const openProjectAction = markup.match(
+    /<a[^>]*aria-label="Open Launch project"[^>]*>/
+  )?.[0];
+  const projectOptionsAction = markup.match(
+    /<button[^>]*aria-label="More options for Launch"[^>]*>/
+  )?.[0];
+
+  assert.match(
+    markup,
+    /pointer-fine:group-hover\/project-row:bg-sidebar-accent/
+  );
+  assert.match(
+    markup,
+    /pointer-fine:group-hover\/project-row:text-sidebar-accent-foreground/
+  );
+  assert.ok(openProjectAction);
+  assert.ok(projectOptionsAction);
+  for (const action of [openProjectAction, projectOptionsAction]) {
+    assert.match(action, /text-muted-foreground!/);
+    assert.match(action, /hover:bg-transparent!/);
+    assert.match(action, /hover:text-sidebar-accent-foreground!/);
+  }
   assert.match(markup, /href="\/projects\/project-1"/);
   assert.match(markup, /lucide-square-pen/);
   assert.equal(markup.match(/aria-label="Pinned project chat"/g)?.length, 1);

@@ -58,6 +58,10 @@ export function ChatPrimaryNavigation({
         {destinationNavigation.map((item) => (
           <SidebarMenuItem key={item.label}>
             <SidebarMenuButton
+              className={cn(
+                item.href === "/projects" &&
+                  "pointer-fine:group-hover/menu-item:bg-sidebar-accent pointer-fine:group-hover/menu-item:text-sidebar-accent-foreground"
+              )}
               isActive={
                 pathname === item.href || pathname.startsWith(`${item.href}/`)
               }
@@ -70,6 +74,7 @@ export function ChatPrimaryNavigation({
             {item.href === "/projects" && (
               <SidebarMenuAction
                 aria-label="New project"
+                className="text-muted-foreground! hover:bg-transparent! hover:text-sidebar-accent-foreground!"
                 onClick={() => setIsNewProjectOpen(true)}
                 showOnHover
                 type="button"

@@ -159,7 +159,10 @@ function PinnedProjectHistoryItem({
     <li className="relative">
       <Collapsible>
         <div className="group/project-row relative">
-          <SidebarMenuButton className="pr-16!" render={<CollapsibleTrigger />}>
+          <SidebarMenuButton
+            className="pr-16! pointer-fine:group-hover/project-row:bg-sidebar-accent pointer-fine:group-hover/project-row:text-sidebar-accent-foreground"
+            render={<CollapsibleTrigger />}
+          >
             <FolderIcon
               aria-hidden="true"
               className="group-data-panel-open/menu-button:hidden"
@@ -172,14 +175,14 @@ function PinnedProjectHistoryItem({
           </SidebarMenuButton>
           <SidebarMenuAction
             aria-label={`Open ${project.name} project`}
-            className="top-0.5! right-8! size-7! cursor-pointer text-muted-foreground group-focus-within/project-row:opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover/project-row:opacity-100"
+            className="top-0.5! right-8! size-7! cursor-pointer text-muted-foreground! group-focus-within/project-row:opacity-100 hover:bg-transparent! hover:text-sidebar-accent-foreground! pointer-fine:opacity-0 pointer-fine:group-hover/project-row:opacity-100"
             render={<Link href={`/projects/${project.id}`} />}
           >
             <SquarePenIcon />
             <TouchTarget />
           </SidebarMenuAction>
           <ProjectActions
-            className="absolute top-0.5 right-1 group-focus-within/project-row:opacity-100 data-popup-open:opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover/project-row:opacity-100"
+            className="absolute top-0.5 right-1 text-muted-foreground! group-focus-within/project-row:opacity-100 hover:bg-transparent! hover:text-sidebar-accent-foreground! data-popup-open:opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover/project-row:opacity-100"
             deleteRedirect={deleteRedirect}
             project={project}
           />
