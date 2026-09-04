@@ -109,7 +109,7 @@ export function SharedChatContentSkeleton() {
       </header>
       <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-4 overflow-hidden p-4">
         <Skeleton className="h-20 w-4/5 max-w-2xl" />
-        <Skeleton className="ml-auto h-12 w-3/4 max-w-md sm:w-3/5" />
+        <Skeleton className="ml-auto h-12 w-3/4 max-w-md rounded-xl rounded-br-[4px] sm:w-3/5" />
         <Skeleton className="h-24 w-4/5 max-w-2xl" />
       </div>
       <div className="flex shrink-0 justify-center px-4 pt-2 pb-[calc(--spacing(4)+env(safe-area-inset-bottom))]">

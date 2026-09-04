@@ -221,7 +221,9 @@ export function ChatMessageItem({
                 align={isAssistant ? "start" : "end"}
                 variant={isAssistant ? "ghost" : "default"}
               >
-                <BubbleContent>
+                <BubbleContent
+                  className={isAssistant ? undefined : "rounded-br-[4px]"}
+                >
                   <ChatMessageMarkdown isAnimating={isAssistant && isStreaming}>
                     {message.content}
                   </ChatMessageMarkdown>
