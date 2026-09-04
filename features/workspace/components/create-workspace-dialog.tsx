@@ -70,17 +70,17 @@ const defaultWorkspaceCreationFormValues: WorkspaceCreationFormValues = {
   },
 };
 
-/** Renders typed TanStack Form controls for creating one Workspace. */
-export function CreateWorkspaceDialog({
-  className,
-  onOpenChange,
-  open,
-}: CreateWorkspaceDialogProps) {
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
+function useWorkspaceCreationForm({
+  onCreated,
+  onSubmissionError,
+}: {
+  onCreated: () => void;
+  onSubmissionError: (message: string | null) => void;
+}) {
   const form = useForm({
     defaultValues: defaultWorkspaceCreationFormValues,
     onSubmit: async ({ value }) => {
-      setSubmissionError(null);
+      onSubmissionError(null);
 
       try {
         const result = await createWorkspaceAction({
@@ -92,7 +92,7 @@ export function CreateWorkspaceDialog({
         });
 
         if (!result.ok) {
-          setSubmissionError(result.error);
+          onSubmissionError(result.error);
           return;
         }
 
@@ -112,13 +112,187 @@ export function CreateWorkspaceDialog({
         });
       } catch (error) {
         console.error("Workspace creation failed", error);
-        setSubmissionError("Could not create workspace. Try again.");
+        onSubmissionError("Could not create workspace. Try again.");
         return;
       }
 
       form.reset();
-      onOpenChange(false);
+      onCreated();
     },
+  });
+
+  return form;
+}
+
+type WorkspaceCreationFormApi = ReturnType<typeof useWorkspaceCreationForm>;
+
+function WorkspaceCreationMembersFieldset({
+  className,
+  form,
+}: {
+  className?: string;
+  form: WorkspaceCreationFormApi;
+}) {
+  return (
+    <form.Field
+      mode="array"
+      name="workspace.access.members"
+      validators={{
+        onChange: ({ value }) => validateWorkspaceCreationMembers(value),
+      }}
+    >
+      {(membersField) => {
+        const membersError = getWorkspaceCreationFieldError(
+          membersField.state.meta.errors
+        );
+
+        return (
+          <FieldSet className={cn(className)}>
+            <FieldLegend>Members</FieldLegend>
+            <FieldDescription>
+              Add up to five collaborators and choose what they can manage.
+            </FieldDescription>
+            <FieldError>{membersError}</FieldError>
+
+            <FieldGroup>
+              {membersField.state.value.map((member, index) => (
+                <FieldGroup
+                  className="gap-3 rounded-lg border p-3 sm:grid sm:grid-cols-[minmax(0,1fr)_8rem_auto] sm:items-start"
+                  key={member.id}
+                >
+                  <form.Field
+                    name={`workspace.access.members[${index}].email`}
+                    validators={{
+                      onChange: ({ value }) =>
+                        validateWorkspaceCreationMemberEmail(value),
+                    }}
+                  >
+                    {(field) => {
+                      const errorMessage = getWorkspaceCreationFieldError(
+                        field.state.meta.errors
+                      );
+                      const inputId = `workspace-creation-member-${member.id}-email`;
+                      const errorId = `${inputId}-error`;
+
+                      return (
+                        <Field
+                          data-invalid={
+                            field.state.meta.isValid ? undefined : true
+                          }
+                        >
+                          <FieldLabel htmlFor={inputId}>
+                            Member {index + 1} email
+                          </FieldLabel>
+                          <Input
+                            aria-describedby={
+                              errorMessage ? errorId : undefined
+                            }
+                            aria-invalid={!field.state.meta.isValid}
+                            autoComplete="off"
+                            id={inputId}
+                            inputMode="email"
+                            maxLength={254}
+                            name={field.name}
+                            onBlur={field.handleBlur}
+                            onChange={(event) =>
+                              field.handleChange(event.target.value)
+                            }
+                            required
+                            type="email"
+                            value={field.state.value}
+                          />
+                          <FieldError id={errorId}>{errorMessage}</FieldError>
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+
+                  <form.Field name={`workspace.access.members[${index}].role`}>
+                    {(field) => {
+                      const inputId = `workspace-creation-member-${member.id}-role`;
+
+                      return (
+                        <Field>
+                          <FieldLabel htmlFor={inputId}>Role</FieldLabel>
+                          <NativeSelect
+                            className="w-full"
+                            id={inputId}
+                            name={field.name}
+                            onBlur={field.handleBlur}
+                            onChange={(event) =>
+                              field.handleChange(
+                                event.target
+                                  .value as WorkspaceCreationMemberRole
+                              )
+                            }
+                            value={field.state.value}
+                          >
+                            <NativeSelectOption value="member">
+                              Member
+                            </NativeSelectOption>
+                            <NativeSelectOption value="admin">
+                              Admin
+                            </NativeSelectOption>
+                          </NativeSelect>
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+
+                  <Field className="sm:w-auto sm:pt-6">
+                    <Button
+                      aria-label={`Remove member ${index + 1}`}
+                      className="size-11 sm:size-8"
+                      onClick={() => membersField.removeValue(index)}
+                      size="icon"
+                      title={`Remove member ${index + 1}`}
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Trash2Icon />
+                    </Button>
+                  </Field>
+                </FieldGroup>
+              ))}
+
+              <Button
+                className="w-full"
+                disabled={
+                  membersField.state.value.length >=
+                  MAX_WORKSPACE_CREATION_MEMBERS
+                }
+                onClick={() =>
+                  membersField.pushValue({
+                    id: crypto.randomUUID(),
+                    email: "",
+                    role: "member",
+                  })
+                }
+                size="touch"
+                type="button"
+                variant="outline"
+              >
+                <PlusIcon data-icon="inline-start" />
+                Add member
+              </Button>
+            </FieldGroup>
+          </FieldSet>
+        );
+      }}
+    </form.Field>
+  );
+}
+
+/** Renders typed TanStack Form controls for creating one Workspace. */
+export function CreateWorkspaceDialog({
+  className,
+  onOpenChange,
+  open,
+}: CreateWorkspaceDialogProps) {
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const form = useWorkspaceCreationForm({
+    onCreated: () => onOpenChange(false),
+    onSubmissionError: setSubmissionError,
   });
 
   function changeDialogOpenState(nextOpen: boolean) {
@@ -201,161 +375,7 @@ export function CreateWorkspaceDialog({
               </form.Field>
             </FieldSet>
 
-            <form.Field
-              mode="array"
-              name="workspace.access.members"
-              validators={{
-                onChange: ({ value }) =>
-                  validateWorkspaceCreationMembers(value),
-              }}
-            >
-              {(membersField) => {
-                const membersError = getWorkspaceCreationFieldError(
-                  membersField.state.meta.errors
-                );
-
-                return (
-                  <FieldSet>
-                    <FieldLegend>Members</FieldLegend>
-                    <FieldDescription>
-                      Add up to five collaborators and choose what they can
-                      manage.
-                    </FieldDescription>
-                    <FieldError>{membersError}</FieldError>
-
-                    <FieldGroup>
-                      {membersField.state.value.map((member, index) => (
-                        <FieldGroup
-                          className="gap-3 rounded-lg border p-3 sm:grid sm:grid-cols-[minmax(0,1fr)_8rem_auto] sm:items-start"
-                          key={member.id}
-                        >
-                          <form.Field
-                            name={`workspace.access.members[${index}].email`}
-                            validators={{
-                              onChange: ({ value }) =>
-                                validateWorkspaceCreationMemberEmail(value),
-                            }}
-                          >
-                            {(field) => {
-                              const errorMessage =
-                                getWorkspaceCreationFieldError(
-                                  field.state.meta.errors
-                                );
-                              const inputId = `workspace-creation-member-${member.id}-email`;
-                              const errorId = `${inputId}-error`;
-
-                              return (
-                                <Field
-                                  data-invalid={
-                                    field.state.meta.isValid ? undefined : true
-                                  }
-                                >
-                                  <FieldLabel htmlFor={inputId}>
-                                    Member {index + 1} email
-                                  </FieldLabel>
-                                  <Input
-                                    aria-describedby={
-                                      errorMessage ? errorId : undefined
-                                    }
-                                    aria-invalid={!field.state.meta.isValid}
-                                    autoComplete="off"
-                                    id={inputId}
-                                    inputMode="email"
-                                    maxLength={254}
-                                    name={field.name}
-                                    onBlur={field.handleBlur}
-                                    onChange={(event) =>
-                                      field.handleChange(event.target.value)
-                                    }
-                                    required
-                                    type="email"
-                                    value={field.state.value}
-                                  />
-                                  <FieldError id={errorId}>
-                                    {errorMessage}
-                                  </FieldError>
-                                </Field>
-                              );
-                            }}
-                          </form.Field>
-
-                          <form.Field
-                            name={`workspace.access.members[${index}].role`}
-                          >
-                            {(field) => {
-                              const inputId = `workspace-creation-member-${member.id}-role`;
-
-                              return (
-                                <Field>
-                                  <FieldLabel htmlFor={inputId}>
-                                    Role
-                                  </FieldLabel>
-                                  <NativeSelect
-                                    className="w-full"
-                                    id={inputId}
-                                    name={field.name}
-                                    onBlur={field.handleBlur}
-                                    onChange={(event) =>
-                                      field.handleChange(
-                                        event.target
-                                          .value as WorkspaceCreationMemberRole
-                                      )
-                                    }
-                                    value={field.state.value}
-                                  >
-                                    <NativeSelectOption value="member">
-                                      Member
-                                    </NativeSelectOption>
-                                    <NativeSelectOption value="admin">
-                                      Admin
-                                    </NativeSelectOption>
-                                  </NativeSelect>
-                                </Field>
-                              );
-                            }}
-                          </form.Field>
-
-                          <Field className="sm:w-auto sm:pt-6">
-                            <Button
-                              aria-label={`Remove member ${index + 1}`}
-                              className="size-11 sm:size-8"
-                              onClick={() => membersField.removeValue(index)}
-                              size="icon"
-                              title={`Remove member ${index + 1}`}
-                              type="button"
-                              variant="ghost"
-                            >
-                              <Trash2Icon />
-                            </Button>
-                          </Field>
-                        </FieldGroup>
-                      ))}
-
-                      <Button
-                        className="w-full"
-                        disabled={
-                          membersField.state.value.length >=
-                          MAX_WORKSPACE_CREATION_MEMBERS
-                        }
-                        onClick={() =>
-                          membersField.pushValue({
-                            id: crypto.randomUUID(),
-                            email: "",
-                            role: "member",
-                          })
-                        }
-                        size="touch"
-                        type="button"
-                        variant="outline"
-                      >
-                        <PlusIcon data-icon="inline-start" />
-                        Add member
-                      </Button>
-                    </FieldGroup>
-                  </FieldSet>
-                );
-              }}
-            </form.Field>
+            <WorkspaceCreationMembersFieldset form={form} />
           </FieldGroup>
 
           {submissionError && (

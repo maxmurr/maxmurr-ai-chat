@@ -49,6 +49,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 type SettingsNavigationItem = {
   href: string;
@@ -228,8 +229,88 @@ const settingsNavigationGroups: SettingsNavigationGroup[] = [
   },
 ];
 
+function SettingsSidebarNavigationGroup({
+  className,
+  group,
+  onNavigate,
+  pathname,
+}: {
+  className?: string;
+  group: SettingsNavigationGroup;
+  onNavigate: () => void;
+  pathname?: string;
+}) {
+  return (
+    <SidebarGroup className={cn(className)}>
+      <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu role="list">
+          {group.items.map((item) => {
+            const isActive = pathname === item.href;
+
+            return (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  className="min-h-11 lg:min-h-0"
+                  isActive={isActive}
+                  render={
+                    <Link
+                      aria-current={isActive ? "page" : undefined}
+                      href={item.href}
+                      onNavigate={onNavigate}
+                    />
+                  }
+                  tooltip={item.label}
+                >
+                  <item.icon />
+                  <span>{item.label}</span>
+                </SidebarMenuButton>
+
+                {item.items ? (
+                  <SidebarMenuSub role="list">
+                    {item.items.map((subItem) => {
+                      const isSubItemActive = pathname === subItem.href;
+
+                      return (
+                        <SidebarMenuSubItem key={subItem.href}>
+                          <SidebarMenuSubButton
+                            className="min-h-11 lg:min-h-0"
+                            isActive={isSubItemActive}
+                            render={
+                              <Link
+                                aria-current={
+                                  isSubItemActive ? "page" : undefined
+                                }
+                                href={subItem.href}
+                                onNavigate={onNavigate}
+                              />
+                            }
+                          >
+                            <subItem.icon />
+                            <span>{subItem.label}</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      );
+                    })}
+                  </SidebarMenuSub>
+                ) : null}
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}
+
 /** Renders settings navigation with optional active-route state. */
-export function SettingsAppSidebar({ pathname }: { pathname?: string }) {
+export function SettingsAppSidebar({
+  className,
+  pathname,
+}: {
+  className?: string;
+  pathname?: string;
+}) {
   const { setOpenMobile } = useSidebar();
 
   function closeMobileSidebar() {
@@ -237,7 +318,12 @@ export function SettingsAppSidebar({ pathname }: { pathname?: string }) {
   }
 
   return (
-    <Sidebar collapsible="icon" data-testid="settings-sidebar" variant="inset">
+    <Sidebar
+      className={cn(className)}
+      collapsible="icon"
+      data-testid="settings-sidebar"
+      variant="inset"
+    >
       <SidebarHeader className="pt-[calc(--spacing(2)+env(safe-area-inset-top))]">
         <nav aria-label="Settings home">
           <SidebarMenu role="list">
@@ -264,65 +350,12 @@ export function SettingsAppSidebar({ pathname }: { pathname?: string }) {
       <SidebarContent>
         <nav aria-label="Settings sections">
           {settingsNavigationGroups.map((group) => (
-            <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu role="list">
-                  {group.items.map((item) => {
-                    const isActive = pathname === item.href;
-
-                    return (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                          className="min-h-11 lg:min-h-0"
-                          isActive={isActive}
-                          render={
-                            <Link
-                              aria-current={isActive ? "page" : undefined}
-                              href={item.href}
-                              onNavigate={closeMobileSidebar}
-                            />
-                          }
-                          tooltip={item.label}
-                        >
-                          <item.icon />
-                          <span>{item.label}</span>
-                        </SidebarMenuButton>
-
-                        {item.items ? (
-                          <SidebarMenuSub role="list">
-                            {item.items.map((subItem) => {
-                              const isSubItemActive = pathname === subItem.href;
-
-                              return (
-                                <SidebarMenuSubItem key={subItem.href}>
-                                  <SidebarMenuSubButton
-                                    className="min-h-11 lg:min-h-0"
-                                    isActive={isSubItemActive}
-                                    render={
-                                      <Link
-                                        aria-current={
-                                          isSubItemActive ? "page" : undefined
-                                        }
-                                        href={subItem.href}
-                                        onNavigate={closeMobileSidebar}
-                                      />
-                                    }
-                                  >
-                                    <subItem.icon />
-                                    <span>{subItem.label}</span>
-                                  </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                              );
-                            })}
-                          </SidebarMenuSub>
-                        ) : null}
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            <SettingsSidebarNavigationGroup
+              group={group}
+              key={group.label}
+              onNavigate={closeMobileSidebar}
+              pathname={pathname}
+            />
           ))}
         </nav>
       </SidebarContent>

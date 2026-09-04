@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 
-import { Skeleton } from "@/components/ui/skeleton";
 import { AppPageHeader } from "@/components/app-page-header";
+import { AppRouteShell } from "@/components/app-route-shell";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectActions } from "@/features/project/components/project-actions";
 import { ProjectChatComposer } from "@/features/project/components/project-chat-composer";
 import { ProjectChatsSection } from "@/features/project/components/project-chats-section";
@@ -23,10 +24,7 @@ export async function ProjectDetail({
   const project = await getProjectPageData(projectId);
 
   return (
-    <div
-      className={cn("flex min-h-0 flex-1 flex-col", className)}
-      data-testid="project-detail-content"
-    >
+    <AppRouteShell className={className} data-testid="project-detail-content">
       <ProjectDetailHeader
         actions={
           <ProjectActions
@@ -63,17 +61,17 @@ export async function ProjectDetail({
           <ProjectChatsSection chats={project.chats} />
         </div>
       </div>
-    </div>
+    </AppRouteShell>
   );
 }
 
 /** Reserves Project detail structure while authenticated Project loads. */
 export function ProjectDetailSkeleton({ className }: { className?: string }) {
   return (
-    <div
+    <AppRouteShell
       aria-busy="true"
       aria-label="Loading project"
-      className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}
+      className={cn("min-w-0", className)}
     >
       <AppPageHeader>
         <Skeleton className="h-5 w-28 max-w-full sm:h-4" />
@@ -116,6 +114,6 @@ export function ProjectDetailSkeleton({ className }: { className?: string }) {
           </div>
         </div>
       </div>
-    </div>
+    </AppRouteShell>
   );
 }

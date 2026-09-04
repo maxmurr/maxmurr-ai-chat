@@ -11,6 +11,10 @@ import {
 } from "lucide-react";
 
 import { pinChatAction, renameChatAction } from "@/features/chat/chat-actions";
+import {
+  ChatActivityIndicator,
+  getChatActivityAriaSuffix,
+} from "@/features/chat/components/chat-activity-indicator";
 import { ChatActionsMenuContent } from "@/features/chat/components/chat-actions-menu-content";
 import { ChatDeleteDialog } from "@/features/chat/components/chat-dialogs";
 import { ChatShareDialogContent } from "@/features/chat/components/chat-share-dialog";
@@ -25,7 +29,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import type { ChatVisibility } from "@/src/entities/models/chat";
 import { cn } from "@/lib/utils";
@@ -54,6 +57,152 @@ type ChatConversationItemProps = {
   showProjectName?: boolean;
 };
 
+function ChatConversationRenameControl({
+  className,
+  inputRef,
+  onCancelRename,
+  onFinishRename,
+  onRestoreLinkFocus,
+  pinned,
+  showPinnedChatIcon,
+  title,
+}: {
+  className?: string;
+  inputRef: RefObject<HTMLInputElement | null>;
+  onCancelRename: () => void;
+  onFinishRename: (title: string) => void;
+  onRestoreLinkFocus: () => void;
+  pinned: boolean;
+  showPinnedChatIcon: boolean;
+  title: string;
+}) {
+  return (
+    <SidebarMenuButton
+      className={cn("bg-transparent! pr-2!", className)}
+      render={<div />}
+    >
+      {showPinnedChatIcon && pinned && <MessageCircleIcon />}
+      <Input
+        ref={inputRef}
+        aria-label={`Rename ${title}`}
+        autoComplete="off"
+        className="-mx-1 h-auto w-full min-w-0 rounded-none border-0 bg-transparent px-1 py-0 focus-visible:border-transparent focus-visible:ring-0 dark:bg-transparent"
+        defaultValue={title}
+        name="chat-title"
+        spellCheck={false}
+        type="text"
+        onBlur={(event) => onFinishRename(event.currentTarget.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            onRestoreLinkFocus();
+            onFinishRename(event.currentTarget.value);
+            return;
+          }
+
+          if (event.key === "Escape") {
+            event.stopPropagation();
+            onRestoreLinkFocus();
+            onCancelRename();
+          }
+        }}
+      />
+    </SidebarMenuButton>
+  );
+}
+
+function ChatConversationActionRail({
+  actionsRef,
+  chat,
+  className,
+  isRenaming,
+  onDelete,
+  onRename,
+  onShare,
+  onTogglePin,
+  projects,
+  renameInputRef,
+  showPinAction,
+  showProjectName,
+}: {
+  actionsRef: RefObject<HTMLDivElement | null>;
+  chat: ChatConversationEntry;
+  className?: string;
+  isRenaming: boolean;
+  onDelete: () => void;
+  onRename: () => void;
+  onShare: () => void;
+  onTogglePin: () => void;
+  projects: { id: string; name: string }[];
+  renameInputRef: RefObject<HTMLInputElement | null>;
+  showPinAction: boolean;
+  showProjectName: boolean;
+}) {
+  return (
+    <div
+      ref={actionsRef}
+      className={cn(
+        "pointer-events-none absolute inset-y-0 right-1 flex items-center [--conversation-actions-background:var(--sidebar)] group-has-focus-visible/menu-item:[--conversation-actions-background:var(--sidebar-accent)] peer-data-active/menu-button:[--conversation-actions-background:var(--sidebar-accent)] pointer-fine:group-hover/menu-item:[--conversation-actions-background:var(--sidebar-accent)]",
+        isRenaming && "invisible",
+        className
+      )}
+    >
+      {showProjectName && chat.projectName && (
+        <span className="max-w-24 truncate bg-[linear-gradient(to_right,transparent,var(--conversation-actions-background)_1.5rem)] pl-8 text-xs text-muted-foreground transition-transform duration-150 ease-in-out motion-reduce:transition-none lg:group-has-focus-visible/menu-item:translate-x-0 lg:pointer-fine:translate-x-12 lg:pointer-fine:group-hover/menu-item:translate-x-0">
+          {chat.projectName}
+        </span>
+      )}
+
+      <div
+        className={cn(
+          "pointer-events-auto flex items-center gap-1 transition-opacity duration-150 ease-in-out motion-reduce:transition-none lg:group-has-focus-visible/menu-item:pointer-events-auto lg:group-has-focus-visible/menu-item:opacity-100 lg:pointer-fine:pointer-events-none lg:pointer-fine:opacity-0 lg:pointer-fine:group-hover/menu-item:pointer-events-auto lg:pointer-fine:group-hover/menu-item:opacity-100",
+          showProjectName && chat.projectName
+            ? "bg-(--conversation-actions-background) pl-1"
+            : "bg-[linear-gradient(to_right,transparent,var(--conversation-actions-background)_1.5rem)] pl-8"
+        )}
+      >
+        {showPinAction && (
+          <SidebarMenuAction
+            aria-label={`${chat.pinned ? "Unpin" : "Pin"} ${chat.title}`}
+            className="static! hidden cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! lg:flex"
+            onClick={onTogglePin}
+          >
+            {chat.pinned ? <PinOffIcon /> : <PinIcon />}
+          </SidebarMenuAction>
+        )}
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <SidebarMenuAction
+                aria-label={`Open chat actions for ${chat.title}`}
+                className="static! cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground!"
+              />
+            }
+          >
+            <EllipsisIcon />
+          </DropdownMenuTrigger>
+          <ChatActionsMenuContent
+            align="start"
+            chatId={chat.id}
+            finalFocus={(closeType) =>
+              renameInputRef.current ?? closeType === "keyboard"
+            }
+            onDelete={onDelete}
+            onRename={onRename}
+            onShare={onShare}
+            onTogglePin={onTogglePin}
+            pinned={chat.pinned}
+            projectId={chat.projectId}
+            projects={projects}
+            side="right"
+          />
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
 /** Renders one renameable conversation link and its action menu. */
 export function ChatConversationItem({
   chat,
@@ -76,13 +225,11 @@ export function ChatConversationItem({
     showProjectName && chat.projectName
       ? `${chat.title} · ${chat.projectName}`
       : chat.title;
-  const isGeneratingResponse = chat.activeStreamId !== null;
   const hasUnreadResponse = chat.hasUnreadResponse && !isActive;
-  const activityLabel = isGeneratingResponse
-    ? ", generating response"
-    : hasUnreadResponse
-      ? ", unread response"
-      : "";
+  const activityLabel = getChatActivityAriaSuffix({
+    activeStreamId: chat.activeStreamId,
+    hasUnreadResponse,
+  });
 
   function toggleConversationPin() {
     void pinChatAction(chat.id, !chat.pinned).then((result) => {
@@ -130,34 +277,17 @@ export function ChatConversationItem({
   return (
     <SidebarMenuItem className={cn(className)}>
       {isRenaming ? (
-        <SidebarMenuButton className="bg-transparent! pr-2!" render={<div />}>
-          {showPinnedChatIcon && chat.pinned && <MessageCircleIcon />}
-          <Input
-            ref={renameInputRef}
-            aria-label={`Rename ${chat.title}`}
-            autoComplete="off"
-            className="-mx-1 h-auto w-full min-w-0 rounded-none border-0 bg-transparent px-1 py-0 focus-visible:border-transparent focus-visible:ring-0 dark:bg-transparent"
-            defaultValue={chat.title}
-            name="chat-title"
-            spellCheck={false}
-            type="text"
-            onBlur={(event) => finishRenaming(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-                event.preventDefault();
-                restoreLinkFocusRef.current = true;
-                finishRenaming(event.currentTarget.value);
-                return;
-              }
-
-              if (event.key === "Escape") {
-                event.stopPropagation();
-                restoreLinkFocusRef.current = true;
-                setIsRenaming(false);
-              }
-            }}
-          />
-        </SidebarMenuButton>
+        <ChatConversationRenameControl
+          inputRef={renameInputRef}
+          onCancelRename={() => setIsRenaming(false)}
+          onFinishRename={finishRenaming}
+          onRestoreLinkFocus={() => {
+            restoreLinkFocusRef.current = true;
+          }}
+          pinned={chat.pinned}
+          showPinnedChatIcon={showPinnedChatIcon}
+          title={chat.title}
+        />
       ) : (
         <SidebarMenuButton
           className="pr-2! pointer-fine:group-hover/menu-item:bg-sidebar-accent pointer-fine:group-hover/menu-item:text-sidebar-accent-foreground"
@@ -177,85 +307,26 @@ export function ChatConversationItem({
             conversationActionsRef={conversationActionsRef}
             title={chat.title}
           />
-          {(isGeneratingResponse || hasUnreadResponse) && (
-            <span
-              aria-hidden="true"
-              className="flex size-4 shrink-0 items-center justify-center"
-              data-slot="chat-conversation-activity"
-            >
-              {isGeneratingResponse ? (
-                <Spinner className="text-muted-foreground motion-reduce:animate-none" />
-              ) : (
-                <span
-                  className="size-2 rounded-full bg-status-unread"
-                  data-slot="chat-unread-indicator"
-                />
-              )}
-            </span>
-          )}
+          <ChatActivityIndicator
+            activeStreamId={chat.activeStreamId}
+            hasUnreadResponse={hasUnreadResponse}
+          />
         </SidebarMenuButton>
       )}
 
-      <div
-        ref={conversationActionsRef}
-        className={cn(
-          "pointer-events-none absolute inset-y-0 right-1 flex items-center [--conversation-actions-background:var(--sidebar)] group-has-focus-visible/menu-item:[--conversation-actions-background:var(--sidebar-accent)] peer-data-active/menu-button:[--conversation-actions-background:var(--sidebar-accent)] pointer-fine:group-hover/menu-item:[--conversation-actions-background:var(--sidebar-accent)]",
-          isRenaming && "invisible"
-        )}
-      >
-        {showProjectName && chat.projectName && (
-          <span className="max-w-24 truncate bg-[linear-gradient(to_right,transparent,var(--conversation-actions-background)_1.5rem)] pl-8 text-xs text-muted-foreground transition-transform duration-150 ease-in-out motion-reduce:transition-none lg:group-has-focus-visible/menu-item:translate-x-0 lg:pointer-fine:translate-x-12 lg:pointer-fine:group-hover/menu-item:translate-x-0">
-            {chat.projectName}
-          </span>
-        )}
-
-        <div
-          className={cn(
-            "pointer-events-auto flex items-center gap-1 transition-opacity duration-150 ease-in-out motion-reduce:transition-none lg:group-has-focus-visible/menu-item:pointer-events-auto lg:group-has-focus-visible/menu-item:opacity-100 lg:pointer-fine:pointer-events-none lg:pointer-fine:opacity-0 lg:pointer-fine:group-hover/menu-item:pointer-events-auto lg:pointer-fine:group-hover/menu-item:opacity-100",
-            showProjectName && chat.projectName
-              ? "bg-(--conversation-actions-background) pl-1"
-              : "bg-[linear-gradient(to_right,transparent,var(--conversation-actions-background)_1.5rem)] pl-8"
-          )}
-        >
-          {showPinAction && (
-            <SidebarMenuAction
-              aria-label={`${chat.pinned ? "Unpin" : "Pin"} ${chat.title}`}
-              className="static! hidden cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! lg:flex"
-              onClick={toggleConversationPin}
-            >
-              {chat.pinned ? <PinOffIcon /> : <PinIcon />}
-            </SidebarMenuAction>
-          )}
-
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <SidebarMenuAction
-                  aria-label={`Open chat actions for ${chat.title}`}
-                  className="static! cursor-pointer text-muted-foreground! after:-inset-3 hover:bg-transparent! hover:text-sidebar-accent-foreground! data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground!"
-                />
-              }
-            >
-              <EllipsisIcon />
-            </DropdownMenuTrigger>
-            <ChatActionsMenuContent
-              align="start"
-              chatId={chat.id}
-              finalFocus={(closeType) =>
-                renameInputRef.current ?? closeType === "keyboard"
-              }
-              onDelete={() => setIsDeleteDialogOpen(true)}
-              onRename={() => setIsRenaming(true)}
-              onShare={() => setIsShareDialogOpen(true)}
-              onTogglePin={toggleConversationPin}
-              pinned={chat.pinned}
-              projectId={chat.projectId}
-              projects={projects}
-              side="right"
-            />
-          </DropdownMenu>
-        </div>
-      </div>
+      <ChatConversationActionRail
+        actionsRef={conversationActionsRef}
+        chat={chat}
+        isRenaming={isRenaming}
+        onDelete={() => setIsDeleteDialogOpen(true)}
+        onRename={() => setIsRenaming(true)}
+        onShare={() => setIsShareDialogOpen(true)}
+        onTogglePin={toggleConversationPin}
+        projects={projects}
+        renameInputRef={renameInputRef}
+        showPinAction={showPinAction}
+        showProjectName={showProjectName}
+      />
 
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
         <ChatShareDialogContent
@@ -328,7 +399,7 @@ function ChatSidebarConversationTitle({
       className={cn(
         "@container/title relative min-w-0 flex-1 text-clip!",
         isTitleOverflowing &&
-        "mask-[linear-gradient(to_right,black,black_calc(100%-0.75rem),transparent)] motion-safe:pointer-fine:group-hover/menu-item:mask-[linear-gradient(to_right,transparent,black_0.75rem,black_calc(100%-0.75rem),transparent)]",
+          "mask-[linear-gradient(to_right,black,black_calc(100%-0.75rem),transparent)] motion-safe:pointer-fine:group-hover/menu-item:mask-[linear-gradient(to_right,transparent,black_0.75rem,black_calc(100%-0.75rem),transparent)]",
         className
       )}
     >
@@ -336,7 +407,7 @@ function ChatSidebarConversationTitle({
         className={cn(
           "block overflow-hidden whitespace-nowrap",
           isTitleOverflowing &&
-          "motion-safe:pointer-fine:group-hover/menu-item:invisible"
+            "motion-safe:pointer-fine:group-hover/menu-item:invisible"
         )}
       >
         {title}
@@ -347,7 +418,7 @@ function ChatSidebarConversationTitle({
         className={cn(
           "invisible absolute inset-y-0 left-0 inline-block w-max",
           isTitleOverflowing &&
-          "motion-safe:pointer-fine:group-hover/menu-item:visible motion-safe:pointer-fine:group-hover/menu-item:translate-x-[calc(var(--conversation-title-visible-width)+0.6rem-100%)] motion-safe:pointer-fine:group-hover/menu-item:transition-transform motion-safe:pointer-fine:group-hover/menu-item:delay-300 motion-safe:pointer-fine:group-hover/menu-item:duration-[2s] motion-safe:pointer-fine:group-hover/menu-item:ease-linear"
+            "motion-safe:pointer-fine:group-hover/menu-item:visible motion-safe:pointer-fine:group-hover/menu-item:translate-x-[calc(var(--conversation-title-visible-width)+0.6rem-100%)] motion-safe:pointer-fine:group-hover/menu-item:transition-transform motion-safe:pointer-fine:group-hover/menu-item:delay-300 motion-safe:pointer-fine:group-hover/menu-item:duration-[2s] motion-safe:pointer-fine:group-hover/menu-item:ease-linear"
         )}
       >
         {title}

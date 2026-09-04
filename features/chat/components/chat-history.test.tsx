@@ -5,9 +5,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { ChatConversationEntry } from "@/features/chat/components/chat-conversation-item";
 import {
   ChatHistory,
-  getChatActivityPollIntervalMs,
   groupOwnChats,
 } from "@/features/chat/components/chat-history";
+import { getChatActivityPollIntervalMs } from "@/features/chat/hooks/use-chat-activity-polling";
 import type { ProjectActionsEntry } from "@/features/project/components/project-actions";
 import { SidebarProvider } from "@/components/ui/sidebar";
 

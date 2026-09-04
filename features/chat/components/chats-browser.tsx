@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import {
   ChevronDownIcon,
   EllipsisVerticalIcon,
@@ -35,7 +35,6 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import {
   AlertDialog,
@@ -54,13 +53,18 @@ import type {
   ChatListCursorPayload,
   ChatListPagePayload,
 } from "@/features/chat/chat-list-contract";
+import {
+  ChatActivityIndicator,
+  getChatActivityAriaSuffix,
+} from "@/features/chat/components/chat-activity-indicator";
 import { ChatActionsMenuContent } from "@/features/chat/components/chat-actions-menu-content";
 import type { ChatConversationEntry } from "@/features/chat/components/chat-conversation-item";
 import {
   ChatDeleteDialog,
   ChatRenameDialog,
 } from "@/features/chat/components/chat-dialogs";
-import { CHAT_ACTIVITY_UPDATED_EVENT } from "@/features/chat/components/chat-history";
+import { ChatListRowsSkeleton } from "@/features/chat/components/chat-list-rows-skeleton";
+import { CHAT_ACTIVITY_UPDATED_EVENT } from "@/features/chat/hooks/use-chat-activity-polling";
 import { ChatShareDialogContent } from "@/features/chat/components/chat-share-dialog";
 import { formatChatSearchUpdatedDate } from "@/features/chat/components/chat-search";
 import { cn } from "@/lib/utils";
@@ -122,25 +126,9 @@ export function mergeChatListPage(
   ];
 }
 
-function ChatListRowsSkeleton() {
-  return (
-    <div aria-label="Loading chats" role="status">
-      {Array.from({ length: 5 }).map((_, index) => (
-        <div
-          className="relative -mx-3 flex min-h-12 items-center gap-2 px-3 after:pointer-events-none after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-border last:after:hidden"
-          key={index}
-        >
-          <Skeleton className="h-5 w-2/3 max-w-sm min-w-0 motion-reduce:animate-none sm:h-4" />
-          <Skeleton className="ml-auto h-5 w-14 shrink-0 motion-reduce:animate-none sm:h-4" />
-          <Skeleton className="size-11 shrink-0 motion-reduce:animate-none pointer-fine:hidden" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function ChatListRow({
   chat,
+  className,
   isSelected,
   onChange,
   onDialog,
@@ -150,6 +138,7 @@ function ChatListRow({
   selectionMode,
 }: {
   chat: ChatListBrowserEntry;
+  className?: string;
   isSelected: boolean;
   onChange: (changes: Partial<ChatListBrowserEntry>) => void;
   onDialog: (dialog: ChatListDialog) => void;
@@ -159,11 +148,7 @@ function ChatListRow({
   selectionMode: boolean;
 }) {
   const isGeneratingResponse = chat.activeStreamId !== null;
-  const activityLabel = isGeneratingResponse
-    ? ", generating response"
-    : chat.hasUnreadResponse
-      ? ", unread response"
-      : "";
+  const activityLabel = getChatActivityAriaSuffix(chat);
   const supportingText = chat.searchSnippet ?? chat.projectName;
   const chatDetails = (
     <>
@@ -171,18 +156,10 @@ function ChatListRow({
         <p className="min-w-0 flex-1 truncate text-base font-medium sm:text-sm">
           {chat.title}
         </p>
-        {(isGeneratingResponse || chat.hasUnreadResponse) && (
-          <span
-            aria-hidden="true"
-            className="flex size-4 shrink-0 items-center justify-center"
-          >
-            {isGeneratingResponse ? (
-              <Spinner className="text-muted-foreground motion-reduce:animate-none" />
-            ) : (
-              <span className="size-2 rounded-full bg-status-unread" />
-            )}
-          </span>
-        )}
+        <ChatActivityIndicator
+          activeStreamId={chat.activeStreamId}
+          hasUnreadResponse={chat.hasUnreadResponse}
+        />
       </div>
       {supportingText && (
         <p className="truncate text-base text-muted-foreground sm:text-sm">
@@ -193,7 +170,12 @@ function ChatListRow({
   );
 
   return (
-    <li className="group/chat-list-row relative -mx-3 flex min-h-12 items-center gap-2 rounded-lg px-3 [contain-intrinsic-size:auto_3rem] [content-visibility:auto] after:pointer-events-none after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-border last:after:hidden focus-within:bg-muted has-data-popup-open:bg-muted pointer-fine:hover:bg-muted has-data-popup-open:[&>time]:opacity-0">
+    <li
+      className={cn(
+        "group/chat-list-row relative -mx-3 flex min-h-12 items-center gap-2 rounded-lg px-3 [contain-intrinsic-size:auto_3rem] [content-visibility:auto] after:pointer-events-none after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-border last:after:hidden focus-within:bg-muted has-data-popup-open:bg-muted pointer-fine:hover:bg-muted has-data-popup-open:[&>time]:opacity-0",
+        className
+      )}
+    >
       {selectionMode && (
         <label
           className="flex size-11 shrink-0 items-center justify-center sm:size-9"
@@ -283,11 +265,403 @@ function ChatListRow({
   );
 }
 
+function ChatListControls({
+  allLoadedChatsSelected,
+  className,
+  filter,
+  onDeleteSelectedChats,
+  onExitSelection,
+  onFilterChange,
+  onQueryChange,
+  onSelectAllLoadedChats,
+  onStartSelection,
+  query,
+  selectedChatCount,
+  selectionMode,
+}: {
+  allLoadedChatsSelected: boolean;
+  className?: string;
+  filter: ChatListFilter;
+  onDeleteSelectedChats: () => void;
+  onExitSelection: () => void;
+  onFilterChange: (filter: ChatListFilter) => void;
+  onQueryChange: (query: string) => void;
+  onSelectAllLoadedChats: () => void;
+  onStartSelection: () => void;
+  query: string;
+  selectedChatCount: number;
+  selectionMode: boolean;
+}) {
+  const filterLabel =
+    chatListFilterOptions.find((option) => option.value === filter)?.label ??
+    "All";
+
+  if (selectionMode) {
+    return (
+      <div
+        className={cn(
+          "flex min-h-11 flex-wrap items-center justify-end gap-2 sm:min-h-8",
+          className
+        )}
+      >
+        <p className="mr-auto text-base text-muted-foreground tabular-nums sm:text-sm">
+          {selectedChatCount} selected
+        </p>
+        <Button
+          onClick={onSelectAllLoadedChats}
+          size="touch"
+          type="button"
+          variant="secondary"
+        >
+          {allLoadedChatsSelected ? "Deselect all" : "Select all"}
+        </Button>
+        <Button
+          disabled={selectedChatCount === 0}
+          onClick={onDeleteSelectedChats}
+          size="touch"
+          type="button"
+          variant="destructive"
+        >
+          Delete
+        </Button>
+        <Button
+          aria-label="Exit selection"
+          onClick={onExitSelection}
+          size="icon"
+          type="button"
+          variant="secondary"
+        >
+          <XIcon />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-2",
+        className
+      )}
+    >
+      <InputGroup className="h-11 basis-full sm:h-8 sm:max-w-xs sm:flex-1 sm:basis-auto">
+        <InputGroupAddon>
+          <SearchIcon />
+        </InputGroupAddon>
+        <InputGroupInput
+          aria-label="Search chat contents"
+          autoComplete="off"
+          name="chat-list-search"
+          onChange={(event) => onQueryChange(event.currentTarget.value)}
+          placeholder="Search chats…"
+          spellCheck={false}
+          type="search"
+          value={query}
+        />
+      </InputGroup>
+
+      <div className="ml-auto flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={<Button size="touch" type="button" variant="secondary" />}
+          >
+            {filterLabel}
+            <ChevronDownIcon data-icon="inline-end" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuGroup>
+              <DropdownMenuRadioGroup
+                onValueChange={(value) =>
+                  onFilterChange(value as ChatListFilter)
+                }
+                value={filter}
+              >
+                {chatListFilterOptions.map((option) => (
+                  <DropdownMenuRadioItem
+                    key={option.value}
+                    value={option.value}
+                  >
+                    {option.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Button
+          onClick={onStartSelection}
+          size="touch"
+          type="button"
+          variant="secondary"
+        >
+          Select
+        </Button>
+        <Button
+          nativeButton={false}
+          render={<Link href="/chat" />}
+          size="touch"
+        >
+          New chat
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function ChatListResults({
+  chats,
+  className,
+  filter,
+  isLoadingMore,
+  isReplacing,
+  loadError,
+  loadMoreError,
+  onChangeChat,
+  onOpenChatDialog,
+  onReloadChatList,
+  onRetryLoadMore,
+  onToggleChatPin,
+  onToggleChatSelection,
+  projects,
+  query,
+  selectedChatIds,
+  selectionMode,
+  sentinelRef,
+}: {
+  chats: ChatListBrowserEntry[];
+  className?: string;
+  filter: ChatListFilter;
+  isLoadingMore: boolean;
+  isReplacing: boolean;
+  loadError: string | null;
+  loadMoreError: string | null;
+  onChangeChat: (
+    chatId: string,
+    changes: Partial<ChatListBrowserEntry>
+  ) => void;
+  onOpenChatDialog: (
+    chat: ChatListBrowserEntry,
+    dialog: ChatListDialog
+  ) => void;
+  onReloadChatList: () => void;
+  onRetryLoadMore: () => void;
+  onToggleChatPin: (chat: ChatListBrowserEntry) => void;
+  onToggleChatSelection: (chatId: string) => void;
+  projects: ChatProjectOption[];
+  query: string;
+  selectedChatIds: Set<string>;
+  selectionMode: boolean;
+  sentinelRef: RefObject<HTMLDivElement | null>;
+}) {
+  const trimmedQuery = query.trim();
+
+  return (
+    <div className={cn("contents", className)}>
+      {isReplacing ? (
+        <ChatListRowsSkeleton aria-label="Loading chats" role="status" />
+      ) : loadError ? (
+        <Empty className="min-h-64">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <SearchXIcon />
+            </EmptyMedia>
+            <EmptyTitle>Chats unavailable</EmptyTitle>
+            <EmptyDescription>{loadError}</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button
+              onClick={onReloadChatList}
+              type="button"
+              variant="secondary"
+            >
+              Try again
+            </Button>
+          </EmptyContent>
+        </Empty>
+      ) : chats.length === 0 ? (
+        <Empty className="min-h-64">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              {trimmedQuery || filter !== "all" ? (
+                <SearchXIcon />
+              ) : (
+                <MessageSquareIcon />
+              )}
+            </EmptyMedia>
+            <EmptyTitle>
+              {trimmedQuery || filter !== "all"
+                ? "No chats found"
+                : "No chats yet"}
+            </EmptyTitle>
+            <EmptyDescription>
+              {trimmedQuery
+                ? `No chat title or message matches “${trimmedQuery}”.`
+                : filter === "unread"
+                  ? "No chats have unread responses."
+                  : filter === "pinned"
+                    ? "No chats are pinned."
+                    : "Start a chat to see it here."}
+            </EmptyDescription>
+          </EmptyHeader>
+          {!trimmedQuery && filter === "all" && (
+            <EmptyContent>
+              <Button
+                nativeButton={false}
+                render={<Link href="/chat" />}
+                size="touch"
+              >
+                New chat
+              </Button>
+            </EmptyContent>
+          )}
+        </Empty>
+      ) : (
+        <ul role="list">
+          {chats.map((chat) => (
+            <ChatListRow
+              chat={chat}
+              isSelected={selectedChatIds.has(chat.id)}
+              key={chat.id}
+              onChange={(changes) => onChangeChat(chat.id, changes)}
+              onDialog={(dialog) => onOpenChatDialog(chat, dialog)}
+              onSelect={() => onToggleChatSelection(chat.id)}
+              onTogglePin={() => onToggleChatPin(chat)}
+              projects={projects}
+              selectionMode={selectionMode}
+            />
+          ))}
+        </ul>
+      )}
+
+      <div
+        aria-live="polite"
+        className="flex min-h-12 items-center justify-center"
+        ref={sentinelRef}
+      >
+        {isLoadingMore && (
+          <>
+            <Spinner className="text-muted-foreground motion-reduce:animate-none" />
+            <span className="sr-only">Loading more chats</span>
+          </>
+        )}
+        {loadMoreError && (
+          <Button onClick={onRetryLoadMore} type="button" variant="secondary">
+            Try loading more
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ChatListDialogs({
+  activeChat,
+  activeDialog,
+  className,
+  isBulkDeleteOpen,
+  isBulkDeleting,
+  onBulkDeleteOpenChange,
+  onChangeChat,
+  onCloseActiveDialog,
+  onDeleteChat,
+  onDeleteSelectedChats,
+  selectedChatCount,
+}: {
+  activeChat: ChatListBrowserEntry | null;
+  activeDialog: ChatListDialog | null;
+  className?: string;
+  isBulkDeleteOpen: boolean;
+  isBulkDeleting: boolean;
+  onBulkDeleteOpenChange: (open: boolean) => void;
+  onChangeChat: (
+    chatId: string,
+    changes: Partial<ChatListBrowserEntry>
+  ) => void;
+  onCloseActiveDialog: () => void;
+  onDeleteChat: (chatId: string) => void;
+  onDeleteSelectedChats: () => void;
+  selectedChatCount: number;
+}) {
+  function closeActiveDialog(open: boolean) {
+    if (!open) onCloseActiveDialog();
+  }
+
+  return (
+    <div className={cn("contents", className)}>
+      {activeChat && (
+        <>
+          <ChatRenameDialog
+            chat={activeChat}
+            key={`rename-${activeChat.id}`}
+            onOpenChange={closeActiveDialog}
+            onRenamed={(title) => onChangeChat(activeChat.id, { title })}
+            open={activeDialog === "rename"}
+          />
+          <ChatDeleteDialog
+            chat={activeChat}
+            key={`delete-${activeChat.id}`}
+            onDeleted={() => onDeleteChat(activeChat.id)}
+            onOpenChange={closeActiveDialog}
+            open={activeDialog === "delete"}
+          />
+          <Dialog
+            key={`share-${activeChat.id}`}
+            onOpenChange={closeActiveDialog}
+            open={activeDialog === "share"}
+          >
+            <ChatShareDialogContent
+              chatId={activeChat.id}
+              initialPublicToken={activeChat.publicToken}
+              initialVisibility={activeChat.visibility}
+            />
+          </Dialog>
+        </>
+      )}
+
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!isBulkDeleting) onBulkDeleteOpenChange(open);
+        }}
+        open={isBulkDeleteOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {selectedChatCount}{" "}
+              {selectedChatCount === 1 ? "chat" : "chats"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes selected chats and their messages. Shared
+              links stop working.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isBulkDeleting}
+              onClick={onDeleteSelectedChats}
+              variant="destructive"
+            >
+              {isBulkDeleting && <Spinner data-icon="inline-start" />}
+              {isBulkDeleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
 /** Renders searchable, infinitely paginated owner Chats with bulk selection. */
 export function ChatsBrowser({
+  className,
   initialPage,
   projects,
 }: {
+  className?: string;
   initialPage: ChatListPagePayload;
   projects: ChatProjectOption[];
 }) {
@@ -320,9 +694,6 @@ export function ChatsBrowser({
   const allLoadedChatsSelected =
     selectableChats.length > 0 &&
     selectableChats.every(({ id }) => selectedChatIds.has(id));
-  const filterLabel =
-    chatListFilterOptions.find((option) => option.value === filter)?.label ??
-    "All";
 
   function changeChat(chatId: string, changes: Partial<ChatListBrowserEntry>) {
     setChats((currentChats) =>
@@ -333,6 +704,15 @@ export function ChatsBrowser({
     setActiveChat((currentChat) =>
       currentChat?.id === chatId ? { ...currentChat, ...changes } : currentChat
     );
+  }
+
+  function removeChat(chatId: string) {
+    setChats((currentChats) => currentChats.filter(({ id }) => id !== chatId));
+    setSelectedChatIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      nextIds.delete(chatId);
+      return nextIds;
+    });
   }
 
   function openChatDialog(chat: ChatListBrowserEntry, dialog: ChatListDialog) {
@@ -563,285 +943,60 @@ export function ChatsBrowser({
   }, [filter]);
 
   return (
-    <section aria-label="Chats" className="flex flex-col gap-4" id="chat-list">
-      {selectionMode ? (
-        <div className="flex min-h-11 flex-wrap items-center justify-end gap-2 sm:min-h-8">
-          <p className="mr-auto text-base text-muted-foreground tabular-nums sm:text-sm">
-            {selectedChatIds.size} selected
-          </p>
-          <Button
-            onClick={toggleAllLoadedChats}
-            size="touch"
-            type="button"
-            variant="secondary"
-          >
-            {allLoadedChatsSelected ? "Deselect all" : "Select all"}
-          </Button>
-          <Button
-            disabled={selectedChatIds.size === 0}
-            onClick={() => setIsBulkDeleteOpen(true)}
-            size="touch"
-            type="button"
-            variant="destructive"
-          >
-            Delete
-          </Button>
-          <Button
-            aria-label="Exit selection"
-            onClick={() => {
-              setSelectedChatIds(new Set());
-              setSelectionMode(false);
-            }}
-            size="icon"
-            type="button"
-            variant="secondary"
-          >
-            <XIcon />
-          </Button>
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <InputGroup className="h-11 basis-full sm:h-8 sm:max-w-xs sm:flex-1 sm:basis-auto">
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-            <InputGroupInput
-              aria-label="Search chat contents"
-              autoComplete="off"
-              name="chat-list-search"
-              onChange={(event) => setQuery(event.currentTarget.value)}
-              placeholder="Search chats…"
-              spellCheck={false}
-              type="search"
-              value={query}
-            />
-          </InputGroup>
-
-          <div className="ml-auto flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button size="touch" type="button" variant="secondary" />
-                }
-              >
-                {filterLabel}
-                <ChevronDownIcon data-icon="inline-end" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuGroup>
-                  <DropdownMenuRadioGroup
-                    onValueChange={(value) =>
-                      setFilter(value as ChatListFilter)
-                    }
-                    value={filter}
-                  >
-                    {chatListFilterOptions.map((option) => (
-                      <DropdownMenuRadioItem
-                        key={option.value}
-                        value={option.value}
-                      >
-                        {option.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button
-              onClick={() => setSelectionMode(true)}
-              size="touch"
-              type="button"
-              variant="secondary"
-            >
-              Select
-            </Button>
-            <Button
-              nativeButton={false}
-              render={<Link href="/chat" />}
-              size="touch"
-            >
-              New chat
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {isReplacing ? (
-        <ChatListRowsSkeleton />
-      ) : loadError ? (
-        <Empty className="min-h-64">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <SearchXIcon />
-            </EmptyMedia>
-            <EmptyTitle>Chats unavailable</EmptyTitle>
-            <EmptyDescription>{loadError}</EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <Button
-              onClick={() => setReloadVersion((version) => version + 1)}
-              type="button"
-              variant="secondary"
-            >
-              Try again
-            </Button>
-          </EmptyContent>
-        </Empty>
-      ) : chats.length === 0 ? (
-        <Empty className="min-h-64">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              {query.trim() || filter !== "all" ? (
-                <SearchXIcon />
-              ) : (
-                <MessageSquareIcon />
-              )}
-            </EmptyMedia>
-            <EmptyTitle>
-              {query.trim() || filter !== "all"
-                ? "No chats found"
-                : "No chats yet"}
-            </EmptyTitle>
-            <EmptyDescription>
-              {query.trim()
-                ? `No chat title or message matches “${query.trim()}”.`
-                : filter === "unread"
-                  ? "No chats have unread responses."
-                  : filter === "pinned"
-                    ? "No chats are pinned."
-                    : "Start a chat to see it here."}
-            </EmptyDescription>
-          </EmptyHeader>
-          {!query.trim() && filter === "all" && (
-            <EmptyContent>
-              <Button
-                nativeButton={false}
-                render={<Link href="/chat" />}
-                size="touch"
-              >
-                New chat
-              </Button>
-            </EmptyContent>
-          )}
-        </Empty>
-      ) : (
-        <ul role="list">
-          {chats.map((chat) => (
-            <ChatListRow
-              chat={chat}
-              isSelected={selectedChatIds.has(chat.id)}
-              key={chat.id}
-              onChange={(changes) => changeChat(chat.id, changes)}
-              onDialog={(dialog) => openChatDialog(chat, dialog)}
-              onSelect={() => toggleChatSelection(chat.id)}
-              onTogglePin={() => void toggleChatPin(chat)}
-              projects={projects}
-              selectionMode={selectionMode}
-            />
-          ))}
-        </ul>
-      )}
-
-      <div
-        aria-live="polite"
-        className="flex min-h-12 items-center justify-center"
-        ref={sentinelRef}
-      >
-        {isLoadingMore && (
-          <>
-            <Spinner className="text-muted-foreground motion-reduce:animate-none" />
-            <span className="sr-only">Loading more chats</span>
-          </>
-        )}
-        {loadMoreError && (
-          <Button
-            onClick={() => setLoadMoreError(null)}
-            type="button"
-            variant="secondary"
-          >
-            Try loading more
-          </Button>
-        )}
-      </div>
-
-      {activeChat && (
-        <>
-          <ChatRenameDialog
-            chat={activeChat}
-            key={`rename-${activeChat.id}`}
-            onOpenChange={(open) => {
-              if (!open) setActiveDialog(null);
-            }}
-            onRenamed={(title) => changeChat(activeChat.id, { title })}
-            open={activeDialog === "rename"}
-          />
-          <ChatDeleteDialog
-            chat={activeChat}
-            key={`delete-${activeChat.id}`}
-            onDeleted={() => {
-              setChats((currentChats) =>
-                currentChats.filter(({ id }) => id !== activeChat.id)
-              );
-              setSelectedChatIds((currentIds) => {
-                const nextIds = new Set(currentIds);
-                nextIds.delete(activeChat.id);
-                return nextIds;
-              });
-            }}
-            onOpenChange={(open) => {
-              if (!open) setActiveDialog(null);
-            }}
-            open={activeDialog === "delete"}
-          />
-          <Dialog
-            key={`share-${activeChat.id}`}
-            onOpenChange={(open) => {
-              if (!open) setActiveDialog(null);
-            }}
-            open={activeDialog === "share"}
-          >
-            <ChatShareDialogContent
-              chatId={activeChat.id}
-              initialPublicToken={activeChat.publicToken}
-              initialVisibility={activeChat.visibility}
-            />
-          </Dialog>
-        </>
-      )}
-
-      <AlertDialog
-        onOpenChange={(open) => {
-          if (!isBulkDeleting) setIsBulkDeleteOpen(open);
+    <section
+      aria-label="Chats"
+      className={cn("flex flex-col gap-4", className)}
+      id="chat-list"
+    >
+      <ChatListControls
+        allLoadedChatsSelected={allLoadedChatsSelected}
+        filter={filter}
+        onDeleteSelectedChats={() => setIsBulkDeleteOpen(true)}
+        onExitSelection={() => {
+          setSelectedChatIds(new Set());
+          setSelectionMode(false);
         }}
-        open={isBulkDeleteOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Delete {selectedChatIds.size}{" "}
-              {selectedChatIds.size === 1 ? "chat" : "chats"}?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              This permanently deletes selected chats and their messages. Shared
-              links stop working.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isBulkDeleting}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={isBulkDeleting}
-              onClick={() => void deleteSelectedChats()}
-              variant="destructive"
-            >
-              {isBulkDeleting && <Spinner data-icon="inline-start" />}
-              {isBulkDeleting ? "Deleting…" : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onFilterChange={setFilter}
+        onQueryChange={setQuery}
+        onSelectAllLoadedChats={toggleAllLoadedChats}
+        onStartSelection={() => setSelectionMode(true)}
+        query={query}
+        selectedChatCount={selectedChatIds.size}
+        selectionMode={selectionMode}
+      />
+
+      <ChatListResults
+        chats={chats}
+        filter={filter}
+        isLoadingMore={isLoadingMore}
+        isReplacing={isReplacing}
+        loadError={loadError}
+        loadMoreError={loadMoreError}
+        onChangeChat={changeChat}
+        onOpenChatDialog={openChatDialog}
+        onReloadChatList={() => setReloadVersion((version) => version + 1)}
+        onRetryLoadMore={() => setLoadMoreError(null)}
+        onToggleChatPin={(chat) => void toggleChatPin(chat)}
+        onToggleChatSelection={toggleChatSelection}
+        projects={projects}
+        query={query}
+        selectedChatIds={selectedChatIds}
+        selectionMode={selectionMode}
+        sentinelRef={sentinelRef}
+      />
+
+      <ChatListDialogs
+        activeChat={activeChat}
+        activeDialog={activeDialog}
+        isBulkDeleteOpen={isBulkDeleteOpen}
+        isBulkDeleting={isBulkDeleting}
+        onBulkDeleteOpenChange={setIsBulkDeleteOpen}
+        onChangeChat={changeChat}
+        onCloseActiveDialog={() => setActiveDialog(null)}
+        onDeleteChat={removeChat}
+        onDeleteSelectedChats={() => void deleteSelectedChats()}
+        selectedChatCount={selectedChatIds.size}
+      />
     </section>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AppPageHeader } from "@/components/app-page-header";
+import { AppRouteShell } from "@/components/app-route-shell";
 import { LibraryBrowser } from "@/features/library/components/library-browser";
 import { createLibraryBrowserItems } from "@/features/library/components/library-data";
 import { LibraryGridLayout } from "@/features/library/components/library-grid";
@@ -71,10 +72,10 @@ export async function LibraryPageContent({
 /** Reserves Library header, controls, and item grid while data loads. */
 export function LibraryPageContentSkeleton() {
   return (
-    <div
+    <AppRouteShell
       aria-busy="true"
       aria-label="Loading Library"
-      className="flex min-h-0 min-w-0 flex-1 flex-col"
+      className="min-w-0"
     >
       <AppPageHeader>
         <Skeleton className="h-5 w-28 max-w-full sm:h-4" />
@@ -98,6 +99,6 @@ export function LibraryPageContentSkeleton() {
           </LibraryGridLayout>
         </AppPageContainer>
       </div>
-    </div>
+    </AppRouteShell>
   );
 }

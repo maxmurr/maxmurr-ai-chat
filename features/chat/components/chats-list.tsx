@@ -3,6 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getChatsPageData } from "@/features/chat/chat-queries";
 import { serializeChatListPage } from "@/features/chat/chat-list-contract";
 import { ChatsBrowser } from "@/features/chat/components/chats-browser";
+import { ChatListRowsSkeleton } from "@/features/chat/components/chat-list-rows-skeleton";
 import { getProjectsPageData } from "@/features/project/project-queries";
 
 /** Loads first owner Chat page and available Project actions. */
@@ -39,18 +40,7 @@ export function ChatsListSkeleton() {
             <Skeleton className="h-11 w-21 motion-reduce:animate-none sm:h-8" />
           </div>
         </div>
-        <div>
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div
-              className="relative -mx-3 flex min-h-12 items-center gap-2 px-3 after:pointer-events-none after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-border last:after:hidden"
-              key={index}
-            >
-              <Skeleton className="h-5 w-2/3 max-w-sm min-w-0 motion-reduce:animate-none sm:h-4" />
-              <Skeleton className="ml-auto h-5 w-14 shrink-0 motion-reduce:animate-none sm:h-4" />
-              <Skeleton className="size-11 shrink-0 motion-reduce:animate-none pointer-fine:hidden" />
-            </div>
-          ))}
-        </div>
+        <ChatListRowsSkeleton />
         <div className="min-h-12" />
       </div>
     </AppPageContainer>

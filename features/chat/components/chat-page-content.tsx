@@ -1,6 +1,7 @@
+import { AppPageHeader } from "@/components/app-page-header";
+import { AppRouteShell } from "@/components/app-route-shell";
 import { ChatComposerLoading } from "@/features/chat/components/chat-composer";
 import { ChatFooterNotice } from "@/features/chat/components/chat-footer-notice";
-import { AppPageHeader } from "@/components/app-page-header";
 import { ChatPageShell } from "@/features/chat/components/chat-page-shell";
 import { getChatPageView } from "@/features/chat/chat-queries";
 import { getAuthenticatedWorkspaceContext } from "@/features/workspace/workspace-queries";
@@ -48,10 +49,10 @@ export async function ChatByIdPageContent({ chatId }: { chatId: string }) {
 /** Reserves chat header and top of transcript while chat data loads. */
 export function ChatPageContentSkeleton() {
   return (
-    <div
+    <AppRouteShell
       aria-busy="true"
       aria-label="Loading chat"
-      className="flex min-h-0 min-w-0 flex-1 flex-col"
+      className="min-w-0"
     >
       <AppPageHeader>
         <Skeleton className="h-5 w-2/3 max-w-40 sm:h-4" />
@@ -81,6 +82,6 @@ export function ChatPageContentSkeleton() {
       <p className="sr-only" role="status">
         Loading chat.
       </p>
-    </div>
+    </AppRouteShell>
   );
 }
