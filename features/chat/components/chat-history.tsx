@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ArrowUpRightIcon,
   ChevronRightIcon,
   FolderIcon,
   FolderOpenIcon,
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/collapsible";
 import {
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
@@ -46,7 +48,7 @@ type ChatHistoryProjectGroup = ProjectActionsEntry & {
 
 type ChatHistorySection = {
   chats: ChatConversationEntry[];
-  label: "Pinned" | "Recents";
+  label: "Pinned" | "Chats";
   projects: ChatHistoryProjectGroup[];
 };
 
@@ -137,7 +139,7 @@ export function groupOwnChats(
     });
   }
   if (recentChats.length > 0) {
-    sections.push({ chats: recentChats, label: "Recents", projects: [] });
+    sections.push({ chats: recentChats, label: "Chats", projects: [] });
   }
   return sections;
 }
@@ -331,16 +333,28 @@ export function ChatHistory({
           key={group.label}
         >
           <Collapsible defaultOpen>
-            <SidebarGroupLabel
-              className="group/chat-history-trigger cursor-pointer justify-start select-none [&>svg]:size-4 lg:[&>svg]:size-3.5 aria-expanded:pointer-fine:not-hover:not-focus-visible:[&>svg]:opacity-0"
-              render={<CollapsibleTrigger />}
-            >
-              {group.label}
-              <ChevronRightIcon
-                aria-hidden="true"
-                className="stroke-sidebar-foreground/50 transition-[opacity,rotate] duration-150 ease-out group-aria-expanded/chat-history-trigger:rotate-90 motion-reduce:transition-none"
-              />
-            </SidebarGroupLabel>
+            <div className="group/chat-history-heading relative">
+              <SidebarGroupLabel
+                className="group/chat-history-trigger cursor-pointer justify-start select-none [&>svg]:size-4 lg:[&>svg]:size-3.5 aria-expanded:pointer-fine:not-hover:not-focus-visible:[&>svg]:opacity-0"
+                render={<CollapsibleTrigger />}
+              >
+                {group.label}
+                <ChevronRightIcon
+                  aria-hidden="true"
+                  className="stroke-sidebar-foreground/50 transition-[opacity,rotate] duration-150 ease-out group-aria-expanded/chat-history-trigger:rotate-90 motion-reduce:transition-none"
+                />
+              </SidebarGroupLabel>
+              {group.label === "Chats" ? (
+                <SidebarGroupAction
+                  aria-label="View all chats"
+                  className="top-1.5! right-1! pointer-events-none opacity-0 group-focus-within/chat-history-heading:pointer-events-auto group-focus-within/chat-history-heading:opacity-100 pointer-coarse:pointer-events-auto pointer-coarse:opacity-100 pointer-fine:group-hover/chat-history-heading:pointer-events-auto pointer-fine:group-hover/chat-history-heading:opacity-100"
+                  render={<Link href="/chats" />}
+                >
+                  <ArrowUpRightIcon />
+                  <TouchTarget />
+                </SidebarGroupAction>
+              ) : null}
+            </div>
             <CollapsibleContent className="h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0 motion-reduce:transition-none">
               <SidebarGroupContent>
                 <SidebarMenu role="list">

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
   ChevronDownIcon,
-  EllipsisIcon,
+  EllipsisVerticalIcon,
   MessageSquareIcon,
   SearchIcon,
   SearchXIcon,
@@ -63,6 +63,7 @@ import {
 import { CHAT_ACTIVITY_UPDATED_EVENT } from "@/features/chat/components/chat-history";
 import { ChatShareDialogContent } from "@/features/chat/components/chat-share-dialog";
 import { formatChatSearchUpdatedDate } from "@/features/chat/components/chat-search";
+import { cn } from "@/lib/utils";
 import type { ChatListFilter } from "@/src/entities/models/chat";
 
 const chatListFilterOptions = [
@@ -126,12 +127,12 @@ function ChatListRowsSkeleton() {
     <div aria-label="Loading chats" role="status">
       {Array.from({ length: 8 }).map((_, index) => (
         <div
-          className="flex min-h-16 items-center gap-3 border-b py-3"
+          className="flex min-h-12 items-center gap-3 border-b py-3"
           key={index}
         >
           <Skeleton className="h-5 min-w-0 flex-1 motion-reduce:animate-none sm:h-4" />
           <Skeleton className="h-5 w-14 shrink-0 motion-reduce:animate-none sm:h-4" />
-          <Skeleton className="size-8 shrink-0 motion-reduce:animate-none" />
+          <Skeleton className="size-11 shrink-0 pointer-fine:hidden motion-reduce:animate-none" />
         </div>
       ))}
     </div>
@@ -192,7 +193,7 @@ function ChatListRow({
   );
 
   return (
-    <li className="group/chat-list-row flex min-h-16 items-center gap-2 [contain-intrinsic-size:auto_4rem] [content-visibility:auto]">
+    <li className="group/chat-list-row relative -mx-3 flex min-h-12 items-center gap-2 rounded-lg px-3 focus-within:bg-muted has-data-popup-open:bg-muted has-data-popup-open:[&>time]:opacity-0 pointer-fine:hover:bg-muted after:pointer-events-none after:absolute after:right-3 after:bottom-0 after:left-3 after:h-px after:bg-border last:after:hidden [contain-intrinsic-size:auto_3rem] [content-visibility:auto]">
       {selectionMode && (
         <label
           className="flex size-11 shrink-0 items-center justify-center sm:size-9"
@@ -231,7 +232,11 @@ function ChatListRow({
       )}
 
       <time
-        className="shrink-0 text-base text-muted-foreground tabular-nums sm:text-sm"
+        className={cn(
+          "pointer-events-none shrink-0 text-base text-muted-foreground tabular-nums sm:text-sm",
+          !selectionMode &&
+            "pointer-fine:group-focus-within/chat-list-row:opacity-0 pointer-fine:group-hover/chat-list-row:opacity-0"
+        )}
         dateTime={chat.updatedAt}
       >
         {formatChatSearchUpdatedDate(new Date(chat.updatedAt))}
@@ -243,14 +248,14 @@ function ChatListRow({
             render={
               <Button
                 aria-label={`Open chat actions for ${chat.title}`}
-                className="pointer-coarse:size-11 pointer-fine:opacity-0 pointer-fine:group-focus-within/chat-list-row:opacity-100 pointer-fine:group-hover/chat-list-row:opacity-100 data-popup-open:opacity-100"
+                className="pointer-coarse:size-11 pointer-fine:absolute pointer-fine:inset-y-0 pointer-fine:right-3 pointer-fine:my-auto pointer-fine:pointer-events-none pointer-fine:opacity-0 pointer-fine:group-focus-within/chat-list-row:pointer-events-auto pointer-fine:group-focus-within/chat-list-row:opacity-100 pointer-fine:group-hover/chat-list-row:pointer-events-auto pointer-fine:group-hover/chat-list-row:opacity-100 data-popup-open:pointer-events-auto data-popup-open:opacity-100 motion-reduce:transition-none"
                 size="icon"
                 type="button"
                 variant="ghost"
               />
             }
           >
-            <EllipsisIcon />
+            <EllipsisVerticalIcon />
           </DropdownMenuTrigger>
           <ChatActionsMenuContent
             align="end"
@@ -721,7 +726,7 @@ export function ChatsBrowser({
           )}
         </Empty>
       ) : (
-        <ul className="divide-y" role="list">
+        <ul role="list">
           {chats.map((chat) => (
             <ChatListRow
               chat={chat}

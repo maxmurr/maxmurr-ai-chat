@@ -40,12 +40,12 @@ export function ChatsListSkeleton() {
         <div>
           {Array.from({ length: 8 }).map((_, index) => (
             <div
-              className="flex min-h-16 items-center gap-3 border-b py-3"
+              className="flex min-h-12 items-center gap-3 border-b py-3"
               key={index}
             >
               <Skeleton className="h-5 min-w-0 flex-1 motion-reduce:animate-none sm:h-4" />
               <Skeleton className="h-5 w-14 shrink-0 motion-reduce:animate-none sm:h-4" />
-              <Skeleton className="size-8 shrink-0 motion-reduce:animate-none" />
+              <Skeleton className="size-11 shrink-0 pointer-fine:hidden motion-reduce:animate-none" />
             </div>
           ))}
         </div>

@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  FolderIcon,
-  LibraryBigIcon,
-  MessageSquareIcon,
-  PlusIcon,
-} from "lucide-react";
+import { FolderIcon, LibraryBigIcon, PlusIcon } from "lucide-react";
 
 import {
   ChatSearch,
@@ -30,7 +25,6 @@ const NewProjectDialog = dynamic(() =>
 );
 
 const destinationNavigation = [
-  { label: "Chats", href: "/chats", icon: MessageSquareIcon },
   { label: "Projects", href: "/projects", icon: FolderIcon },
   { label: "Library", href: "/library", icon: LibraryBigIcon },
 ];

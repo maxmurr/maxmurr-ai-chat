@@ -45,6 +45,7 @@ test("New chat is active on /chat and accepts Command or Control plus Shift+O", 
   const newChatLink = markup.match(/<a[^>]*href="\/chat"[^>]*>.*?<\/a>/)?.[0];
 
   assert.ok(newChatLink);
+  assert.doesNotMatch(markup, /href="\/chats"/);
   assert.match(newChatLink, /data-active=""/);
   assert.match(
     newChatLink,

@@ -130,7 +130,7 @@ test("chat history defaults pinned Project folders closed", () => {
 
   const pinnedSectionIndex = markup.indexOf(">Pinned<");
   const pinnedProjectChatIndex = markup.indexOf(">Pinned project chat<");
-  const recentSectionIndex = markup.indexOf(">Recents<");
+  const recentSectionIndex = markup.indexOf(">Chats<");
   const backlogChatIndex = markup.indexOf(">Backlog chat<");
 
   assert.ok(pinnedSectionIndex >= 0);
@@ -154,6 +154,9 @@ test("chat history defaults pinned Project folders closed", () => {
   const projectOptionsAction = markup.match(
     /<button[^>]*aria-label="More options for Launch"[^>]*>/
   )?.[0];
+  const viewAllChatsLink = markup.match(
+    /<a[^>]*aria-label="View all chats"[^>]*>/
+  )?.[0];
 
   assert.match(
     markup,
@@ -172,6 +175,18 @@ test("chat history defaults pinned Project folders closed", () => {
   }
   assert.match(markup, /href="\/projects\/project-1"/);
   assert.match(markup, /lucide-square-pen/);
+  assert.ok(viewAllChatsLink);
+  assert.match(viewAllChatsLink, /href="\/chats"/);
+  assert.match(
+    viewAllChatsLink,
+    /pointer-fine:group-hover\/chat-history-heading:opacity-100/
+  );
+  assert.match(
+    viewAllChatsLink,
+    /group-focus-within\/chat-history-heading:opacity-100/
+  );
+  assert.match(viewAllChatsLink, /pointer-coarse:opacity-100/);
+  assert.match(markup, /lucide-arrow-up-right/);
   assert.equal(markup.match(/aria-label="Pinned project chat"/g)?.length, 1);
   assert.equal(
     markup.match(/aria-label="Unpin Pinned project chat"/g)?.length,
