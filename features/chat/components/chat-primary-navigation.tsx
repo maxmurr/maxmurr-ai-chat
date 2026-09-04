@@ -86,7 +86,7 @@ export function ChatPrimaryNavigation({
             <span>New chat</span>
             <span
               aria-hidden="true"
-              className="ml-auto shrink-0 text-xs text-muted-foreground opacity-0 transition-opacity group-data-[collapsible=icon]:hidden group-focus-visible/menu-button:opacity-100 pointer-fine:group-hover/menu-button:opacity-100 motion-reduce:transition-none"
+              className="ml-auto shrink-0 text-xs text-muted-foreground opacity-0 transition-opacity group-focus-visible/menu-button:opacity-100 group-data-[collapsible=icon]:hidden motion-reduce:transition-none pointer-fine:group-hover/menu-button:opacity-100"
             >
               ⌘⇧O
             </span>

@@ -127,12 +127,12 @@ function ChatListRowsSkeleton() {
     <div aria-label="Loading chats" role="status">
       {Array.from({ length: 5 }).map((_, index) => (
         <div
-          className="relative -mx-3 flex min-h-12 items-center gap-2 px-3 after:pointer-events-none after:absolute after:right-3 after:bottom-0 after:left-3 after:h-px after:bg-border last:after:hidden"
+          className="relative -mx-3 flex min-h-12 items-center gap-2 px-3 after:pointer-events-none after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-border last:after:hidden"
           key={index}
         >
           <Skeleton className="h-5 w-2/3 max-w-sm min-w-0 motion-reduce:animate-none sm:h-4" />
           <Skeleton className="ml-auto h-5 w-14 shrink-0 motion-reduce:animate-none sm:h-4" />
-          <Skeleton className="size-11 shrink-0 pointer-fine:hidden motion-reduce:animate-none" />
+          <Skeleton className="size-11 shrink-0 motion-reduce:animate-none pointer-fine:hidden" />
         </div>
       ))}
     </div>
@@ -193,7 +193,7 @@ function ChatListRow({
   );
 
   return (
-    <li className="group/chat-list-row relative -mx-3 flex min-h-12 items-center gap-2 rounded-lg px-3 focus-within:bg-muted has-data-popup-open:bg-muted has-data-popup-open:[&>time]:opacity-0 pointer-fine:hover:bg-muted after:pointer-events-none after:absolute after:right-3 after:bottom-0 after:left-3 after:h-px after:bg-border last:after:hidden [contain-intrinsic-size:auto_3rem] [content-visibility:auto]">
+    <li className="group/chat-list-row relative -mx-3 flex min-h-12 items-center gap-2 rounded-lg px-3 [contain-intrinsic-size:auto_3rem] [content-visibility:auto] after:pointer-events-none after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-border last:after:hidden focus-within:bg-muted has-data-popup-open:bg-muted pointer-fine:hover:bg-muted has-data-popup-open:[&>time]:opacity-0">
       {selectionMode && (
         <label
           className="flex size-11 shrink-0 items-center justify-center sm:size-9"
@@ -248,7 +248,7 @@ function ChatListRow({
             render={
               <Button
                 aria-label={`Open chat actions for ${chat.title}`}
-                className="pointer-coarse:size-11 pointer-fine:absolute pointer-fine:inset-y-0 pointer-fine:right-3 pointer-fine:my-auto pointer-fine:pointer-events-none pointer-fine:opacity-0 pointer-fine:group-focus-within/chat-list-row:pointer-events-auto pointer-fine:group-focus-within/chat-list-row:opacity-100 pointer-fine:group-hover/chat-list-row:pointer-events-auto pointer-fine:group-hover/chat-list-row:opacity-100 data-popup-open:pointer-events-auto data-popup-open:opacity-100 motion-reduce:transition-none"
+                className="data-popup-open:pointer-events-auto data-popup-open:opacity-100 motion-reduce:transition-none pointer-coarse:size-11 pointer-fine:pointer-events-none pointer-fine:absolute pointer-fine:inset-y-0 pointer-fine:right-3 pointer-fine:my-auto pointer-fine:opacity-0 pointer-fine:group-focus-within/chat-list-row:pointer-events-auto pointer-fine:group-focus-within/chat-list-row:opacity-100 pointer-fine:group-hover/chat-list-row:pointer-events-auto pointer-fine:group-hover/chat-list-row:opacity-100"
                 size="icon"
                 type="button"
                 variant="ghost"
@@ -601,7 +601,7 @@ export function ChatsBrowser({
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <InputGroup className="h-11 basis-full sm:h-8 sm:max-w-xs sm:basis-auto sm:flex-1">
+          <InputGroup className="h-11 basis-full sm:h-8 sm:max-w-xs sm:flex-1 sm:basis-auto">
             <InputGroupAddon>
               <SearchIcon />
             </InputGroupAddon>

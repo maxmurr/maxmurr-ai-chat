@@ -100,7 +100,7 @@ export function SharedChatContentSkeleton() {
       id="main-content"
     >
       <header className="flex h-14 shrink-0 items-center gap-2 px-4">
-        <Skeleton className="h-5 min-w-0 max-w-48 flex-1 sm:h-4" />
+        <Skeleton className="h-5 max-w-48 min-w-0 flex-1 sm:h-4" />
         <div className="flex shrink-0 items-center gap-2">
           <Skeleton className="size-7" />
           <Skeleton className="h-11 w-16 sm:h-7 sm:w-14" />

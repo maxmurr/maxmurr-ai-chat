@@ -347,7 +347,7 @@ export function ChatHistory({
               {group.label === "Chats" ? (
                 <SidebarGroupAction
                   aria-label="View all chats"
-                  className="top-1.5! right-1! pointer-events-none opacity-0 group-focus-within/chat-history-heading:pointer-events-auto group-focus-within/chat-history-heading:opacity-100 pointer-coarse:pointer-events-auto pointer-coarse:opacity-100 pointer-fine:group-hover/chat-history-heading:pointer-events-auto pointer-fine:group-hover/chat-history-heading:opacity-100 [&>svg]:size-3.5!"
+                  className="pointer-events-none top-1.5! right-1! opacity-0 group-focus-within/chat-history-heading:pointer-events-auto group-focus-within/chat-history-heading:opacity-100 pointer-coarse:pointer-events-auto pointer-coarse:opacity-100 pointer-fine:group-hover/chat-history-heading:pointer-events-auto pointer-fine:group-hover/chat-history-heading:opacity-100 [&>svg]:size-3.5!"
                   render={<Link href="/chats" />}
                 >
                   <ArrowUpRightIcon />
