@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FolderIcon, LibraryBigIcon, PlusIcon } from "lucide-react";
 
 import {
@@ -29,6 +29,20 @@ const destinationNavigation = [
   { label: "Library", href: "/library", icon: LibraryBigIcon },
 ];
 
+type NewChatShortcut = Pick<
+  KeyboardEvent,
+  "ctrlKey" | "key" | "metaKey" | "shiftKey"
+>;
+
+/** Returns whether keyboard event opens a new chat. */
+export function isNewChatShortcut(event: NewChatShortcut) {
+  return (
+    event.shiftKey &&
+    event.key.toLowerCase() === "o" &&
+    (event.metaKey || event.ctrlKey)
+  );
+}
+
 /** Renders app navigation with client-derived active route and chat search. */
 export function ChatPrimaryNavigation({
   className,
@@ -40,16 +54,42 @@ export function ChatPrimaryNavigation({
   teamChats: readonly ChatSearchEntry[];
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const chats = [...ownChats, ...teamChats];
+
+  useEffect(() => {
+    function openNewChat(event: KeyboardEvent) {
+      if (!isNewChatShortcut(event)) {
+        return;
+      }
+
+      event.preventDefault();
+      router.push("/chat");
+    }
+
+    window.addEventListener("keydown", openNewChat);
+    return () => window.removeEventListener("keydown", openNewChat);
+  }, [router]);
 
   return (
     <>
       <SidebarMenu className={cn(className)}>
         <SidebarMenuItem>
-          <SidebarMenuButton render={<Link href="/chat" />} tooltip="New chat">
+          <SidebarMenuButton
+            aria-keyshortcuts="Meta+Shift+O Control+Shift+O"
+            isActive={pathname === "/chat"}
+            render={<Link href="/chat" />}
+            tooltip="New chat"
+          >
             <PlusIcon />
             <span>New chat</span>
+            <span
+              aria-hidden="true"
+              className="ml-auto shrink-0 text-xs text-muted-foreground opacity-0 transition-opacity group-data-[collapsible=icon]:hidden group-focus-visible/menu-button:opacity-100 pointer-fine:group-hover/menu-button:opacity-100 motion-reduce:transition-none"
+            >
+              ⌘⇧O
+            </span>
           </SidebarMenuButton>
         </SidebarMenuItem>
 

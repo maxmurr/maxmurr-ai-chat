@@ -3,7 +3,60 @@ import { test } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { ChatPrimaryNavigation } from "@/features/chat/components/chat-primary-navigation";
+import {
+  ChatPrimaryNavigation,
+  isNewChatShortcut,
+} from "@/features/chat/components/chat-primary-navigation";
+
+test("New chat is active on /chat and accepts Command or Control plus Shift+O", () => {
+  assert.equal(
+    isNewChatShortcut({
+      ctrlKey: false,
+      key: "O",
+      metaKey: true,
+      shiftKey: true,
+    }),
+    true
+  );
+  assert.equal(
+    isNewChatShortcut({
+      ctrlKey: true,
+      key: "o",
+      metaKey: false,
+      shiftKey: true,
+    }),
+    true
+  );
+  assert.equal(
+    isNewChatShortcut({
+      ctrlKey: false,
+      key: "o",
+      metaKey: true,
+      shiftKey: false,
+    }),
+    false
+  );
+
+  const markup = renderToStaticMarkup(
+    <SidebarProvider>
+      <ChatPrimaryNavigation ownChats={[]} teamChats={[]} />
+    </SidebarProvider>
+  );
+  const newChatLink = markup.match(/<a[^>]*href="\/chat"[^>]*>.*?<\/a>/)?.[0];
+
+  assert.ok(newChatLink);
+  assert.match(newChatLink, /data-active=""/);
+  assert.match(
+    newChatLink,
+    /aria-keyshortcuts="Meta\+Shift\+O Control\+Shift\+O"/
+  );
+  assert.match(newChatLink, /text-muted-foreground/);
+  assert.match(
+    newChatLink,
+    /pointer-fine:group-hover\/menu-button:opacity-100/
+  );
+  assert.match(newChatLink, />⌘⇧O<\/span>/);
+});
 
 test("Projects navigation keeps row hover while quick create changes icon color", () => {
   const markup = renderToStaticMarkup(
