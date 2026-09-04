@@ -13,6 +13,7 @@ import type { ChatRepository } from "@/src/application/services/chat-repository.
 import {
   CHAT_RESPONSE_STREAM_STALE_AFTER_MS,
   type ChatMessage,
+  type ChatMessageSender,
 } from "@/src/entities/models/chat";
 
 const SLACK_CHAT_TITLE_LIMIT = 80;
@@ -51,14 +52,17 @@ function stripSlackUserIds(text: string) {
     .trim();
 }
 
-function toSlackUserMessage(message: SlackMessage): ChatMessage {
+function toSlackUserMessage(
+  message: SlackMessage,
+  sender: ChatMessageSender
+): ChatMessage {
   const text = stripSlackUserIds(message.text);
 
   return {
     id: message.id,
     metadata: {
-      author: message.author.fullName,
       createdAt: message.metadata.dateSent.toISOString(),
+      sender,
     },
     parts: [
       ...(text ? [{ text, type: "text" }] : []),
@@ -159,7 +163,11 @@ export function createSlackChatLink(chatRepository: SlackChatLinkRepository) {
         });
     }
 
-    const userMessage = toSlackUserMessage(message);
+    const userMessage = toSlackUserMessage(message, {
+      ...(member.userAvatarUrl ? { avatarUrl: member.userAvatarUrl } : {}),
+      displayName: member.userDisplayName,
+      userId: member.userId,
+    });
     if (userMessage.parts.length > 0) {
       await chatRepository.saveMessageIfAbsent(chatId, userMessage);
     }

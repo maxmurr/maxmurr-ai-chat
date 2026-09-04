@@ -9,7 +9,7 @@ A single linear conversation between one user and the assistant — an append-on
 _Avoid_: Conversation, thread, session
 
 **Message**:
-One turn in a Chat, from either the user or the assistant. Stored as the full AI SDK UIMessage (parts: text, reasoning, tool calls, files, sources), never as plain text.
+One turn in a Chat, from either the user or the assistant. User Messages retain the sender's User profile so shared views can attribute each prompt. Stored as the full AI SDK UIMessage (parts: text, reasoning, tool calls, files, sources), never as plain text.
 
 **Workspace**:
 The team container users belong to and chat within. Backed by Better Auth's `organization` table — "organization" is the storage name only.

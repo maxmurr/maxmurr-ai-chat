@@ -128,6 +128,11 @@ test("user chat message offers prompt editing", () => {
             createdAt: "2026-08-28T01:02:03.000Z",
             id: "message-1",
             role: "user",
+            sender: {
+              avatarUrl: "https://example.com/alex.png",
+              displayName: "Alex",
+              initials: "AL",
+            },
           }}
           onCopyMessage={() => {}}
           onEditMessage={() => {}}
@@ -137,6 +142,9 @@ test("user chat message offers prompt editing", () => {
   );
 
   assert.match(markup, /aria-label="Edit message"/);
+  assert.match(markup, /data-slot="message-avatar"/);
+  assert.match(markup, /aria-label="Alex"/);
+  assert.match(markup, />AL<\/span>/);
 });
 
 test("pending user chat message hides actions", () => {

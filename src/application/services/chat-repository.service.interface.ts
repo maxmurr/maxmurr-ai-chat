@@ -33,7 +33,12 @@ export type ChatRepository = {
   findWorkspaceMemberByEmail(
     email: string,
     organizationId?: string
-  ): Promise<{ organizationId: string; userId: string } | null>;
+  ): Promise<{
+    organizationId: string;
+    userAvatarUrl?: string;
+    userDisplayName: string;
+    userId: string;
+  } | null>;
   finishChatResponseStream(
     chatId: string,
     streamId: string,

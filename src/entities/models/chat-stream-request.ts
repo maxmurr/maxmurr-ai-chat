@@ -12,6 +12,7 @@ type ChatStreamMessagePart = {
 export type ChatStreamMessage = {
   readonly [key: string]: unknown;
   readonly id: string;
+  readonly metadata?: unknown;
   readonly parts: readonly ChatStreamMessagePart[];
   readonly role: "system" | "user" | "assistant";
 };

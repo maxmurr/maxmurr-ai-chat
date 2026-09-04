@@ -1,5 +1,9 @@
 import { getToolName, isToolUIPart, type UIMessage } from "ai";
 
+import {
+  isChatMessageSender,
+  type ChatMessageSender,
+} from "@/src/entities/models/chat";
 import { getLibraryFileIdFromDownloadUrl } from "@/src/entities/models/library";
 
 const LANGFUSE_TRACE_ID_PATTERN = /^[0-9a-f]{32}$/;
@@ -42,6 +46,13 @@ export type ChatDisplayTool = {
   readonly state: "running" | "completed" | "failed";
 };
 
+/** Sender profile shown beside a user Message. */
+export type ChatDisplayMessageSender = {
+  readonly avatarUrl?: string;
+  readonly displayName: string;
+  readonly initials: string;
+};
+
 /** Presentation model derived from an AI SDK chat message. */
 export type ChatDisplayMessage = {
   readonly attachments?: readonly ChatDisplayAttachment[];
@@ -51,20 +62,24 @@ export type ChatDisplayMessage = {
   readonly id: string;
   readonly reasoning?: ChatDisplayReasoning;
   readonly role: "assistant" | "user";
+  readonly sender?: ChatDisplayMessageSender;
   readonly sources?: readonly ChatDisplaySource[];
   readonly tools?: readonly ChatDisplayTool[];
   readonly webSearches?: readonly ChatDisplayWebSearch[];
 };
 
-/** Client metadata for message creation time, feedback trace, and File presentation. */
+/** Client metadata for creation time, sender identity, feedback, and File presentation. */
 export type ChatMessageMetadata = {
   readonly attachments?: readonly {
     readonly filename: string;
     readonly mediaType: string;
   }[];
+  /** Legacy Slack author name retained for existing Messages. */
+  readonly author?: string;
   readonly createdAt?: string;
   readonly langfuseTraceId?: string;
   readonly libraryFileAvailability?: Readonly<Record<string, boolean>>;
+  readonly sender?: ChatMessageSender;
 };
 
 /** AI SDK message shape shared by chat store and Mastra route. */
@@ -129,6 +144,39 @@ function getChatMessageCreatedAt(metadata?: ChatMessageMetadata) {
   return createdAt && !Number.isNaN(Date.parse(createdAt))
     ? createdAt
     : new Date().toISOString();
+}
+
+function getChatMessageSenderInitials(displayName: string) {
+  return displayName.slice(0, 2).toUpperCase();
+}
+
+function getChatDisplayMessageSender(
+  metadata: unknown
+): ChatDisplayMessageSender {
+  if (typeof metadata === "object" && metadata !== null) {
+    const values = metadata as Record<string, unknown>;
+
+    if (isChatMessageSender(values.sender)) {
+      const displayName = values.sender.displayName.trim();
+      return {
+        ...(values.sender.avatarUrl
+          ? { avatarUrl: values.sender.avatarUrl }
+          : {}),
+        displayName,
+        initials: getChatMessageSenderInitials(displayName),
+      };
+    }
+
+    if (typeof values.author === "string" && values.author.trim()) {
+      const displayName = values.author.trim();
+      return {
+        displayName,
+        initials: getChatMessageSenderInitials(displayName),
+      };
+    }
+  }
+
+  return { displayName: "User", initials: "US" };
 }
 
 /** Adapts AI SDK stream parts to existing chat presentation model. */
@@ -280,6 +328,9 @@ export function convertChatUiMessageToDisplayMessage(
       : {}),
     id: message.id,
     role: message.role,
+    ...(message.role === "user"
+      ? { sender: getChatDisplayMessageSender(message.metadata) }
+      : {}),
     ...(attachments.length > 0 ? { attachments } : {}),
     // Providers can emit reasoning items with hidden content; a finished,
     // textless reasoning block has nothing to show.

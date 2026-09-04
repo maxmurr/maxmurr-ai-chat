@@ -15,10 +15,12 @@ import {
 import { appDatabase } from "@/drizzle/app-database";
 import { chat, chatMessage, member, project, user } from "@/drizzle/app-schema";
 import type { ChatRepository } from "@/src/application/services/chat-repository.service.interface";
-import type {
-  Chat,
-  ChatMessage,
-  ChatVisibility,
+import {
+  isChatMessageSender,
+  type Chat,
+  type ChatMessage,
+  type ChatMessageSender,
+  type ChatVisibility,
 } from "@/src/entities/models/chat";
 
 const CHAT_LIST_LIMIT = 100;
@@ -40,15 +42,32 @@ function toChat(row: typeof chat.$inferSelect): Chat {
   };
 }
 
-function toChatMessage(row: typeof chatMessage.$inferSelect): ChatMessage {
-  const metadata =
-    typeof row.metadata === "object" && row.metadata !== null
-      ? row.metadata
+function toChatMessage(
+  row: typeof chatMessage.$inferSelect,
+  fallbackSender: ChatMessageSender
+): ChatMessage {
+  const metadata: Record<string, unknown> =
+    typeof row.metadata === "object" &&
+    row.metadata !== null &&
+    !Array.isArray(row.metadata)
+      ? (row.metadata as Record<string, unknown>)
+      : {};
+  const hasLegacySlackAuthor =
+    typeof metadata.author === "string" && metadata.author.trim().length > 0;
+  const sender =
+    row.role === "user" &&
+    !isChatMessageSender(metadata.sender) &&
+    !hasLegacySlackAuthor
+      ? { sender: fallbackSender }
       : {};
 
   return {
     id: row.id,
-    metadata: { ...metadata, createdAt: row.createdAt.toISOString() },
+    metadata: {
+      ...metadata,
+      ...sender,
+      createdAt: row.createdAt.toISOString(),
+    },
     parts: row.parts as readonly unknown[],
     role: row.role as ChatMessage["role"],
   };
@@ -161,7 +180,13 @@ export const drizzleChatRepository: ChatRepository = {
 
   async findWorkspaceMemberByEmail(email, organizationId) {
     const [row] = await appDatabase
-      .select({ organizationId: member.organizationId, userId: member.userId })
+      .select({
+        organizationId: member.organizationId,
+        userAvatarUrl: user.image,
+        userDisplayName: user.name,
+        userId: member.userId,
+        username: user.username,
+      })
       .from(member)
       .innerJoin(user, eq(user.id, member.userId))
       .where(
@@ -172,7 +197,15 @@ export const drizzleChatRepository: ChatRepository = {
       )
       .orderBy(asc(member.createdAt))
       .limit(1);
-    return row ?? null;
+
+    return row
+      ? {
+          organizationId: row.organizationId,
+          ...(row.userAvatarUrl ? { userAvatarUrl: row.userAvatarUrl } : {}),
+          userDisplayName: row.username ?? row.userDisplayName,
+          userId: row.userId,
+        }
+      : null;
   },
 
   async finishChatResponseStream(chatId, streamId, hasUnreadResponse) {
@@ -202,11 +235,26 @@ export const drizzleChatRepository: ChatRepository = {
 
   async getChatMessages(chatId) {
     const rows = await appDatabase
-      .select()
+      .select({
+        message: chatMessage,
+        ownerAvatarUrl: user.image,
+        ownerDisplayName: user.name,
+        ownerId: user.id,
+        ownerUsername: user.username,
+      })
       .from(chatMessage)
+      .innerJoin(chat, eq(chat.id, chatMessage.chatId))
+      .innerJoin(user, eq(user.id, chat.ownerId))
       .where(eq(chatMessage.chatId, chatId))
       .orderBy(asc(chatMessage.createdAt), asc(chatMessage.id));
-    return rows.map(toChatMessage);
+
+    return rows.map((row) =>
+      toChatMessage(row.message, {
+        ...(row.ownerAvatarUrl ? { avatarUrl: row.ownerAvatarUrl } : {}),
+        displayName: row.ownerUsername ?? row.ownerDisplayName,
+        userId: row.ownerId,
+      })
+    );
   },
 
   async isWorkspaceMember(organizationId, userId) {

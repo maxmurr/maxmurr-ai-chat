@@ -61,6 +61,31 @@ export type ChatListPage = {
   readonly nextCursor: ChatListCursor | null;
 };
 
+/** Trusted User profile attached to a user Message for shared attribution. */
+export type ChatMessageSender = {
+  readonly avatarUrl?: string;
+  readonly displayName: string;
+  readonly userId: string;
+};
+
+/** Checks whether persisted metadata contains a complete Message sender. */
+export function isChatMessageSender(
+  value: unknown
+): value is ChatMessageSender {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  const sender = value as Record<string, unknown>;
+  return (
+    typeof sender.displayName === "string" &&
+    sender.displayName.trim().length > 0 &&
+    typeof sender.userId === "string" &&
+    sender.userId.length > 0 &&
+    (sender.avatarUrl === undefined || typeof sender.avatarUrl === "string")
+  );
+}
+
 /** One persisted turn, stored as AI SDK UIMessage parts. */
 export type ChatMessage = {
   readonly id: string;

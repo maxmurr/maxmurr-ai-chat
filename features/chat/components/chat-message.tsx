@@ -19,6 +19,7 @@ import {
   AttachmentTitle,
   AttachmentTrigger,
 } from "@/components/ui/attachment";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +27,11 @@ import {
   InputGroupAddon,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
-import { Message, MessageContent } from "@/components/ui/message";
+import {
+  Message,
+  MessageAvatar,
+  MessageContent,
+} from "@/components/ui/message";
 import { MessageScrollerItem } from "@/components/ui/message-scroller";
 import {
   type ChatDisplayAttachment,
@@ -173,6 +178,9 @@ export function ChatMessageItem({
 }: ChatMessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const isAssistant = message.role === "assistant";
+  const sender = isAssistant
+    ? undefined
+    : (message.sender ?? { displayName: "User", initials: "US" });
 
   return (
     <MessageScrollerItem
@@ -181,6 +189,18 @@ export function ChatMessageItem({
       scrollAnchor={!isAssistant}
     >
       <Message align={isAssistant ? "start" : "end"}>
+        {sender && (
+          <MessageAvatar>
+            <Avatar aria-label={sender.displayName} title={sender.displayName}>
+              {sender.avatarUrl && (
+                <AvatarImage alt="" src={sender.avatarUrl} />
+              )}
+              <AvatarFallback aria-hidden="true">
+                {sender.initials}
+              </AvatarFallback>
+            </Avatar>
+          </MessageAvatar>
+        )}
         <MessageContent>
           {message.reasoning !== undefined && (
             <ChatMessageReasoning

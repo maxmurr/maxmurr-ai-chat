@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 /** Loads authenticated blank chat composer. */
 export async function NewChatPageContent() {
-  await getAuthenticatedWorkspaceContext();
+  const workspace = await getAuthenticatedWorkspaceContext();
 
   return (
     <ChatPageShell
@@ -22,6 +22,13 @@ export async function NewChatPageContent() {
         publicToken: null,
         title: "New chat",
         visibility: "private",
+      }}
+      currentUser={{
+        ...(workspace.currentUser.avatar
+          ? { avatarUrl: workspace.currentUser.avatar }
+          : {}),
+        displayName: workspace.currentUser.name,
+        userId: workspace.userId,
       }}
       isChatPersisted={false}
     />
@@ -40,6 +47,13 @@ export async function ChatByIdPageContent({ chatId }: { chatId: string }) {
   return (
     <ChatPageShell
       chat={view.chat}
+      currentUser={{
+        ...(workspace.currentUser.avatar
+          ? { avatarUrl: workspace.currentUser.avatar }
+          : {}),
+        displayName: workspace.currentUser.name,
+        userId: workspace.userId,
+      }}
       initialMessages={view.messages}
       isChatPersisted
     />
@@ -68,7 +82,10 @@ export function ChatPageContentSkeleton() {
             <Skeleton className="h-5 w-full sm:h-4" />
             <Skeleton className="h-5 w-2/3 sm:h-4" />
           </div>
-          <Skeleton className="ml-auto h-12 w-3/5 max-w-sm rounded-xl rounded-br-[4px] sm:w-2/5" />
+          <div className="flex items-end justify-end gap-2">
+            <Skeleton className="h-12 w-3/5 max-w-sm rounded-xl rounded-br-[4px] sm:w-2/5" />
+            <Skeleton className="size-8 shrink-0 rounded-full" />
+          </div>
           <div className="flex w-4/5 min-w-0 flex-col gap-2">
             <Skeleton className="h-5 w-full sm:h-4" />
             <Skeleton className="h-5 w-5/6 sm:h-4" />

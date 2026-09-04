@@ -49,6 +49,8 @@ function createFixture(options: { activeStreamId?: string | null } = {}) {
       if (email !== "member@example.com") return null;
       return {
         organizationId: organizationId ?? "workspace-1",
+        userAvatarUrl: "https://example.com/sam.png",
+        userDisplayName: "Sam",
         userId: "user-1",
       };
     },
@@ -186,6 +188,14 @@ test("Workspace member Slack message creates the linked Chat and mirrors both tu
   assert.deepEqual(fixture.messages[0].message.parts, [
     { text: "Hello from Slack", type: "text" },
   ]);
+  assert.deepEqual(fixture.messages[0].message.metadata, {
+    createdAt: createdAt.toISOString(),
+    sender: {
+      avatarUrl: "https://example.com/sam.png",
+      displayName: "Sam",
+      userId: "user-1",
+    },
+  });
   assert.ok(chat?.activeStreamId);
   assert.equal(fixture.defaultHandlerCalls(), 1);
   assert.deepEqual(

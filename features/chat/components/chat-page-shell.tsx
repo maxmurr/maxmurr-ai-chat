@@ -9,7 +9,10 @@ import { ChatThreadActions } from "@/features/chat/components/chat-thread-action
 import { ChatTranscript } from "@/features/chat/components/chat-transcript";
 import { getProjectsPageData } from "@/features/project/project-queries";
 import type { ChatUIMessage } from "@/src/interface-adapters/presenters/chat-message.presenter";
-import type { ChatVisibility } from "@/src/entities/models/chat";
+import type {
+  ChatMessageSender,
+  ChatVisibility,
+} from "@/src/entities/models/chat";
 
 export type ChatPageShellChat = {
   activeStreamId: string | null;
@@ -25,10 +28,12 @@ export type ChatPageShellChat = {
 /** Renders current chat header and writable or read-only conversation. */
 export async function ChatPageShell({
   chat,
+  currentUser,
   initialMessages,
   isChatPersisted,
 }: {
   chat: ChatPageShellChat;
+  currentUser: ChatMessageSender;
   initialMessages?: ChatUIMessage[];
   isChatPersisted: boolean;
 }) {
@@ -65,6 +70,7 @@ export async function ChatPageShell({
         <ChatThread
           activeStreamId={chat.activeStreamId}
           chatId={chat.id}
+          currentUser={currentUser}
           initialMessages={initialMessages}
         />
       ) : (

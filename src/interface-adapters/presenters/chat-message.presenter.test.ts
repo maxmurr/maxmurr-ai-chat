@@ -212,6 +212,41 @@ test("deleted Library File maps to unavailable Chat placeholder", () => {
   ]);
 });
 
+test("user sender metadata maps to shared Chat profile", () => {
+  const message: ChatUIMessage = {
+    id: "user-message",
+    metadata: {
+      sender: {
+        avatarUrl: "https://example.com/alex.png",
+        displayName: "Alex",
+        userId: "user-1",
+      },
+    },
+    parts: [{ text: "Hello", type: "text" }],
+    role: "user",
+  };
+
+  assert.deepEqual(convertChatUiMessageToDisplayMessage(message)?.sender, {
+    avatarUrl: "https://example.com/alex.png",
+    displayName: "Alex",
+    initials: "AL",
+  });
+});
+
+test("legacy Slack author maps to sender fallback", () => {
+  const message: ChatUIMessage = {
+    id: "slack-user-message",
+    metadata: { author: "Sam Slack" },
+    parts: [{ text: "Hello", type: "text" }],
+    role: "user" as const,
+  };
+
+  assert.deepEqual(convertChatUiMessageToDisplayMessage(message)?.sender, {
+    displayName: "Sam Slack",
+    initials: "SA",
+  });
+});
+
 test("streaming reasoning maps to running chat activity", () => {
   const message: ChatUIMessage = {
     id: "assistant-response",

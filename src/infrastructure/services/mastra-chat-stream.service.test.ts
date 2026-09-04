@@ -235,7 +235,8 @@ function createStreamFixture(
     },
     async sendMessage(
       modelId: ChatModelId = DEFAULT_CHAT_MODEL_ID,
-      webSearchEnabled = false
+      webSearchEnabled = false,
+      metadata?: unknown
     ) {
       messageNumber += 1;
       return streamChat(
@@ -243,6 +244,7 @@ function createStreamFixture(
           chatId: chat.id,
           message: {
             id: `user-${messageNumber}`,
+            ...(metadata === undefined ? {} : { metadata }),
             parts: [{ text: "Hello", type: "text" }],
             role: "user",
           },
@@ -306,6 +308,33 @@ test("web-only Chat streams its own history without thread memory", async () => 
   assert.deepEqual(fixture.streamedMemories, [undefined]);
 });
 
+test("Chat persists trusted user profile over client sender metadata", async () => {
+  const fixture = createStreamFixture("", null);
+  const messageCreatedAt = "2026-09-04T05:00:00.000Z";
+
+  await fixture.sendMessage(DEFAULT_CHAT_MODEL_ID, false, {
+    createdAt: messageCreatedAt,
+    sender: {
+      avatarUrl: "https://attacker.example/avatar.png",
+      displayName: "Spoofed",
+      userId: "spoofed-user",
+    },
+  });
+
+  assert.deepEqual(fixture.savedMessages[0].metadata, {
+    createdAt: messageCreatedAt,
+    sender: {
+      avatarUrl: context.userAvatarUrl,
+      displayName: context.userDisplayName,
+      userId: context.userId,
+    },
+  });
+  assert.deepEqual(
+    (fixture.streamedMessages[0][0] as ChatMessage).metadata,
+    fixture.savedMessages[0].metadata
+  );
+});
+
 test("edited Chat prompt replaces its turn and removes later messages", async () => {
   const fixture = createStreamFixture("", null, null, null, [
     {
@@ -329,6 +358,13 @@ test("edited Chat prompt replaces its turn and removes later messages", async ()
     [
       {
         id: "user-1",
+        metadata: {
+          sender: {
+            avatarUrl: context.userAvatarUrl,
+            displayName: context.userDisplayName,
+            userId: context.userId,
+          },
+        },
         parts: [{ text: "Edited prompt", type: "text" }],
         role: "user",
       },

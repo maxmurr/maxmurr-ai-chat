@@ -32,6 +32,7 @@ import {
   type ChatUIMessage,
 } from "@/src/interface-adapters/presenters/chat-message.presenter";
 import { toast } from "@/components/ui/toast";
+import type { ChatMessageSender } from "@/src/entities/models/chat";
 import {
   DEFAULT_CHAT_MODEL_ID,
   type ChatModelId,
@@ -50,6 +51,7 @@ type ChatThreadProps = {
   activeStreamId: string | null;
   chatId: string;
   className?: string;
+  currentUser: ChatMessageSender;
   initialMessages?: ChatUIMessage[];
 };
 
@@ -93,6 +95,7 @@ export function ChatThread({
   activeStreamId,
   chatId,
   className,
+  currentUser,
   initialMessages,
 }: ChatThreadProps) {
   return (
@@ -100,6 +103,7 @@ export function ChatThread({
       activeStreamId={activeStreamId}
       chatId={chatId}
       className={className}
+      currentUser={currentUser}
       initialMessages={initialMessages}
       key={`${chatId}:${activeStreamId ?? "idle"}:${initialMessages?.at(-1)?.id ?? "empty"}`}
     />
@@ -110,6 +114,7 @@ function ChatThreadContent({
   activeStreamId,
   chatId,
   className,
+  currentUser,
   initialMessages,
 }: ChatThreadProps) {
   const router = useRouter();
@@ -221,7 +226,10 @@ function ChatThreadContent({
       await sendMessage(
         {
           id: messageId,
-          metadata: { createdAt: new Date().toISOString() },
+          metadata: {
+            createdAt: new Date().toISOString(),
+            sender: currentUser,
+          },
           parts: [
             ...fileParts,
             ...(text ? [{ text, type: "text" as const }] : []),

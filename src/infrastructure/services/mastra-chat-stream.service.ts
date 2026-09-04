@@ -22,7 +22,10 @@ import {
   ChatUnavailableError,
 } from "@/src/entities/errors/chat-errors";
 import { LibraryAccessDeniedError } from "@/src/entities/errors/library-errors";
-import type { ChatMessage } from "@/src/entities/models/chat";
+import type {
+  ChatMessage,
+  ChatMessageSender,
+} from "@/src/entities/models/chat";
 import type {
   ChatRequestContext,
   ChatStreamMessage,
@@ -59,6 +62,25 @@ function fallbackChatTitle(message: ChatStreamMessage) {
     (part) => part.type === "file" && typeof part.filename === "string"
   )?.filename;
   return (text || filename || "New chat").slice(0, CHAT_TITLE_LIMIT);
+}
+
+function withTrustedChatMessageSender(
+  message: ChatStreamMessage,
+  context: ChatRequestContext
+): ChatStreamMessage {
+  const metadata =
+    typeof message.metadata === "object" &&
+    message.metadata !== null &&
+    !Array.isArray(message.metadata)
+      ? message.metadata
+      : {};
+  const sender: ChatMessageSender = {
+    ...(context.userAvatarUrl ? { avatarUrl: context.userAvatarUrl } : {}),
+    displayName: context.userDisplayName,
+    userId: context.userId,
+  };
+
+  return { ...message, metadata: { ...metadata, sender } };
 }
 
 async function generateAndSaveChatTitle(
@@ -167,7 +189,7 @@ export function createMastraChatStreamService(
   return async (request, context) => {
     const {
       chatId,
-      message,
+      message: incomingMessage,
       messageId,
       streamId: responseStreamId,
       trigger,
@@ -178,6 +200,7 @@ export function createMastraChatStreamService(
       request,
       context
     );
+    const message = withTrustedChatMessageSender(incomingMessage, context);
     const libraryScope = {
       organizationId: context.organizationId,
       ownerId: context.userId,
