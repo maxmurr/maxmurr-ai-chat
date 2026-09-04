@@ -9,6 +9,7 @@ import {
   validateChatComposerMessage,
 } from "@/features/chat/components/chat-composer";
 import { getChatGreeting } from "@/features/chat/components/chat-message-list";
+import { ChatSelectedAttachments } from "@/features/chat/components/chat-selected-attachments";
 import { DEFAULT_CHAT_MODEL_ID } from "@/src/entities/models/chat-model";
 import {
   replaceChatUserMessageText,
@@ -37,6 +38,24 @@ test("chat composer mounts native form controls", () => {
   assert.match(markup, /aria-label="Add attachments and tools"/);
   assert.match(markup, /Grok Build 0\.1/);
   assert.match(markup, /aria-label="Send message"/);
+});
+
+test("selected Chat attachments show image previews and file sizes", () => {
+  const markup = renderToStaticMarkup(
+    createElement(ChatSelectedAttachments, {
+      files: [
+        new File([new Uint8Array(1638)], "brand.png", {
+          lastModified: 1,
+          type: "image/png",
+        }),
+      ],
+      onRemoveFile() {},
+    })
+  );
+
+  assert.match(markup, /data-size="sm"/);
+  assert.match(markup, /data-variant="image"/);
+  assert.match(markup, /1\.6 KB/);
 });
 
 test("chat file picker shortcut accepts Command or Control plus U", () => {
