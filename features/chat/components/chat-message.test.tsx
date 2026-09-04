@@ -138,3 +138,28 @@ test("user chat message offers prompt editing", () => {
 
   assert.match(markup, /aria-label="Edit message"/);
 });
+
+test("pending user chat message hides actions", () => {
+  const markup = renderToStaticMarkup(
+    <TooltipProvider>
+      <MessageScrollerProvider>
+        <ChatMessageItem
+          copyResult={null}
+          hideActions
+          isGenerating
+          isStreaming={false}
+          message={{
+            content: "Waiting for response",
+            createdAt: "2026-08-28T01:02:03.000Z",
+            id: "pending-user-message",
+            role: "user",
+          }}
+          onCopyMessage={() => {}}
+          onEditMessage={() => {}}
+        />
+      </MessageScrollerProvider>
+    </TooltipProvider>
+  );
+
+  assert.doesNotMatch(markup, /data-slot="message-footer"/);
+});

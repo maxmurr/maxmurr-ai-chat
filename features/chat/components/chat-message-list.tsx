@@ -278,6 +278,11 @@ export function ChatMessageList({
                           : null
                       }
                       feedbackChatId={feedbackChatId}
+                      hideActions={
+                        status === "submitted" &&
+                        index === datedMessages.length - 1 &&
+                        message.role === "user"
+                      }
                       isGenerating={isGenerating}
                       isStreaming={streamingMessageId === message.id}
                       message={message}

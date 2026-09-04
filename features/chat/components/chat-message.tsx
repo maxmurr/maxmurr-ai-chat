@@ -149,6 +149,7 @@ type ChatMessageItemProps = {
   className?: string;
   copyResult: ChatCopyResult;
   feedbackChatId?: string;
+  hideActions?: boolean;
   isGenerating: boolean;
   isStreaming: boolean;
   message: ChatDisplayMessage;
@@ -162,6 +163,7 @@ export function ChatMessageItem({
   className,
   copyResult,
   feedbackChatId,
+  hideActions = false,
   isGenerating,
   isStreaming,
   message,
@@ -231,7 +233,7 @@ export function ChatMessageItem({
             <ChatMessageSources sources={message.sources} />
           )}
 
-          {!isEditing && (
+          {!hideActions && !isEditing && (
             <ChatMessageActions
               copyResult={copyResult}
               feedbackChatId={feedbackChatId}
