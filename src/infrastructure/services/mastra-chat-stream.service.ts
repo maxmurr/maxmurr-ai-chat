@@ -260,7 +260,11 @@ export function createMastraChatStreamService(
 
       if (slackThread && messageText) {
         try {
-          await slackThread.postToSlack(`**From web:** ${messageText}`);
+          await slackThread.postWebMessageToSlack({
+            avatarUrl: context.userAvatarUrl,
+            displayName: context.userDisplayName,
+            text: messageText,
+          });
         } catch (error) {
           crashReporterService.report(error);
           console.error(

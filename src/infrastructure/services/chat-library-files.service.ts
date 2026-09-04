@@ -12,11 +12,7 @@ import {
   type LibraryOwnerScope,
 } from "@/src/entities/models/library";
 
-// ponytail: four-file batches cap DB and memory load; tune from stream-start
-// profiles if attachment latency still dominates.
 const MODEL_FILE_DOWNLOAD_CONCURRENCY = 4;
-// ponytail: inline first 1 MB; add extraction/chunking if providers ignore
-// file_data and large text Files must be fully queryable.
 const MODEL_TEXT_FILE_FALLBACK_BYTES = 1_000_000;
 
 /**

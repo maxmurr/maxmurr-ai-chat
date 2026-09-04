@@ -42,6 +42,7 @@ test("chat controller validates input before streaming", async () => {
   };
   const context: ChatRequestContext = {
     organizationId: "workspace-1",
+    userDisplayName: "Alex",
     userId: "user-1",
   };
   const expectedResponse = new Response("stream");

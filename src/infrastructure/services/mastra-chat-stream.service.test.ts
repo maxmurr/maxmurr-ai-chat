@@ -33,6 +33,8 @@ import {
 
 const context: ChatRequestContext = {
   organizationId: "workspace-1",
+  userAvatarUrl: "https://example.com/alex.png",
+  userDisplayName: "Alex",
   userId: "user-1",
 };
 const createdAt = new Date("2026-08-30T00:00:00.000Z");
@@ -265,18 +267,28 @@ function createStreamFixture(
   };
 }
 
-test("Slack-linked Chat sends only the new turn with shared thread memory and posts it to Slack", async () => {
-  const posted: string[] = [];
+test("Slack-linked Chat posts the web turn with its user identity and shared thread memory", async () => {
+  const posted: {
+    avatarUrl?: string;
+    displayName: string;
+    text: string;
+  }[] = [];
   const fixture = createStreamFixture("", null, null, {
-    async postToSlack(markdown: string) {
-      posted.push(markdown);
+    async postWebMessageToSlack(message) {
+      posted.push(message);
     },
     resourceId: "channel:slack:C1:1.1",
   });
 
   await fixture.sendMessage();
 
-  assert.deepEqual(posted, ["**From web:** Hello"]);
+  assert.deepEqual(posted, [
+    {
+      avatarUrl: "https://example.com/alex.png",
+      displayName: "Alex",
+      text: "Hello",
+    },
+  ]);
   assert.equal(fixture.streamedMessages[0].length, 1);
   assert.deepEqual(fixture.streamedMemories, [
     {

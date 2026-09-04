@@ -1,3 +1,4 @@
+import type { SlackAdapter } from "@chat-adapter/slack";
 import { Mastra } from "@mastra/core";
 import { LangfuseExporter } from "@mastra/langfuse";
 import { Observability } from "@mastra/observability";
@@ -73,13 +74,34 @@ export async function findSlackLinkedThread(chatId: string) {
 
   // Attaches channel output processors to the agent before any Slack message reaches this process.
   await controller.init();
+  const slackSdk = controller.getChannels()?.sdk;
+
+  if (!slackSdk) {
+    return null;
+  }
+
+  const slackAdapter = slackSdk.getAdapter("slack") as SlackAdapter;
+  const { channel, threadTs } = slackAdapter.decodeThreadId(externalThreadId);
 
   return {
-    async postToSlack(markdown: string) {
-      await controller
-        .getChannels()
-        ?.sdk?.thread(externalThreadId)
-        .post({ markdown });
+    async postWebMessageToSlack({
+      avatarUrl,
+      displayName,
+      text,
+    }: {
+      avatarUrl?: string;
+      displayName: string;
+      text: string;
+    }) {
+      await slackAdapter.webClient.chat.postMessage({
+        channel,
+        ...(avatarUrl && { icon_url: avatarUrl }),
+        markdown_text: text,
+        thread_ts: threadTs || undefined,
+        unfurl_links: false,
+        unfurl_media: false,
+        username: `${displayName} (Console)`,
+      });
     },
     resourceId: thread.resourceId,
   };

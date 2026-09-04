@@ -90,7 +90,6 @@ function toAssistantMessage(message: MastraDBMessage): ChatMessage | null {
 
 /** Links each Slack thread to one app Chat and mirrors Slack turns into it. */
 export function createSlackChatLink(chatRepository: SlackChatLinkRepository) {
-  // ponytail: process-local claims; a Slack run finishes in the process that started it.
   const slackRunStreams = new Map<string, string>();
 
   async function claimSlackRun(chatId: string) {

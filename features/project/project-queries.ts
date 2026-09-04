@@ -71,8 +71,6 @@ export async function getProjectSourcesPageData(projectId: string) {
       projectController().listProjectSources(projectId, scope),
       libraryController().listLibrary(null, scope),
     ]);
-    // ponytail: one query per flat Folder; add an all-Files repository read if
-    // large Libraries make this picker slow.
     const folderFiles = await Promise.all(
       rootListing.folders.map(async ({ id }) => {
         try {

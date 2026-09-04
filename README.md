@@ -71,6 +71,7 @@ oauth_config:
       - channels:history
       - channels:read
       - chat:write
+      - chat:write.customize
       - users:read
       - users:read.email
       - im:read
@@ -114,7 +115,7 @@ If Slack could not verify the URL during manifest import, add the credentials, r
 /invite @maxmurr-ai-chat
 ```
 
-Slack verifies webhook signatures. The bot answers only Slack users whose email matches a signed-in Workspace member; others get a sign-in hint. `users:read.email` is required for that match. Avoid Slack Connect channels unless external members may use the assistant.
+Slack verifies webhook signatures. The bot answers only Slack users whose email matches a signed-in Workspace member; others get a sign-in hint. `users:read.email` is required for that match. `chat:write.customize` lets a user-initiated web turn appear as `<name> (Console)` with the web profile image; Slack still marks it as an app message. Reinstall the Slack app after adding either scope. Avoid Slack Connect channels unless external members may use the assistant.
 
 Slack runs through Mastra Agent Controller sessions. PostgreSQL stores channel threads in the `mastra` schema, and Redis Streams coordinates signals between app processes. Run Next.js on a long-lived Node server because live controller sessions and pending approvals remain process-local.
 

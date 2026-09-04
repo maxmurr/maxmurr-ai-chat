@@ -31,5 +31,7 @@ export type ChatStreamRequest = {
 /** Session-derived identity the framework layer attaches to chat requests. */
 export type ChatRequestContext = {
   readonly organizationId: string;
+  readonly userAvatarUrl?: string;
+  readonly userDisplayName: string;
   readonly userId: string;
 };

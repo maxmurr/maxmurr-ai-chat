@@ -40,7 +40,12 @@ export async function authorizeChatRouteRequest(
     }
 
     return {
-      context: { organizationId, userId: session.user.id },
+      context: {
+        organizationId,
+        userAvatarUrl: session.user.image ?? undefined,
+        userDisplayName: session.user.username ?? session.user.name,
+        userId: session.user.id,
+      },
       ok: true,
     };
   } catch (error) {

@@ -11,6 +11,7 @@ const chatId = "30000000-0000-4000-8000-000000000001";
 const streamId = "40000000-0000-4000-8000-000000000001";
 const context: ChatRequestContext = {
   organizationId: "workspace-1",
+  userDisplayName: "Alex",
   userId: "user-1",
 };
 const baseChat: Chat = {
