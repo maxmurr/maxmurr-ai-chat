@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useOptimistic, useState } from "react";
 
 import {
   deleteChatAction,
   renameChatAction,
 } from "@/features/chat/chat-actions";
+import { dispatchOptimisticChatListAction } from "@/features/chat/hooks/use-optimistic-chat-list";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,13 +56,21 @@ export function ChatRenameDialog({
   onRenamed,
   open,
 }: ChatRenameDialogProps) {
-  const [isRenaming, setIsRenaming] = useState(false);
+  const [isRenaming, setIsRenaming] = useOptimistic(false);
   const [title, setTitle] = useState(chat.title);
 
   async function renameChat() {
+    const nextTitle = title.trim();
+    if (!nextTitle) return;
+
     setIsRenaming(true);
-    const result = await renameChatAction(chat.id, title);
-    setIsRenaming(false);
+    dispatchOptimisticChatListAction({
+      chatId: chat.id,
+      changes: { title: nextTitle },
+      type: "update",
+    });
+
+    const result = await renameChatAction(chat.id, nextTitle);
 
     if (!result.ok) {
       toast.add({
@@ -72,8 +81,10 @@ export function ChatRenameDialog({
       return;
     }
 
-    onRenamed?.(title.trim());
-    onOpenChange(false);
+    startTransition(() => {
+      onRenamed?.(nextTitle);
+      onOpenChange(false);
+    });
   }
 
   return (
@@ -82,12 +93,7 @@ export function ChatRenameDialog({
         <DialogHeader>
           <DialogTitle>Rename chat</DialogTitle>
         </DialogHeader>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void renameChat();
-          }}
-        >
+        <form action={renameChat}>
           <Field>
             <FieldLabel className="sr-only" htmlFor="rename-chat-title">
               Chat title
@@ -102,7 +108,7 @@ export function ChatRenameDialog({
             />
           </Field>
           <DialogFooter className="mt-4">
-            <Button disabled={isRenaming} type="submit">
+            <Button disabled={isRenaming || !title.trim()} type="submit">
               {isRenaming && <Spinner data-icon="inline-start" />}
               {isRenaming ? "Saving…" : "Save"}
             </Button>
@@ -125,12 +131,16 @@ export function ChatDeleteDialog({
   onOpenChange,
   open,
 }: ChatDeleteDialogProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleting, setIsDeleting] = useOptimistic(false);
 
   async function deleteChat() {
     setIsDeleting(true);
+    dispatchOptimisticChatListAction({
+      chatIds: [chat.id],
+      type: "delete",
+    });
+
     const result = await deleteChatAction(chat.id);
-    setIsDeleting(false);
 
     if (!result.ok) {
       toast.add({
@@ -141,8 +151,10 @@ export function ChatDeleteDialog({
       return;
     }
 
-    onOpenChange(false);
-    onDeleted?.();
+    startTransition(() => {
+      onOpenChange(false);
+      onDeleted?.();
+    });
   }
 
   return (
@@ -153,24 +165,28 @@ export function ChatDeleteDialog({
       open={open}
     >
       <AlertDialogContent className={cn(className)}>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete chat?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This permanently deletes the chat and its messages. Shared links
-            stop working.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            disabled={isDeleting}
-            onClick={() => void deleteChat()}
-            variant="destructive"
-          >
-            {isDeleting && <Spinner data-icon="inline-start" />}
-            {isDeleting ? "Deleting…" : "Delete"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
+        <form action={deleteChat} className="contents">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete chat?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes the chat and its messages. Shared links
+              stop working.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting} type="button">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              type="submit"
+              variant="destructive"
+            >
+              {isDeleting && <Spinner data-icon="inline-start" />}
+              {isDeleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </form>
       </AlertDialogContent>
     </AlertDialog>
   );

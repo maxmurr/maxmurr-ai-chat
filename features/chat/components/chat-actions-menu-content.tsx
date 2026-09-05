@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import { startTransition, type ComponentProps } from "react";
 import {
   CheckIcon,
   FolderMinusIcon,
@@ -23,6 +23,7 @@ import {
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toast";
+import { dispatchOptimisticChatListAction } from "@/features/chat/hooks/use-optimistic-chat-list";
 import {
   attachChatToProjectAction,
   detachChatFromProjectAction,
@@ -68,25 +69,27 @@ export function ChatActionsMenuContent({
     });
   }
 
-  function attachToProject(nextProjectId: string) {
-    void attachChatToProjectAction(nextProjectId, chatId).then((result) => {
+  function changeChatProject(nextProjectId: string | null) {
+    const nextProjectName =
+      projects.find(({ id }) => id === nextProjectId)?.name ?? null;
+
+    startTransition(async () => {
+      dispatchOptimisticChatListAction({
+        chatId,
+        changes: { projectId: nextProjectId, projectName: nextProjectName },
+        type: "update",
+      });
+
+      const result = nextProjectId
+        ? await attachChatToProjectAction(nextProjectId, chatId)
+        : await detachChatFromProjectAction(chatId);
+
       if (!result.ok) {
         showProjectActionError(result.error);
         return;
       }
 
-      onProjectChange?.(nextProjectId);
-    });
-  }
-
-  function detachFromProject() {
-    void detachChatFromProjectAction(chatId).then((result) => {
-      if (!result.ok) {
-        showProjectActionError(result.error);
-        return;
-      }
-
-      onProjectChange?.(null);
+      startTransition(() => onProjectChange?.(nextProjectId));
     });
   }
 
@@ -123,7 +126,7 @@ export function ChatActionsMenuContent({
                 <DropdownMenuItem
                   disabled={project.id === projectId}
                   key={project.id}
-                  onClick={() => attachToProject(project.id)}
+                  onClick={() => changeChatProject(project.id)}
                 >
                   {project.id === projectId && <CheckIcon />}
                   {project.name}
@@ -133,7 +136,7 @@ export function ChatActionsMenuContent({
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         {projectId && (
-          <DropdownMenuItem onClick={detachFromProject}>
+          <DropdownMenuItem onClick={() => changeChatProject(null)}>
             <FolderMinusIcon />
             Remove from project
           </DropdownMenuItem>

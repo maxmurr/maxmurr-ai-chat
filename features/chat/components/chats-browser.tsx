@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import {
+  startTransition,
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import {
   ChevronDownIcon,
   EllipsisVerticalIcon,
@@ -65,6 +71,10 @@ import {
 } from "@/features/chat/components/chat-dialogs";
 import { ChatListRowsSkeleton } from "@/features/chat/components/chat-list-rows-skeleton";
 import { CHAT_ACTIVITY_UPDATED_EVENT } from "@/features/chat/hooks/use-chat-activity-polling";
+import {
+  dispatchOptimisticChatListAction,
+  useOptimisticChatList,
+} from "@/features/chat/hooks/use-optimistic-chat-list";
 import { ChatShareDialogContent } from "@/features/chat/components/chat-share-dialog";
 import { formatChatSearchUpdatedDate } from "@/features/chat/components/chat-search";
 import { cn } from "@/lib/utils";
@@ -684,11 +694,16 @@ export function ChatsBrowser({
     () => new Set()
   );
   const [selectionMode, setSelectionMode] = useState(false);
+  const optimisticChats = useOptimisticChatList(chats);
+  const visibleChats =
+    filter === "pinned"
+      ? optimisticChats.filter(({ pinned }) => pinned)
+      : optimisticChats;
   const loadMoreInFlightRef = useRef(false);
   const requestKeyRef = useRef("all\n");
   const sentinelRef = useRef<HTMLDivElement>(null);
   const skipInitialRequestRef = useRef(true);
-  const selectableChats = chats.filter(
+  const selectableChats = visibleChats.filter(
     ({ activeStreamId }) => activeStreamId === null
   );
   const allLoadedChatsSelected =
@@ -738,58 +753,73 @@ export function ChatsBrowser({
     );
   }
 
-  async function toggleChatPin(chat: ChatListBrowserEntry) {
-    const result = await pinChatAction(chat.id, !chat.pinned);
+  function toggleChatPin(chat: ChatListBrowserEntry) {
+    const nextPinned = !chat.pinned;
 
-    if (!result.ok) {
-      toast.add({
-        description: result.error,
-        title: "Pin failed",
-        type: "error",
+    startTransition(async () => {
+      dispatchOptimisticChatListAction({
+        chatId: chat.id,
+        changes: { pinned: nextPinned },
+        type: "update",
       });
-      return;
-    }
+      const result = await pinChatAction(chat.id, nextPinned);
 
-    if (filter === "pinned" && chat.pinned) {
-      setChats((currentChats) =>
-        currentChats.filter(({ id }) => id !== chat.id)
-      );
-      return;
-    }
+      if (!result.ok) {
+        toast.add({
+          description: result.error,
+          title: "Pin failed",
+          type: "error",
+        });
+        return;
+      }
 
-    changeChat(chat.id, { pinned: !chat.pinned });
+      startTransition(() => {
+        if (filter === "pinned" && chat.pinned) {
+          removeChat(chat.id);
+        } else {
+          changeChat(chat.id, { pinned: nextPinned });
+        }
+      });
+    });
   }
 
-  async function deleteSelectedChats() {
+  function deleteSelectedChats() {
     const chatIds = [...selectedChatIds];
     setIsBulkDeleting(true);
-    const result = await deleteChatsAction(chatIds);
-    setIsBulkDeleting(false);
 
-    if (!result.ok) {
-      toast.add({
-        description: result.error,
-        title: "Delete failed",
-        type: "error",
+    startTransition(async () => {
+      dispatchOptimisticChatListAction({ chatIds, type: "delete" });
+      const result = await deleteChatsAction(chatIds);
+
+      if (!result.ok) {
+        startTransition(() => setIsBulkDeleting(false));
+        toast.add({
+          description: result.error,
+          title: "Delete failed",
+          type: "error",
+        });
+        return;
+      }
+
+      startTransition(() => {
+        const deletedChatIdSet = new Set(result.deletedChatIds);
+        setChats((currentChats) =>
+          currentChats.filter(({ id }) => !deletedChatIdSet.has(id))
+        );
+        setSelectedChatIds(new Set(result.blockedChatIds));
+        setIsBulkDeleteOpen(false);
+        setIsBulkDeleting(false);
+        setSelectionMode(result.blockedChatIds.length > 0);
       });
-      return;
-    }
 
-    const deletedChatIdSet = new Set(result.deletedChatIds);
-    setChats((currentChats) =>
-      currentChats.filter(({ id }) => !deletedChatIdSet.has(id))
-    );
-    setSelectedChatIds(new Set(result.blockedChatIds));
-    setIsBulkDeleteOpen(false);
-    setSelectionMode(result.blockedChatIds.length > 0);
-
-    if (result.blockedChatIds.length > 0) {
-      toast.add({
-        description: "Stop active responses, then try those chats again.",
-        title: "Some chats were not deleted",
-        type: "error",
-      });
-    }
+      if (result.blockedChatIds.length > 0) {
+        toast.add({
+          description: "Stop active responses, then try those chats again.",
+          title: "Some chats were not deleted",
+          type: "error",
+        });
+      }
+    });
   }
 
   useEffect(() => {
@@ -966,7 +996,7 @@ export function ChatsBrowser({
       />
 
       <ChatListResults
-        chats={chats}
+        chats={visibleChats}
         filter={filter}
         isLoadingMore={isLoadingMore}
         isReplacing={isReplacing}

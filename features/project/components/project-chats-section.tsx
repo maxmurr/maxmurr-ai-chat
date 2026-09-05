@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useOptimistic } from "react";
 import Link from "next/link";
 import { MessageSquareIcon, XIcon } from "lucide-react";
 
@@ -14,9 +14,9 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { TouchTarget } from "@/components/ui/touch-target";
+import { dispatchOptimisticChatListAction } from "@/features/chat/hooks/use-optimistic-chat-list";
 import { ProjectSection } from "@/features/project/components/project-section";
 import { detachChatFromProjectAction } from "@/features/project/project-actions";
 
@@ -28,31 +28,41 @@ export function ProjectChatsSection({
   chats: { id: string; title: string; updatedAt: Date }[];
   className?: string;
 }) {
-  const [removingChatId, setRemovingChatId] = useState<string | null>(null);
+  const [optimisticChats, removeOptimisticChat] = useOptimistic(
+    chats,
+    (currentChats, chatId: string) =>
+      currentChats.filter((chat) => chat.id !== chatId)
+  );
 
-  async function removeChatFromProject(chatId: string) {
-    setRemovingChatId(chatId);
-    const result = await detachChatFromProjectAction(chatId);
-    setRemovingChatId(null);
-
-    if (!result.ok) {
-      toast.add({
-        description: result.error,
-        title: "Project update failed",
-        type: "error",
+  function removeChatFromProject(chatId: string) {
+    startTransition(async () => {
+      removeOptimisticChat(chatId);
+      dispatchOptimisticChatListAction({
+        chatId,
+        changes: { projectId: null, projectName: null },
+        type: "update",
       });
-    }
+      const result = await detachChatFromProjectAction(chatId);
+
+      if (!result.ok) {
+        toast.add({
+          description: result.error,
+          title: "Project update failed",
+          type: "error",
+        });
+      }
+    });
   }
 
   return (
     <ProjectSection className={className} id="project-chats" title="Chats">
-      {chats.length === 0 ? (
+      {optimisticChats.length === 0 ? (
         <p className="text-base text-pretty text-muted-foreground sm:text-sm">
           No chats in this project yet.
         </p>
       ) : (
         <ItemGroup className="flex flex-col gap-2">
-          {chats.map((chat) => (
+          {optimisticChats.map((chat) => (
             <Item
               className="relative has-[a:focus-visible]:border-ring has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50"
               key={chat.id}
@@ -85,13 +95,12 @@ export function ProjectChatsSection({
                 <Button
                   aria-label={`Remove ${chat.title} from Project`}
                   className="relative opacity-0 group-focus-within/item:opacity-100 group-hover/item:opacity-100 pointer-coarse:opacity-100"
-                  disabled={removingChatId !== null}
-                  onClick={() => void removeChatFromProject(chat.id)}
+                  onClick={() => removeChatFromProject(chat.id)}
                   size="icon-sm"
                   type="button"
                   variant="ghost"
                 >
-                  {removingChatId === chat.id ? <Spinner /> : <XIcon />}
+                  <XIcon />
                   <TouchTarget />
                 </Button>
               </ItemActions>

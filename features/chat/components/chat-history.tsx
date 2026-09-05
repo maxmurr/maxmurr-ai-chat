@@ -16,6 +16,7 @@ import {
 } from "@/features/chat/components/chat-conversation-item";
 import type { ChatDialogEntry } from "@/features/chat/components/chat-dialogs";
 import { useChatActivityPolling } from "@/features/chat/hooks/use-chat-activity-polling";
+import { useOptimisticChatList } from "@/features/chat/hooks/use-optimistic-chat-list";
 import {
   ProjectActions,
   type ProjectActionsEntry,
@@ -289,10 +290,11 @@ export function ChatHistory({
     ownChats,
     pathname,
   });
+  const optimisticOwnChats = useOptimisticChatList(currentOwnChats);
 
   return (
     <>
-      {groupOwnChats(currentOwnChats, projects).map((group) => (
+      {groupOwnChats(optimisticOwnChats, projects).map((group) => (
         <OwnChatHistoryGroup
           group={group}
           key={group.label}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { startTransition, useId, useOptimistic, useState } from "react";
 import { ThumbsDownIcon, ThumbsUpIcon, type LucideIcon } from "lucide-react";
 
 import { updateChatResponseFeedbackAction } from "@/features/chat/chat-actions";
@@ -24,7 +24,6 @@ import {
   FieldLegend,
   FieldSet,
 } from "@/components/ui/field";
-import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "@/components/ui/toast";
@@ -95,27 +94,24 @@ export function ChatMessageFeedback({
 }: ChatMessageFeedbackProps) {
   const [details, setDetails] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const [reasons, setReasons] = useState<ChatFeedbackReason[]>([]);
   const [submittedFeedback, setSubmittedFeedback] =
     useState<SubmittedChatFeedback>(null);
+  const [optimisticFeedback, setOptimisticFeedback] =
+    useOptimistic(submittedFeedback);
   const detailsId = useId();
   const reasonsId = useId();
-  const controlsDisabled = disabled || isPending;
 
   function updateChatResponseFeedback(
     value: SubmittedChatFeedback,
     selectedReasons: readonly ChatFeedbackReason[] = [],
     selectedDetails = ""
   ) {
-    if (isPending) {
-      return;
-    }
-
-    const previousFeedback = submittedFeedback;
-    setSubmittedFeedback(value);
+    if (value === "negative") setDialogOpen(false);
 
     startTransition(async () => {
+      setOptimisticFeedback(value);
+
       try {
         const result = await updateChatResponseFeedbackAction({
           chatId,
@@ -129,11 +125,13 @@ export function ChatMessageFeedback({
           throw new Error(result.error);
         }
 
-        setDetails("");
-        setDialogOpen(false);
-        setReasons([]);
+        startTransition(() => {
+          setSubmittedFeedback(value);
+          setDetails("");
+          setDialogOpen(false);
+          setReasons([]);
+        });
       } catch {
-        setSubmittedFeedback(previousFeedback);
         toast.add({
           description: "Try again.",
           title: "Feedback failed",
@@ -150,35 +148,31 @@ export function ChatMessageFeedback({
 
   return (
     <>
-      {submittedFeedback !== "negative" && (
-        <ChatMessageFeedbackButton
-          active={submittedFeedback === "positive"}
-          activeAriaLabel="Remove positive feedback"
-          disabled={controlsDisabled}
-          icon={ThumbsUpIcon}
-          label="Good response"
-          onClick={() =>
-            updateChatResponseFeedback(
-              submittedFeedback === "positive" ? null : "positive"
-            )
-          }
-        />
-      )}
+      <ChatMessageFeedbackButton
+        active={optimisticFeedback === "positive"}
+        activeAriaLabel="Remove positive feedback"
+        disabled={disabled}
+        icon={ThumbsUpIcon}
+        label="Good response"
+        onClick={() =>
+          updateChatResponseFeedback(
+            optimisticFeedback === "positive" ? null : "positive"
+          )
+        }
+      />
 
-      {submittedFeedback !== "positive" && (
-        <ChatMessageFeedbackButton
-          active={submittedFeedback === "negative"}
-          activeAriaLabel="Remove negative feedback"
-          disabled={controlsDisabled}
-          icon={ThumbsDownIcon}
-          label="Bad response"
-          onClick={() =>
-            submittedFeedback === "negative"
-              ? updateChatResponseFeedback(null)
-              : setDialogOpen(true)
-          }
-        />
-      )}
+      <ChatMessageFeedbackButton
+        active={optimisticFeedback === "negative"}
+        activeAriaLabel="Remove negative feedback"
+        disabled={disabled}
+        icon={ThumbsDownIcon}
+        label="Bad response"
+        onClick={() =>
+          optimisticFeedback === "negative"
+            ? updateChatResponseFeedback(null)
+            : setDialogOpen(true)
+        }
+      />
 
       <Dialog onOpenChange={setDialogOpen} open={dialogOpen}>
         <DialogContent className="sm:max-w-xl">
@@ -195,7 +189,7 @@ export function ChatMessageFeedback({
                 <ToggleGroup
                   aria-labelledby={reasonsId}
                   className="w-full flex-wrap justify-start"
-                  disabled={isPending}
+                  disabled={disabled}
                   multiple
                   onValueChange={(values) =>
                     setReasons(values as ChatFeedbackReason[])
@@ -224,7 +218,7 @@ export function ChatMessageFeedback({
                 <Textarea
                   autoComplete="off"
                   className="min-h-24"
-                  disabled={isPending}
+                  disabled={disabled}
                   id={detailsId}
                   maxLength={500}
                   name="details"
@@ -243,11 +237,10 @@ export function ChatMessageFeedback({
             <DialogFooter>
               <Button
                 className="pointer-coarse:h-11"
-                disabled={isPending || reasons.length === 0}
+                disabled={disabled || reasons.length === 0}
                 size="lg"
                 type="submit"
               >
-                {isPending && <Spinner data-icon="inline-start" />}
                 Submit
               </Button>
             </DialogFooter>

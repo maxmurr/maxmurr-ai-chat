@@ -43,7 +43,12 @@ export async function ChatPageShell({
     : [];
 
   return (
-    <ChatConversationTitleProvider key={chat.id} initialTitle={chat.title}>
+    <ChatConversationTitleProvider
+      chatId={chat.id}
+      key={chat.id}
+      initialTitle={chat.title}
+      isChatPersisted={isChatPersisted}
+    >
       <AppPageHeader
         actions={
           canManageChat ? (

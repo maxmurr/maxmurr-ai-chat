@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   createContext,
@@ -6,27 +6,36 @@ import {
   useState,
   type ComponentProps,
   type ReactNode,
-} from "react"
+} from "react";
 
-import { cn } from "@/lib/utils"
+import { useOptimisticChatEntry } from "@/features/chat/hooks/use-optimistic-chat-list";
+import { cn } from "@/lib/utils";
 
 type ChatConversationTitleContextValue = {
-  conversationTitle: string
-  setConversationTitle: (conversationTitle: string) => void
-}
+  conversationTitle: string;
+  setConversationTitle: (conversationTitle: string) => void;
+};
 
 const ChatConversationTitleContext =
-  createContext<ChatConversationTitleContextValue | null>(null)
+  createContext<ChatConversationTitleContextValue | null>(null);
 
 /** Shares active conversation title state between isolated client controls. */
 export function ChatConversationTitleProvider({
+  chatId,
   children,
   initialTitle,
+  isChatPersisted,
 }: {
-  children: ReactNode
-  initialTitle: string
+  chatId: string;
+  children: ReactNode;
+  initialTitle: string;
+  isChatPersisted: boolean;
 }) {
-  const [conversationTitle, setConversationTitle] = useState(initialTitle)
+  const [localConversationTitle, setConversationTitle] = useState(initialTitle);
+  const { title: conversationTitle } = useOptimisticChatEntry({
+    id: chatId,
+    title: isChatPersisted ? initialTitle : localConversationTitle,
+  });
 
   return (
     <ChatConversationTitleContext.Provider
@@ -34,20 +43,18 @@ export function ChatConversationTitleProvider({
     >
       {children}
     </ChatConversationTitleContext.Provider>
-  )
+  );
 }
 
 /** Reads and updates active conversation title state. */
 export function useChatConversationTitle() {
-  const context = useContext(ChatConversationTitleContext)
+  const context = useContext(ChatConversationTitleContext);
 
   if (!context) {
-    throw new Error(
-      "Chat conversation title context is missing its provider."
-    )
+    throw new Error("Chat conversation title context is missing its provider.");
   }
 
-  return context
+  return context;
 }
 
 /** Renders active conversation title after local rename changes. */
@@ -55,11 +62,11 @@ export function ChatConversationTitle({
   className,
   ...props
 }: Omit<ComponentProps<"p">, "children">) {
-  const { conversationTitle } = useChatConversationTitle()
+  const { conversationTitle } = useChatConversationTitle();
 
   return (
     <p className={cn("truncate text-base sm:text-sm", className)} {...props}>
       {conversationTitle}
     </p>
-  )
+  );
 }

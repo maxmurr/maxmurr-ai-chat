@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import {
+  startTransition,
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   EllipsisIcon,
@@ -17,6 +23,7 @@ import {
 } from "@/features/chat/components/chat-activity-indicator";
 import { ChatActionsMenuContent } from "@/features/chat/components/chat-actions-menu-content";
 import { ChatDeleteDialog } from "@/features/chat/components/chat-dialogs";
+import { dispatchOptimisticChatListAction } from "@/features/chat/hooks/use-optimistic-chat-list";
 import { ChatShareDialogContent } from "@/features/chat/components/chat-share-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -232,7 +239,16 @@ export function ChatConversationItem({
   });
 
   function toggleConversationPin() {
-    void pinChatAction(chat.id, !chat.pinned).then((result) => {
+    const nextPinned = !chat.pinned;
+
+    startTransition(async () => {
+      dispatchOptimisticChatListAction({
+        chatId: chat.id,
+        changes: { pinned: nextPinned },
+        type: "update",
+      });
+      const result = await pinChatAction(chat.id, nextPinned);
+
       if (!result.ok) {
         toast.add({
           description: result.error,
@@ -245,20 +261,26 @@ export function ChatConversationItem({
 
   function finishRenaming(value: string) {
     const nextTitle = value.trim();
-
-    if (nextTitle && nextTitle !== chat.title) {
-      void renameChatAction(chat.id, nextTitle).then((result) => {
-        if (!result.ok) {
-          toast.add({
-            description: result.error,
-            title: "Rename failed",
-            type: "error",
-          });
-        }
-      });
-    }
-
     setIsRenaming(false);
+
+    if (!nextTitle || nextTitle === chat.title) return;
+
+    startTransition(async () => {
+      dispatchOptimisticChatListAction({
+        chatId: chat.id,
+        changes: { title: nextTitle },
+        type: "update",
+      });
+      const result = await renameChatAction(chat.id, nextTitle);
+
+      if (!result.ok) {
+        toast.add({
+          description: result.error,
+          title: "Rename failed",
+          type: "error",
+        });
+      }
+    });
   }
 
   useEffect(() => {

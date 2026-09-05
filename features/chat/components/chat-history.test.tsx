@@ -8,6 +8,7 @@ import {
   groupOwnChats,
 } from "@/features/chat/components/chat-history";
 import { getChatActivityPollIntervalMs } from "@/features/chat/hooks/use-chat-activity-polling";
+import { reduceOptimisticChatList } from "@/features/chat/hooks/use-optimistic-chat-list";
 import type { ProjectActionsEntry } from "@/features/project/components/project-actions";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
@@ -104,6 +105,38 @@ test("chat grouping keeps pinned Project Chats inside and outside their folder",
     recentSection?.chats.map(({ id }) => id),
     ["project-recent-chat", "recent-chat"]
   );
+});
+
+test("optimistic Chat updates patch and delete list entries", () => {
+  const renamedChats = reduceOptimisticChatList(ownChats, {
+    chatId: "recent-chat",
+    changes: {
+      pinned: true,
+      projectId: "project-2",
+      projectName: "Backlog",
+      title: "Renamed chat",
+    },
+    type: "update",
+  });
+  const remainingChats = reduceOptimisticChatList(renamedChats, {
+    chatIds: ["pinned-chat"],
+    type: "delete",
+  });
+
+  assert.partialDeepStrictEqual(
+    remainingChats.find(({ id }) => id === "recent-chat"),
+    {
+      pinned: true,
+      projectId: "project-2",
+      projectName: "Backlog",
+      title: "Renamed chat",
+    }
+  );
+  assert.equal(
+    remainingChats.some(({ id }) => id === "pinned-chat"),
+    false
+  );
+  assert.equal(ownChats.at(-1)?.title, "Recent chat");
 });
 
 test("chat activity polling stays fast only while a response is active", () => {
