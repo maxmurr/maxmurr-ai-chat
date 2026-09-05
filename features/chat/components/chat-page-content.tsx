@@ -83,7 +83,7 @@ export function ChatPageContentSkeleton() {
             <Skeleton className="h-5 w-2/3 sm:h-4" />
           </div>
           <div className="flex items-end justify-end gap-2">
-            <Skeleton className="h-12 w-3/5 max-w-sm rounded-xl rounded-br-[4px] sm:w-2/5" />
+            <Skeleton className="h-12 w-3/5 max-w-sm rounded-xl rounded-br-lg sm:w-2/5" />
             <Skeleton className="size-8 shrink-0 rounded-full" />
           </div>
           <div className="flex w-4/5 min-w-0 flex-col gap-2">
